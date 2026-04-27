@@ -1,8 +1,11 @@
 /FamilyChef-Vercel
 ├── api/
-│   ├── auth.js       <-- Logowanie i rejestracja (Supabase)
-│   └── generate.js   <-- Silnik AI (Gemini 2.5 + Prompt Matrix)
-├── .env              <-- TWOJE KLUCZE (Pamiętaj: nie kopiuj go do dokumentacji!)
-├── index.html        <-- Interfejs (teraz połączony z Vercel API)
-├── vercel.json       <-- Konfiguracja Twojego serwera
-└── STRUCTURE.md      <-- Ta mapa
+│   ├── auth.js         # Logowanie (Działa)
+│   ├── generate.js     # Silnik AI (Działa)
+│   # DO ZROBIENIA:
+│   ├── recipes.js      # Zarządzanie przepisami (CRUD)
+│   └── shopping.js     # Listy zakupów
+├── .env                # Klucze (URL, ANON, SERVICE_ROLE, GEMINI)
+├── index.html          # Główny interfejs (Zaktualizowany pod Vercel)
+├── package.json        # Zależności (@supabase/supabase-js)
+└── vercel.json         # Konfiguracja Vercel
