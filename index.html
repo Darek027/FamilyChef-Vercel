@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="pl" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base target="_top">
+    <title>Family Chef | Twój Asystent</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Family Chef">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0d9488">
+   
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3565/3565401.png">
+    <link rel="shortcut icon" href="https://cdn-icons-png.flaticon.com/512/3565/3565401.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+                    colors: { brand: { 50: '#f0fdfa', 100: '#ccfbf1', 500: '#14b8a6', 600: '#0d9488', 900: '#134e4a' } }
+                }
+            }
+        }
+    </script>
+    <style>
+        .gradient-text { background: linear-gradient(135deg, #0d9488 0%, #3b82f6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .app-blob { background: radial-gradient(circle, rgba(20,184,166,0.1) 0%, rgba(255,255,255,0) 70%); }
+        /* Styl ukrywający strzałkę selecta dla czystszego wyglądu etykiety */
+        .select-hide-arrow { -webkit-appearance: none; -moz-appearance: none; appearance: none; text-align: center; }
+        /* WERSJA 1.21.0 - Ukrywanie paska scrollowania na telefonach */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .item-checked { text-decoration: line-through; color: #94a3b8; background-color: #f8fafc; }
+    </style>
+</head>
+<body class="font-sans text-slate-800 antialiased bg-slate-50 min-h-screen flex flex-col">
+
+
+
+
+    <div id="auth-overlay" class="fixed inset-0 bg-slate-50 z-[100] flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl border border-slate-100 max-w-md w-full text-center relative overflow-hidden">
+            <div class="absolute inset-0 app-blob z-0 opacity-50"></div>
+            <div class="relative z-10">
+                <div class="bg-brand-500 text-white p-4 rounded-2xl shadow-sm inline-block mb-6">
+                    <i data-lucide="chef-hat" class="w-10 h-10"></i>
+                </div>
+                <h2 class="text-3xl font-extrabold text-slate-900 mb-2">Witaj w kuchni!</h2>
+                <div class="space-y-4 mt-8">
+                    <input type="email" id="loginEmail" placeholder="twoj@email.com" class="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-brand-500 outline-none transition text-slate-700 text-center text-lg font-medium">
+                    <button onclick="processAuth()" id="authBtn" class="w-full bg-brand-600 text-white px-8 py-4 rounded-2xl text-lg font-bold hover:bg-brand-700 transition shadow-lg shadow-brand-500/30 flex items-center justify-center gap-2">
+                        <i data-lucide="log-in" class="w-5 h-5"></i> Wejdź
+                    </button>
+                    <p id="authErrorMsg" class="text-red-500 text-sm hidden mt-2 font-semibold"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+
+<div id="app-container" class="hidden flex-grow flex-col">
+
+
+
+
+<nav class="w-full z-50 bg-white/80 backdrop-blur-lg border-b border-slate-100 sticky top-0">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <div class="flex items-center gap-2">
+                    <div class="bg-brand-500 text-white p-2 rounded-lg shadow-sm">
+                        <i data-lucide="chef-hat" class="w-5 h-5"></i>
+                    </div>
+                    <span class="font-bold text-xl tracking-tight text-slate-900">Family Chef</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span class="hidden md:flex text-sm font-semibold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">Wersja 1.21.0</span>
+                    <button onclick="logoutUser()" class="text-slate-400 hover:text-red-500 transition-colors bg-slate-50 p-2 rounded-full" title="Wyloguj">
+                         <i data-lucide="log-out" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+
+
+
+<div class="w-full bg-white border-b border-slate-200">
+        <div class="max-w-5xl mx-auto px-2 sm:px-4 flex flex-wrap justify-center gap-2 sm:gap-4">
+            <button onclick="switchTab('generator')" id="tab-generator" class="py-3 px-2 font-bold text-brand-600 border-b-2 border-brand-600 flex gap-2 text-sm sm:text-base"><i data-lucide="sparkles" class="w-4 h-4 sm:w-5 sm:h-5"></i> Kreator</button>
+            <button onclick="switchTab('dashboard')" id="tab-dashboard" class="py-3 px-2 font-semibold text-slate-500 border-b-2 border-transparent flex gap-2 text-sm sm:text-base"><i data-lucide="book-open" class="w-4 h-4 sm:w-5 sm:h-5"></i> Przepisy</button>
+            <button onclick="switchTab('shopping')" id="tab-shopping" class="py-3 px-2 font-semibold text-slate-500 border-b-2 border-transparent flex gap-2 text-sm sm:text-base"><i data-lucide="shopping-cart" class="w-4 h-4 sm:w-5 sm:h-5"></i> Zakupy</button>
+            <button onclick="switchTab('profile')" id="tab-profile" class="py-3 px-2 font-semibold text-slate-500 border-b-2 border-transparent flex gap-2 text-sm sm:text-base"><i data-lucide="user" class="w-4 h-4 sm:w-5 sm:h-5"></i> Profil</button>
+        </div>
+    </div>
+
+
+
+
+    <main class="flex-grow relative pt-8 pb-20 overflow-hidden">
+        <div class="absolute inset-0 app-blob z-0"></div>
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+           
+            <div id="view-generator" class="block max-w-3xl mx-auto">
+                <div class="text-center mb-10">
+                    <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 mb-4">
+                        Na co masz dzisiaj <span class="gradient-text">ochotę?</span>
+                    </h1>
+                </div>
+
+
+
+
+                <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 mb-8">
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <div class="relative flex-grow">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                                <i data-lucide="search" class="w-5 h-5"></i>
+                            </div>
+                            <input type="text" id="userInput" placeholder="Np. Szybki obiad z kurczakiem..." class="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-brand-500 outline-none transition text-slate-700 text-lg">
+                        </div>
+                        <button id="submitBtn" onclick="askChef()" class="bg-brand-600 text-white px-8 py-4 rounded-2xl text-lg font-bold hover:bg-brand-700 transition shadow-lg shadow-brand-500/30 flex items-center justify-center gap-2 shrink-0">
+                            <i data-lucide="wand-2" class="w-5 h-5"></i> Gotujmy!
+                        </button>
+                    </div>
+                    <div id="loadingMsg" class="hidden mt-6 text-center text-brand-600 font-semibold animate-pulse flex items-center justify-center gap-2"></div>
+                </div>
+
+
+
+
+                <div id="recipeContainer" class="hidden bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden">
+                    <div class="bg-gradient-to-r from-brand-600 to-brand-500 p-8 text-white relative">
+                        <div class="absolute top-4 right-8 z-20 flex items-center gap-1 group">
+                            <select id="recipeCategorySelect" onchange="changeCategoryHandler(this.value)" class="select-hide-arrow bg-white/20 text-white text-xs uppercase font-bold px-3 py-1 rounded-full backdrop-blur-sm border-none outline-none cursor-pointer hover:bg-white/30 transition shadow-sm">
+                                <option value="Inne" class="text-slate-800">Wczytywanie...</option>
+                            </select>
+                            <i data-lucide="pencil" class="w-3 h-3 text-white/50 group-hover:text-white transition"></i>
+                        </div>
+                        <h2 id="recipeTitle" class="text-3xl font-bold leading-tight mt-2"></h2>
+                    </div>
+                   
+                    <div class="p-8">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <div class="md:col-span-1 bg-brand-50/50 p-6 rounded-2xl border border-brand-100/50 h-fit">
+                                <h3 class="font-bold text-lg text-slate-900 mb-4"><i data-lucide="shopping-cart" class="w-5 h-5 inline text-brand-500 mr-2"></i> Składniki</h3>
+                                <ul id="recipeIngredients" class="space-y-3 text-slate-700 text-sm list-disc pl-5 marker:text-brand-400"></ul>
+                            </div>
+                            <div class="md:col-span-2">
+                                <h3 class="font-bold text-lg text-slate-900 mb-4"><i data-lucide="list-ordered" class="w-5 h-5 inline text-brand-500 mr-2"></i> Instrukcje</h3>
+                                <ol id="recipeInstructions" class="space-y-4 text-slate-700 text-sm list-decimal pl-5 marker:font-bold marker:text-slate-400"></ol>
+                            </div>
+                        </div>
+
+
+
+
+                        <div id="feedbackContainer" class="mt-10 p-6 bg-slate-50 border border-slate-200 rounded-2xl">
+                            <h4 class="font-bold text-slate-900 mb-2">Coś zmienić?</h4>
+                            <div class="flex flex-col sm:flex-row gap-3">
+                                <input type="text" id="feedbackInput" placeholder="Np. Usuń czosnek..." class="flex-grow px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none text-slate-700">
+                                <button onclick="sendFeedback()" class="bg-slate-800 text-white px-6 py-3 rounded-xl font-semibold hover:bg-slate-700 transition">Popraw</button>
+                            </div>
+                        </div>
+                       
+                        <div id="actionButtonsDraft" class="mt-6 pt-6 border-t border-slate-100 flex flex-col sm:flex-row gap-4 justify-center">
+                            <button id="saveOnlyBtn" onclick="saveOnlyAction()" class="flex-1 inline-flex items-center justify-center gap-2 bg-slate-800 text-white border border-slate-800 px-8 py-4 rounded-xl font-bold text-lg hover:bg-slate-700 transition">
+                                <i data-lucide="save" class="w-5 h-5"></i> Zapisz do bazy
+                            </button>
+                            <button id="saveEmailBtn" onclick="confirmAndSend()" class="flex-1 inline-flex items-center justify-center gap-2 bg-brand-50 text-brand-700 border border-brand-200 px-8 py-4 rounded-xl font-bold text-lg hover:bg-brand-100 transition group">
+                                <i data-lucide="mail" class="w-5 h-5 text-brand-500 group-hover:scale-110 transition-transform"></i> Zapisz i wyślij PDF
+                            </button>
+                        </div>
+
+
+
+
+                        <div id="actionButtonsSaved" class="hidden mt-6 pt-6 border-t border-slate-100 text-center">
+                            <button onclick="confirmAndSend()" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-brand-50 text-brand-700 border border-brand-200 px-8 py-4 rounded-xl font-bold text-lg hover:bg-brand-100 transition group">
+                                <i data-lucide="mail" class="w-5 h-5 text-brand-500 group-hover:scale-110 transition-transform"></i> Wyślij jako PDF na maila
+                            </button>
+                        </div>
+
+
+
+
+                    </div>
+                </div>
+            </div>
+
+
+
+
+            <div id="view-dashboard" class="hidden">
+                <div class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-slate-200 pb-6">
+                    <div>
+                        <h2 class="text-3xl font-extrabold text-slate-900">Ulubione Przepisy</h2>
+                        <p class="text-slate-500 mt-2">Baza kulinarna stworzona przez naszą rodzinę.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-3 w-full md:w-auto bg-white p-2 rounded-2xl shadow-sm border border-slate-100">
+                        <select id="filterUser" onchange="applyFilters()" class="px-4 py-2 bg-slate-50 border-none rounded-xl outline-none text-slate-700 cursor-pointer text-sm font-semibold hover:bg-slate-100 transition"><option value="all">Wszyscy kucharze</option></select>
+                        <select id="filterCategory" onchange="applyFilters()" class="px-4 py-2 bg-slate-50 border-none rounded-xl outline-none text-slate-700 cursor-pointer text-sm font-semibold hover:bg-slate-100 transition"><option value="all">Wszystkie kategorie</option></select>
+                        <button onclick="loadDashboard()" class="text-brand-600 hover:text-brand-700 p-2 bg-brand-50 rounded-xl transition shrink-0 ml-auto" title="Odśwież z bazy"><i data-lucide="refresh-cw" class="w-5 h-5"></i></button>
+                    </div>
+                </div>
+                <div id="dashboard-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            </div>
+           
+            <div id="view-shopping" class="hidden w-full">
+               
+                <div id="shoppingDashView" class="block">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-3xl font-extrabold text-slate-900">Listy Zakupów</h2>
+                        <button onclick="fetchShoppingLists()" class="bg-brand-50 text-brand-600 px-4 py-2 rounded-xl hover:bg-brand-100 transition shadow-sm"><i data-lucide="refresh-cw" class="w-5 h-5"></i></button>
+                    </div>
+                    <div id="shoppingListsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div class="col-span-full text-center py-10 text-slate-400"><i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2"></i> Ładowanie...</div>
+                    </div>
+                </div>
+
+
+                <div id="shoppingDetailView" class="hidden">
+                    <div class="flex justify-between items-center mb-6 gap-3">
+                        <button onclick="showShoppingDash()" class="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl font-bold flex gap-2 items-center hover:bg-slate-50 transition"><i data-lucide="arrow-left" class="w-4 h-4"></i></button>
+                        <h2 id="activeShoppingTitle" class="text-xl font-extrabold text-slate-900 truncate flex-grow text-center">Zakupy</h2>
+                        <button id="sendShoppingEmailBtn" onclick="sendShoppingPDF()" class="bg-brand-50 text-brand-700 px-4 py-2 rounded-xl font-bold flex gap-2 items-center hover:bg-brand-100 transition"><i data-lucide="mail" class="w-4 h-4"></i> PDF</button>
+                    </div>
+                   
+                    <div id="shoppingListContainer" class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 min-h-[200px]">
+                        <div id="shoppingContent" class="space-y-6"></div>
+                        <button id="clearShoppingBtn" onclick="deleteActiveShoppingList()" class="w-full mt-8 bg-red-50 text-red-600 font-bold py-3 rounded-xl border border-red-100 hover:bg-red-100 transition">Usuń tę listę</button>
+                    </div>
+                </div>
+
+
+            </div>
+
+
+            <div id="view-profile" class="hidden max-w-2xl mx-auto">
+                <div class="mb-8"><h2 class="text-3xl font-extrabold text-slate-900">Ustawienia Konta</h2></div>
+                <div class="bg-white p-8 rounded-3xl shadow-xl border border-slate-100">
+                    <div class="space-y-6">
+                        <div><label class="block text-sm font-bold text-slate-700 mb-2">Zalogowano jako:</label><div class="flex items-center gap-3 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-500 font-mono text-sm opacity-80 cursor-not-allowed"><i data-lucide="mail" class="w-4 h-4"></i><span id="profileEmailDisplay"></span></div></div>
+                        <div><label class="block text-sm font-bold text-slate-700 mb-2">Twoje ID Rodziny (FamilyID)</label><input type="text" id="profileFamilyId" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700"></div>
+                        <div><label class="block text-sm font-bold text-slate-700 mb-2">Preferencje dietetyczne (dla AI)</label><textarea id="profilePreferences" rows="4" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700 resize-none"></textarea></div>
+                        <button onclick="saveUserProfile()" id="saveProfileBtn" class="w-full bg-slate-800 text-white px-8 py-4 rounded-xl text-lg font-bold hover:bg-slate-700 transition flex items-center justify-center gap-2"><i data-lucide="save" class="w-5 h-5"></i> Zapisz zmiany</button>
+                    </div>
+                </div>
+            </div>
+
+
+
+
+        </div>
+        <div id="shoppingListFab" class="fixed bottom-6 left-0 right-0 px-4 z-50 hidden pointer-events-none">
+            <div class="max-w-xs mx-auto flex justify-center">
+                <button onclick="generateShoppingListAction()" class="w-full bg-slate-900 text-white px-6 py-4 rounded-full shadow-2xl font-bold flex justify-center gap-3 pointer-events-auto border-4 border-slate-700 hover:bg-slate-800 transition hover:scale-105">
+                    <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+                    <span>Stwórz Listę (<span id="shoppingListCount">0</span>)</span>
+                </button>
+            </div>
+        </div>
+    </main>
+</div>
+
+
+<script>
+        lucide.createIcons();
+        let currentRecipeData = null;
+        let allSavedRecipes = [];
+        let filteredRecipes = [];
+        let currentUserEmail = null;
+        let currentUserProfile = null;
+       
+        let uniqueCategories = [];
+        let selectedRecipesForShopping = [];
+
+
+        // ===============================================
+        // LOGIKA ZAKUPÓW (WIELE LIST) - V 1.28.0
+        // ===============================================
+
+
+        let allShoppingLists = [];
+        let activeShoppingListId = null;
+        let activeShoppingTitle = "";
+        let activeShoppingListArray = [];
+
+
+        window.onload = function() {
+            lucide.createIcons();
+            const storedEmail = localStorage.getItem('familyChefEmail');
+            const magicEmail = window.MAGIC_LINK_EMAIL;
+           
+            // LOGIKA KASKADOWA:
+            if (magicEmail && magicEmail !== "") {
+                localStorage.setItem('familyChefEmail', magicEmail);
+                verifyUserInDatabase(magicEmail);
+            } else if (storedEmail) {
+                verifyUserInDatabase(storedEmail);
+            } else {
+                document.getElementById('auth-overlay').classList.remove('hidden');
+                document.getElementById('app-container').classList.add('hidden');
+            }
+        };
+
+
+        function processAuth() {
+            const emailInput = document.getElementById('loginEmail').value.trim().toLowerCase();
+            if (!emailInput || !emailInput.includes('@')) return alert("Błędny email");
+            document.getElementById('authBtn').innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Autoryzacja...`;
+            verifyUserInDatabase(emailInput);
+        }
+
+
+// WERSJA 2.0.0 - MIGRACJA NA VERCEL: Logowanie (Supabase API)
+        async function verifyUserInDatabase(email) {
+            try {
+                // 1. Uderzamy do naszego nowego bezserwerowego endpointu na Vercelu
+                const response = await fetch('/api/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email })
+                });
+                
+                const res = await response.json();
+
+                if (res.status === 'success') {
+                    // 2. Autoryzacja udana - zapisujemy dane sesji
+                    localStorage.setItem('familyChefEmail', res.data.email);
+                    currentUserEmail = res.data.email; 
+                    currentUserProfile = res.data;
+                    
+                    // 3. Odblokowanie interfejsu (Zdejmujemy Paywall/Auth)
+                    document.getElementById('auth-overlay').classList.add('hidden');
+                    document.getElementById('app-container').classList.remove('hidden');
+                    document.getElementById('app-container').classList.add('flex');
+                    
+                    // UWAGA: Funkcje pobierające dane są tymczasowo wyciszone, 
+                    // dopóki nie zbudujemy dla nich endpointów w kolejnym kroku!
+                    // loadDashboard();
+                    // fetchShoppingLists();
+                    
+                    lucide.createIcons();
+                } else {
+                    document.getElementById('authErrorMsg').innerText = res.message;
+                    document.getElementById('authErrorMsg').classList.remove('hidden');
+                    document.getElementById('authBtn').innerHTML = `<i data-lucide="log-in" class="w-5 h-5"></i> Wejdź`;
+                }
+            } catch (error) {
+                console.error(error);
+                document.getElementById('authErrorMsg').innerText = "Krytyczny błąd połączenia z serwerem.";
+                document.getElementById('authErrorMsg').classList.remove('hidden');
+                document.getElementById('authBtn').innerHTML = `<i data-lucide="log-in" class="w-5 h-5"></i> Wejdź`;
+            }
+        }
+       
+        function logoutUser() { localStorage.removeItem('familyChefEmail'); location.reload(); }
+
+
+        function switchTab(tabName) {
+            ['generator', 'dashboard', 'shopping', 'profile'].forEach(tab => {
+                document.getElementById('tab-' + tab).className = "py-4 font-semibold text-slate-500 border-b-2 border-transparent hover:text-brand-600 flex items-center gap-2 transition-colors shrink-0";
+                document.getElementById('view-' + tab).classList.add('hidden');
+            });
+            document.getElementById('tab-' + tabName).className = "py-4 font-bold text-brand-600 border-b-2 border-brand-600 flex items-center gap-2 transition-colors shrink-0";
+            document.getElementById('view-' + tabName).classList.remove('hidden');
+
+
+            if(tabName === 'dashboard') { loadDashboard(); document.getElementById('shoppingListFab').style.display = selectedRecipesForShopping.length > 0 ? 'block' : 'none'; }
+            else { document.getElementById('shoppingListFab').style.display = 'none'; }
+           
+            if(tabName === 'shopping') showShoppingDash(); // Przełącza na Dashboard list
+            if(tabName === 'profile') loadProfileData();
+        }
+
+
+        function loadDashboard() {
+            var grid = document.getElementById("dashboard-grid");
+            grid.innerHTML = `<div class="col-span-full text-center py-12 text-slate-400 font-semibold"><i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto mb-3 text-brand-500"></i> Odświeżanie bazy...</div>`;
+            lucide.createIcons();
+            google.script.run
+                .withSuccessHandler(response => {
+                    if(!response || response.status !== "success" || !response.data) return;
+                    allSavedRecipes = response.data;
+                    uniqueCategories = [...new Set(allSavedRecipes.map(r => r.category || 'Inne'))];
+                    populateFilters(); applyFilters();
+                })
+                .getSavedRecipes(currentUserEmail);
+        }
+
+
+        function populateFilters() {
+            const userSelect = document.getElementById('filterUser');
+            const catSelect = document.getElementById('filterCategory');
+            userSelect.innerHTML = '<option value="all">👨‍👩‍👧 Wszyscy kucharze</option>';
+            catSelect.innerHTML = '<option value="all">🍽️ Wszystkie kategorie</option>';
+           
+            const users = [...new Set(allSavedRecipes.map(r => String(r.author).trim().toLowerCase()))];
+            users.forEach(u => userSelect.innerHTML += `<option value="${u}">${u.split('@')[0]}${u===currentUserEmail ? " (Ty)" : ""}</option>`);
+            uniqueCategories.forEach(c => catSelect.innerHTML += `<option value="${c}">${c}</option>`);
+        }
+
+
+        function applyFilters() {
+            const uFilter = document.getElementById('filterUser').value;
+            const cFilter = document.getElementById('filterCategory').value;
+            filteredRecipes = allSavedRecipes.filter(r => (uFilter==='all' || String(r.author).trim().toLowerCase()===uFilter) && (cFilter==='all' || (r.category||'Inne')===cFilter));
+            renderGrid(filteredRecipes);
+        }
+
+
+        function renderGrid(recipesToRender) {
+            var grid = document.getElementById("dashboard-grid");
+            grid.innerHTML = "";
+            recipesToRender.forEach(recipe => {
+                let isMe = String(recipe.author).trim().toLowerCase() === currentUserEmail;
+                let deleteBtnHtml = isMe ? `<button onclick="event.stopPropagation(); deleteRecipeAction('${recipe.id}')" class="absolute bottom-4 right-4 text-slate-300 hover:text-red-500 transition p-2 rounded-full hover:bg-red-50 z-20"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : '';
+               
+                let isChecked = selectedRecipesForShopping.includes(recipe.id) ? 'checked' : '';
+               
+                var card = document.createElement('div');
+                let borderClass = isChecked ? 'border-brand-400 ring-2 ring-brand-100 shadow-md' : 'border-slate-100 shadow-sm';
+                card.className = `bg-white p-6 rounded-3xl ${borderClass} border hover:border-brand-200 hover:shadow-md transition cursor-pointer group relative flex flex-col`;
+                card.onclick = function() { openRecipe(recipe.id); };
+               
+                card.innerHTML = `
+                    <div class="absolute top-4 right-4 bg-slate-50 text-slate-400 p-2 rounded-full group-hover:bg-brand-500 group-hover:text-white transition z-10"><i data-lucide="external-link" class="w-4 h-4"></i></div>
+                   
+                    <div class="flex items-center gap-2 mb-3 relative z-20">
+                        <input type="checkbox" ${isChecked} onclick="event.stopPropagation(); toggleCart('${recipe.id}')" class="w-5 h-5 accent-brand-600 rounded cursor-pointer shrink-0">
+                        <span class="bg-brand-50 text-brand-600 border border-brand-100 text-[10px] uppercase font-bold px-2 py-1 rounded-md tracking-wider overflow-hidden text-ellipsis whitespace-nowrap">${recipe.category || 'Inne'}</span>
+                    </div>
+
+
+                    <h3 class="font-bold text-lg text-slate-900 leading-tight mb-2 pr-8">${recipe.title || 'Bez tytułu'}</h3>
+                    <p class="text-xs text-slate-500 font-mono mb-4 flex items-center gap-1"><i data-lucide="user" class="w-3 h-3"></i> ${String(recipe.author).split('@')[0]} &bull; ${recipe.date ? new Date(recipe.date).toLocaleDateString() : ''}</p>
+                    <div class="mt-auto pt-4 border-t border-slate-50 relative"><p class="text-sm text-slate-600 line-clamp-2 pr-10">${String(recipe.ingredients||'').replace(/\n/g, ', ')}</p>${deleteBtnHtml}</div>
+                `;
+                grid.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+
+        function toggleCart(id) {
+            const idx = selectedRecipesForShopping.indexOf(id);
+            if (idx > -1) selectedRecipesForShopping.splice(idx, 1); else selectedRecipesForShopping.push(id);
+            const fab = document.getElementById("shoppingListFab");
+            if (selectedRecipesForShopping.length > 0) { fab.style.display = 'block'; document.getElementById("shoppingListCount").innerText = selectedRecipesForShopping.length; }
+            else fab.style.display = 'none';
+            renderGrid(filteredRecipes);
+        }
+
+
+        function populateCategoryDropdown(activeCat) {
+            const select = document.getElementById("recipeCategorySelect");
+            select.innerHTML = '';
+            uniqueCategories.forEach(c => {
+                select.innerHTML += `<option value="${c}" class="text-slate-800">${c}</option>`;
+            });
+            if (!uniqueCategories.includes(activeCat)) {
+                select.innerHTML += `<option value="${activeCat}" class="text-slate-800">${activeCat}</option>`;
+            }
+            select.innerHTML += `<option value="NEW_CUSTOM" class="text-brand-600 font-bold">+ DODAJ NOWĄ</option>`;
+            select.value = activeCat;
+        }
+
+
+        function changeCategoryHandler(newVal) {
+            if (newVal === "NEW_CUSTOM") {
+                const customCat = prompt("Wpisz nową kategorię (np. Śniadanie, Wegańskie):");
+                if (customCat && customCat.trim() !== "") {
+                    newVal = customCat.trim();
+                    const select = document.getElementById("recipeCategorySelect");
+                    select.innerHTML = `<option value="${newVal}" class="text-slate-800">${newVal}</option>` + select.innerHTML;
+                    select.value = newVal;
+                } else {
+                    populateCategoryDropdown(currentRecipeData.category);
+                    return;
+                }
+            }
+            currentRecipeData.category = newVal;
+            if (currentRecipeData.id && String(currentRecipeData.author).trim().toLowerCase() === currentUserEmail) {
+                google.script.run
+                    .withSuccessHandler(res => { console.log(res.message); loadDashboard(); })
+                    .updateRecipeCategory(currentRecipeData.id, newVal, currentUserEmail);
+            }
+        }
+
+
+        function setActionButtonsMode(isSaved) {
+            if (isSaved) {
+                document.getElementById('actionButtonsDraft').classList.add('hidden');
+                document.getElementById('actionButtonsSaved').classList.remove('hidden');
+            } else {
+                document.getElementById('actionButtonsDraft').classList.remove('hidden');
+                document.getElementById('actionButtonsSaved').classList.add('hidden');
+            }
+        }
+
+
+        function openRecipe(id) {
+            const recipe = allSavedRecipes.find(r => r.id === id);
+            if (!recipe) return;
+            currentRecipeData = {
+                id: recipe.id,
+                author: recipe.author,
+                title: recipe.title,
+                ingredients: typeof recipe.ingredients === 'string' ? recipe.ingredients.split('\n') : recipe.ingredients,
+                instructions: typeof recipe.instructions === 'string' ? recipe.instructions.split('\n') : recipe.instructions,
+                category: recipe.category || 'Inne'
+            };
+            populateCategoryDropdown(currentRecipeData.category);
+            document.getElementById("recipeTitle").innerText = currentRecipeData.title;
+            var ingList = document.getElementById("recipeIngredients");
+            ingList.innerHTML = ""; currentRecipeData.ingredients.forEach(i => { if(i) { let li = document.createElement("li"); li.innerText = i; ingList.appendChild(li); }});
+            var instList = document.getElementById("recipeInstructions");
+            instList.innerHTML = ""; currentRecipeData.instructions.forEach(i => { if(i) { let li = document.createElement("li"); li.innerText = i; instList.appendChild(li); }});
+
+
+            setActionButtonsMode(true);
+            switchTab('generator');
+            document.getElementById("recipeContainer").classList.remove("hidden");
+            document.getElementById("feedbackContainer").style.display = "block";
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+
+// WERSJA 3.0.0 - MIGRACJA NA VERCEL: Silnik AI (askChef & sendFeedback)
+        async function askChef() {
+            var inputField = document.getElementById("userInput");
+            if (!inputField.value) return alert("Wpisz pomysł!");
+            startLoadingProcess("Szef kuchni pracuje... 👨‍🍳");
+            
+            try {
+                // Uderzamy do nowego serwera na Vercelu zamiast do Google Apps Script
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: currentUserEmail,
+                        userMessage: inputField.value,
+                        isAdjustment: false,
+                        previousRecipe: null
+                    })
+                });
+                
+                const res = await response.json();
+                
+                if (res.status === 'success') {
+                    // Pakujemy odpowiedź tak, by stare funkcje UI (onSuccess) ją zrozumiały
+                    onSuccess({ status: "success", data: res.recipe });
+                    inputField.value = "";
+                } else {
+                    onFailure({ message: res.message });
+                }
+            } catch (error) {
+                console.error(error);
+                onFailure({ message: "Krytyczny błąd połączenia z serwerem." });
+            }
+        }
+
+        async function sendFeedback() {
+            var feedbackInput = document.getElementById("feedbackInput");
+            if (!feedbackInput.value) return alert("Napisz co zmienić!");
+            startLoadingProcess("Koryguję... 🔄");
+            
+            try {
+                // Uderzamy do Vercela w trybie "Pętli Konwersacyjnej"
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: currentUserEmail,
+                        userMessage: feedbackInput.value,
+                        isAdjustment: true,
+                        previousRecipe: currentRecipeData
+                    })
+                });
+                
+                const res = await response.json();
+                
+                if (res.status === 'success') {
+                    onSuccess({ status: "success", data: res.recipe });
+                    feedbackInput.value = "";
+                } else {
+                    onFailure({ message: res.message });
+                }
+            } catch (error) {
+                console.error(error);
+                onFailure({ message: "Krytyczny błąd połączenia z serwerem." });
+            }
+        }
+
+
+        function startLoadingProcess(msg) {
+            document.getElementById("loadingMsg").innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i><span>${msg}</span>`;
+            document.getElementById("loadingMsg").classList.remove("hidden"); document.getElementById("loadingMsg").classList.add("flex");
+            document.getElementById("recipeContainer").classList.add("hidden"); document.getElementById("submitBtn").disabled = true; lucide.createIcons();
+        }
+
+
+        function onSuccess(response) {
+            document.getElementById("loadingMsg").classList.add("hidden"); document.getElementById("submitBtn").disabled = false;
+            if (response.status === "success") {
+                currentRecipeData = response.data;
+                populateCategoryDropdown(currentRecipeData.category || "Inne");
+                document.getElementById("recipeTitle").innerText = currentRecipeData.title;
+                var ingList = document.getElementById("recipeIngredients");
+                ingList.innerHTML = ""; currentRecipeData.ingredients.forEach(i => { let li = document.createElement("li"); li.innerText = i; ingList.appendChild(li); });
+                var instList = document.getElementById("recipeInstructions");
+                instList.innerHTML = ""; currentRecipeData.instructions.forEach(i => { let li = document.createElement("li"); li.innerText = i; instList.appendChild(li); });
+                setActionButtonsMode(false);
+                document.getElementById("recipeContainer").classList.remove("hidden");
+                document.getElementById("feedbackContainer").style.display = "block";
+                document.getElementById("feedbackInput").value = "";
+            } else alert("Błąd: " + response.message);
+        }
+
+
+        function onFailure(error) {
+            document.getElementById("loadingMsg").classList.add("hidden"); document.getElementById("submitBtn").disabled = false;
+            alert("Błąd połączenia: " + error.message);
+        }
+
+
+        function saveOnlyAction() {
+            if (!currentRecipeData) return;
+            var btn = document.getElementById("saveOnlyBtn");
+            var originalHtml = btn.innerHTML;
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Zapisywanie...`;
+            btn.disabled = true; lucide.createIcons();
+            google.script.run
+                .withSuccessHandler(res => {
+                    alert(res.message);
+                    btn.innerHTML = `<i data-lucide="check" class="w-5 h-5"></i> Zapisano!`;
+                    lucide.createIcons();
+                    setTimeout(() => {
+                        currentRecipeData.id = "temporary_saved";
+                        setActionButtonsMode(true);
+                        btn.innerHTML = originalHtml; btn.disabled = false;
+                    }, 2000);
+                })
+                .saveRecipeOnly(currentRecipeData, currentUserEmail);
+        }
+
+
+        function confirmAndSend() {
+            if (!currentRecipeData) return;
+            var isSavedMode = currentRecipeData.id ? true : false;
+            var btnId = isSavedMode ? "actionButtonsSaved" : "saveEmailBtn";
+            var btn = isSavedMode ? document.querySelector('#actionButtonsSaved button') : document.getElementById(btnId);
+            var originalHtml = btn.innerHTML;
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Wysyłanie...`;
+            btn.disabled = true; lucide.createIcons();
+            google.script.run
+                .withSuccessHandler(function(response) {
+                    alert(response.message);
+                    btn.innerHTML = `<i data-lucide="check-circle" class="w-5 h-5"></i> Wysłano!`;
+                    lucide.createIcons();
+                    setTimeout(() => {
+                        if (!isSavedMode) currentRecipeData.id = "temporary_saved";
+                        setActionButtonsMode(true);
+                        btn.innerHTML = originalHtml; btn.disabled = false; lucide.createIcons();
+                    }, 3000);
+                })
+                .withFailureHandler(err => { alert("Błąd: " + err.message); btn.innerHTML = originalHtml; btn.disabled = false; lucide.createIcons(); })
+                .saveAndEmailFinalRecipe(currentRecipeData, currentUserEmail);
+        }
+
+
+        function loadProfileData() {
+            if (currentUserProfile) {
+                document.getElementById('profileEmailDisplay').innerText = currentUserEmail;
+                document.getElementById('profileFamilyId').value = currentUserProfile.familyId === "undefined" ? "" : currentUserProfile.familyId;
+                document.getElementById('profilePreferences').value = currentUserProfile.preferences === "Brak specjalnych wytycznych" ? "" : currentUserProfile.preferences;
+            }
+        }
+
+
+        function saveUserProfile() {
+            const fId = document.getElementById('profileFamilyId').value;
+            const pref = document.getElementById('profilePreferences').value || "Brak wytycznych";
+            const btn = document.getElementById('saveProfileBtn'); const oHtml = btn.innerHTML;
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Zapisywanie...`; btn.disabled = true; lucide.createIcons();
+            google.script.run
+                .withSuccessHandler(res => { if(res.status==='success') { btn.innerHTML = `<i data-lucide="check" class="w-5 h-5 text-green-400"></i> Zapisano`; currentUserProfile.familyId=fId; currentUserProfile.preferences=pref; } else { alert(res.message); btn.innerHTML=oHtml; } setTimeout(() => { btn.innerHTML=oHtml; btn.disabled=false; lucide.createIcons(); }, 3000); })
+                .updateUserProfile(currentUserEmail, fId, pref);
+        }
+
+
+        function deleteRecipeAction(recipeId) {
+            if (!confirm("Trwale usunąć ten przepis?")) return;
+            var grid = document.getElementById("dashboard-grid"); grid.innerHTML = `<div class="col-span-full text-center py-12 text-slate-400 font-semibold"><i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto mb-3 text-red-500"></i> Usuwanie...</div>`; lucide.createIcons();
+            google.script.run
+                .withSuccessHandler(res => { loadDashboard(); })
+                .deleteRecipe(recipeId, currentUserEmail);
+        }
+
+
+        // ===============================================
+        // LOGIKA LIST ZAKUPÓW (DASHBOARD & DETAILS)
+        // ===============================================
+
+
+function fetchShoppingLists() {
+        document.getElementById('shoppingListsGrid').innerHTML = `<div class="col-span-full text-center py-10 text-slate-400"><i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2"></i></div>`;
+        lucide.createIcons();
+       
+        google.script.run
+            .withSuccessHandler(res => {
+                // ZABEZPIECZENIE: Czasami most GAS zawodzi i res jest puste (null)
+                if (!res) {
+                    document.getElementById('shoppingListsGrid').innerHTML = `<div class="col-span-full text-center text-red-500 font-bold">Serwer Google zwrócił pustą odpowiedź. Spróbuj ponownie.</div>`;
+                    return;
+                }
+
+
+                if (res.status === 'success') {
+                    // ROZPAKOWUJEMY DANE NA BEZPIECZNYM GRUNCIE PRZEGLĄDARKI
+                    allShoppingLists = res.lists.map(listObj => {
+                        let safeDataArray = [];
+                        try {
+                            safeDataArray = JSON.parse(listObj.dataString); // Tu dzieje się magia rozpakowania
+                        } catch (e) {
+                            console.error("Błąd parsowania JSON dla listy: " + listObj.id);
+                        }
+                        // Tworzymy finalny obiekt gotowy dla UI
+                        return {
+                            id: listObj.id,
+                            title: listObj.title,
+                            date: listObj.date,
+                            author: listObj.author,
+                            data: safeDataArray
+                        };
+                    });
+                   
+                    renderShoppingListsDash();
+                } else {
+                    document.getElementById('shoppingListsGrid').innerHTML = `<div class="col-span-full text-center text-red-500">Błąd pobierania list: ${res.message}</div>`;
+                }
+            })
+            .withFailureHandler(err => {
+                console.error("Krytyczny błąd zapytania:", err);
+                document.getElementById('shoppingListsGrid').innerHTML = `<div class="col-span-full text-center text-red-500 font-bold">Krytyczny błąd połączenia z bazą. Odśwież stronę.</div>`;
+            })
+            .getAllShoppingLists(currentUserEmail);
+    }
+
+
+        function renderShoppingListsDash() {
+            const grid = document.getElementById('shoppingListsGrid');
+            grid.innerHTML = '';
+           
+            if (allShoppingLists.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-10 text-slate-500 bg-white rounded-3xl border border-slate-100 shadow-sm">Nie masz żadnych list zakupów. Zaznacz przepisy w Bazie i kliknij 'Stwórz Listę'.</div>`;
+                return;
+            }
+
+
+            allShoppingLists.forEach(list => {
+                let totalItems = 0; let checkedItems = 0;
+                list.data.forEach(g => g.items.forEach(i => { totalItems++; if(i.checked) checkedItems++; }));
+                const progress = totalItems === 0 ? 0 : Math.round((checkedItems/totalItems)*100);
+
+
+                const card = document.createElement('div');
+                card.className = "bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:border-brand-300 hover:shadow-md transition cursor-pointer relative flex flex-col";
+                card.onclick = () => openShoppingListDetail(list.id);
+
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-3 pr-8">
+                        <h3 class="font-bold text-slate-900 leading-tight">${list.title}</h3>
+                    </div>
+                    <button onclick="event.stopPropagation(); deleteShoppingListFromDash('${list.id}')" class="absolute top-4 right-4 p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition z-20"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    <p class="text-xs text-slate-400 mb-4 font-mono"><i data-lucide="calendar" class="w-3 h-3 inline mr-1"></i>${new Date(list.date).toLocaleDateString()} • ${String(list.author).split('@')[0]}</p>
+                   
+                    <div class="mt-auto w-full bg-slate-100 rounded-full h-2.5 mb-1 overflow-hidden">
+                        <div class="bg-brand-500 h-2.5 rounded-full transition-all" style="width: ${progress}%"></div>
+                    </div>
+                    <div class="text-xs text-right text-slate-500 font-bold">${checkedItems}/${totalItems} produktów</div>
+                `;
+                grid.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+
+        function showShoppingDash() {
+            document.getElementById('shoppingDashView').style.display = 'block';
+            document.getElementById('shoppingDetailView').style.display = 'none';
+            fetchShoppingLists();
+        }
+
+
+        function openShoppingListDetail(listId) {
+            const list = allShoppingLists.find(l => l.id === listId);
+            if (!list) return;
+           
+            activeShoppingListId = list.id;
+            activeShoppingListArray = list.data;
+            activeShoppingTitle = list.title;
+            document.getElementById('activeShoppingTitle').innerText = list.title;
+
+
+            document.getElementById('shoppingDashView').style.display = 'none';
+            document.getElementById('shoppingDetailView').style.display = 'block';
+            renderShoppingListUI();
+        }
+
+
+        function deleteShoppingListFromDash(listId) {
+            if (!confirm("Usunąć tę listę zakupów?")) return;
+            google.script.run.withSuccessHandler(() => fetchShoppingLists()).deleteShoppingListFromDB(listId, currentUserEmail);
+        }
+
+
+        function deleteActiveShoppingList() {
+            if (!confirm("Na pewno usunąć tę listę?")) return;
+            document.getElementById('clearShoppingBtn').innerText = "Usuwanie...";
+            google.script.run.withSuccessHandler(() => {
+                document.getElementById('clearShoppingBtn').innerText = "Usuń tę listę";
+                showShoppingDash();
+            }).deleteShoppingListFromDB(activeShoppingListId, currentUserEmail);
+        }
+
+
+        function generateShoppingListAction() {
+            if (selectedRecipesForShopping.length === 0) return;
+            const btn = document.querySelector('#shoppingListFab button'); const oHtml = btn.innerHTML;
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Tworzę listę...`; btn.disabled = true; lucide.createIcons();
+           
+            google.script.run.withSuccessHandler(res => {
+                btn.innerHTML = oHtml; btn.disabled = false; lucide.createIcons();
+                if (res.status === 'success') {
+                    selectedRecipesForShopping = [];
+                    document.getElementById("shoppingListFab").style.display = 'none';
+                    renderGrid(filteredRecipes);
+                    switchTab('shopping');
+                } else alert("Błąd: " + res.message);
+            }).generateNewShoppingList(selectedRecipesForShopping, currentUserEmail);
+        }
+
+
+        function renderShoppingListUI() {
+            const content = document.getElementById('shoppingContent'); content.innerHTML = "";
+            activeShoppingListArray.forEach((group, gIndex) => {
+                const grpDiv = document.createElement('div');
+                grpDiv.innerHTML = `<h3 class="font-bold text-brand-600 mb-2 border-b border-brand-50 pb-1">${group.category}</h3>`;
+               
+                const ul = document.createElement('div'); ul.className = "space-y-2";
+                group.items.forEach((item, iIndex) => {
+                    const checkedClass = item.checked ? 'item-checked' : 'bg-white border-slate-100 shadow-sm hover:border-brand-200';
+                    const icon = item.checked ? `<i data-lucide="check-square" class="text-brand-500 w-5 h-5"></i>` : `<i data-lucide="square" class="text-slate-300 w-5 h-5"></i>`;
+                    ul.innerHTML += `
+                        <div onclick="toggleShoppingItem(${gIndex}, ${iIndex})" class="flex items-start gap-3 p-3 rounded-xl border transition cursor-pointer ${checkedClass}">
+                            <div class="mt-0.5 shrink-0">${icon}</div>
+                            <span class="text-sm font-semibold">${item.name}</span>
+                        </div>
+                    `;
+                });
+                grpDiv.appendChild(ul);
+                content.appendChild(grpDiv);
+            });
+            lucide.createIcons();
+        }
+
+
+        let syncTimeout;
+        function toggleShoppingItem(gIdx, iIdx) {
+            activeShoppingListArray[gIdx].items[iIdx].checked = !activeShoppingListArray[gIdx].items[iIdx].checked;
+            renderShoppingListUI();
+            clearTimeout(syncTimeout);
+            syncTimeout = setTimeout(() => {
+                google.script.run.updateShoppingListToDB(activeShoppingListId, currentUserEmail, activeShoppingListArray);
+            }, 1000);
+        }
+
+
+        function sendShoppingPDF() {
+            const btn = document.getElementById('sendShoppingEmailBtn'); const oHtml = btn.innerHTML;
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>`;
+            google.script.run.withSuccessHandler(res => {
+                alert(res.message); btn.innerHTML = oHtml; lucide.createIcons();
+            }).emailShoppingListPDF(activeShoppingListArray, activeShoppingTitle, currentUserEmail);
+        }
+</script>
+</body>
+</html>
+
