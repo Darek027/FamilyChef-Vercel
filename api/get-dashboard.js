@@ -2,20 +2,28 @@
 export default async function handler(req, res) {
     if (req.method !== 'GET') return res.status(405).json({ status: "error", message: "Metoda niedozwolona" });
 
+    // WERSJA 4.1.1 - API VERCEL: DASHBOARD Z LOGIKĄ FAMILY ID
     // Używamy query params dla żądań GET
-    const { email } = req.query;
+    const { email, familyId } = req.query;
     if (!email) return res.status(400).json({ status: "error", message: "Brak identyfikatora użytkownika." });
 
     try {
         const { createClient } = await import('@supabase/supabase-js');
         const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-        // 1. Pobieranie przepisów użytkownika (tylko niezbędne pola do listy)
-        const { data: recipes, error: recipesError } = await supabase
+        // 1. Dynamiczne budowanie zapytania dla przepisów
+        let recipeQuery = supabase
             .from('recipes')
-            .select('id, title, category, author_email, created_at')
-            .eq('author_email', email)
-            .order('created_at', { ascending: false });
+            .select('id, title, category, author_email, created_at');
+
+        // Jeśli użytkownik ma Family ID, pobieramy przepisy całej rodziny. Jeśli nie, tylko jego własne.
+        if (familyId && familyId !== 'undefined' && familyId.trim() !== '') {
+            recipeQuery = recipeQuery.eq('family_id', familyId);
+        } else {
+            recipeQuery = recipeQuery.eq('author_email', email);
+        }
+
+        const { data: recipes, error: recipesError } = await recipeQuery.order('created_at', { ascending: false });
 
         if (recipesError) throw recipesError;
 

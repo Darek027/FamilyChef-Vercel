@@ -1,8 +1,8 @@
-// WERSJA 4.0.0 - API VERCEL: ZAPIS PRZEPISU DO SUPABASE
+// WERSJA 4.9.1 - API VERCEL: ZAPIS Z UWZGLĘDNIENIEM FAMILY ID
 export default async function handler(req, res) {
-    if (req.method !== 'POST') return res.status(405).json({ status: "error", message: "Metoda niedozwolona" });
+    if (req.method !== 'POST') return res.status(405).json({ status: "error" });
 
-    const { email, recipe } = req.body;
+    const { email, recipe, familyId } = req.body;
 
     try {
         const { createClient } = await import('@supabase/supabase-js');
@@ -13,24 +13,28 @@ export default async function handler(req, res) {
         const instructionsStr = Array.isArray(recipe.instructions) ? recipe.instructions.join('\n') : recipe.instructions;
 
         // 2. Zapis do Supabase (zgodnie ze schematem: author_email)
-        const { data, error } = await supabase
-            .from('recipes')
-            .insert([{
-                author_email: email, 
-                title: recipe.title,
-                ingredients: ingredientsStr,
-                instructions: instructionsStr,
-                category: recipe.category || 'Inne'
-            }])
+const { data: savedRecipe, error: dbError } = await supabase
+                .from('recipes')
+                .insert([{
+                    author_email: email,
+                    family_id: familyId || null, // Zapisujemy ID rodziny
+                    title: recipe.title,
+                    ingredients: ingredientsStr,
+                    instructions: instructionsStr,
+                    category: recipe.category || 'Inne'
+                }])
+            // WERSJA 4.9.3 - API VERCEL: POPRAWKA ZMIENNYCH PO DESTRUKTURYZACJI
             .select('id') // Pobieramy wygenerowane ID, żeby front wiedział, że zapisano
             .single();
 
-        if (error) throw error;
+        // Używamy dbError zamiast error
+        if (dbError) throw dbError;
 
         return res.status(200).json({ 
             status: "success", 
             message: "Przepis zapisany w Twojej bazie!",
-            recipeId: data.id
+            // Używamy savedRecipe zamiast data
+            recipeId: savedRecipe.id
         });
 
     } catch (error) {

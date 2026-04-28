@@ -1,8 +1,10 @@
 // WERSJA 4.3.1 - API VERCEL: KULOODPORNE GENEROWANIE LISTY ZAKUPÓW
+// WERSJA 4.3.3 - API VERCEL: ODBIÓR FAMILY ID DO ZAPISU
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ status: "error" });
 
-    const { email, recipeIds } = req.body;
+    // Dodajemy familyId do destrukturyzacji
+    const { email, recipeIds, familyId } = req.body;
 
     try {
         const { createClient } = await import('@supabase/supabase-js');
@@ -65,13 +67,14 @@ Zwróć wynik WYŁĄCZNIE jako czysty JSON według tego schematu:
             throw new Error("AI zwróciło dane w nieprawidłowym formacie.");
         }
 
-        // 5. Zapisujemy w Supabase
+        // 5. Zapisujemy w Supabase z Family ID
         const shortTitles = recipes.map(r => r.title).join(', ').substring(0, 40) + "...";
         
         const { error: insertError } = await supabase
             .from('shopping_lists')
             .insert([{
                 author_email: email,
+                family_id: familyId || null, // Zapisujemy ID rodziny
                 title: "Zakupy: " + shortTitles,
                 data: listData
             }]);

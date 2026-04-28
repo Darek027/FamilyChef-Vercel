@@ -2,18 +2,25 @@
 export default async function handler(req, res) {
     if (req.method !== 'GET') return res.status(405).json({ status: "error" });
 
-    const { email } = req.query;
+    // WERSJA 4.4.2 - API VERCEL: POBIERANIE LIST ZAKUPÓW Z FAMILY ID
+    // Odbieramy familyId z frontendu
+    const { email, familyId } = req.query;
     if (!email) return res.status(400).json({ status: "error", message: "Brak emaila." });
 
     try {
         const { createClient } = await import('@supabase/supabase-js');
         const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-        const { data, error } = await supabase
-            .from('shopping_lists')
-            .select('*')
-            .eq('author_email', email)
-            .order('created_at', { ascending: false });
+        let query = supabase.from('shopping_lists').select('*');
+
+        // Dynamiczne filtrowanie (Tenant Isolation)
+        if (familyId && familyId !== 'undefined' && familyId.trim() !== '') {
+            query = query.eq('family_id', familyId);
+        } else {
+            query = query.eq('author_email', email);
+        }
+
+        const { data, error } = await query.order('created_at', { ascending: false });
 
         if (error) throw error;
 
