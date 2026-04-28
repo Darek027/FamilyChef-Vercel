@@ -33,8 +33,9 @@ Zwróć wynik WYŁĄCZNIE jako czysty JSON według tego schematu:
   }
 ]`;
 
-        // 4. API Gemini (Używamy stabilnego 2.0-flash)
-        const aiModel = 'gemini-2.0-flash'; 
+        // WERSJA 4.3.2 - API VERCEL: INTEGRACJA Z MODELEM PREMIUM
+        // 4. API Gemini (Używamy modelu Premium, funkcja dedykowana dla PRO)
+        const aiModel = process.env.GEMINI_MODEL_PREMIUM || 'gemini-2.5-flash'; 
         const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${aiModel}:generateContent?key=${process.env.GEMINI_API_KEY}`;
         
         const aiResponse = await fetch(geminiUrl, {

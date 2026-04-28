@@ -40,8 +40,10 @@ export default async function handler(req, res) {
             ? `Twoje istniejące kategorie: [${existingCats.join(", ")}]. Użyj jednej z nich, jeśli pasuje, lub stwórz nową.` 
             : "Możesz stworzyć nową kategorię (np. Śniadanie, Obiad).";
 
-// WERSJA 3.1.2 - DYNAMIC MODEL ROUTING (Poprawiona deklaracja)
-        const aiModel = isPremium ? 'gemini-2.5-flash' : 'gemini-2.5-flash-lite';
+// WERSJA 3.1.3 - DYNAMIC MODEL ROUTING (Centralizacja via .env)
+        const aiModel = isPremium 
+            ? (process.env.GEMINI_MODEL_PREMIUM || 'gemini-2.5-flash') 
+            : (process.env.GEMINI_MODEL_FREE || 'gemini-2.5-flash-lite');
 
         // 4. Budowa System Instruction (PROMPT MATRIX)
         // Usunięto twarde limity (max 10/max 6). Złożoność wynika z kontekstu.

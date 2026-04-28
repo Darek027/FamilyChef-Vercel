@@ -432,7 +432,7 @@
         }
 
 
-// WERSJA 4.1.3 - MIGRACJA: Renderowanie siatki (Poprawione uprawnienia usuwania)
+// WERSJA 4.1.4 - MIGRACJA: Renderowanie siatki (Poprawiony UI - Kosz Top-Right)
         function renderGrid(recipesToRender) {
             var grid = document.getElementById("dashboard-grid");
             grid.innerHTML = "";
@@ -441,8 +441,8 @@
                 let authorEmail = recipe.author_email || recipe.author; 
                 let isMe = String(authorEmail).trim().toLowerCase() === currentUserEmail;
                 
-                // Kosz pokazuje się tylko autorowi
-                let deleteBtnHtml = isMe ? `<button onclick="event.stopPropagation(); deleteRecipeAction('${recipe.id}')" class="absolute bottom-4 right-4 text-slate-300 hover:text-red-500 transition p-2 rounded-full hover:bg-red-50 z-20" title="Usuń ten przepis"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : '';
+                // Kosz na śmieci - PRZENIESIONY NA GÓRĘ
+                let deleteBtnHtml = isMe ? `<button onclick="event.stopPropagation(); deleteRecipeAction('${recipe.id}')" class="absolute top-4 right-4 text-slate-300 bg-slate-50 p-2 rounded-full hover:text-red-500 hover:bg-red-50 transition z-30" title="Usuń ten przepis"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : '';
                 
                 let isChecked = selectedRecipesForShopping.includes(recipe.id) ? 'checked' : '';
                 
@@ -452,16 +452,16 @@
                 card.onclick = function() { openRecipe(recipe.id); };
                 
                 card.innerHTML = `
-                    <div class="absolute top-4 right-4 bg-slate-50 text-slate-400 p-2 rounded-full group-hover:bg-brand-500 group-hover:text-white transition z-10"><i data-lucide="external-link" class="w-4 h-4"></i></div>
+                    ${deleteBtnHtml}
                     
-                    <div class="flex items-center gap-2 mb-3 relative z-20">
+                    <div class="flex items-center gap-2 mb-3 relative z-20 pr-12">
                         <input type="checkbox" ${isChecked} onclick="event.stopPropagation(); toggleCart('${recipe.id}')" class="w-5 h-5 accent-brand-600 rounded cursor-pointer shrink-0">
                         <span class="bg-brand-50 text-brand-600 border border-brand-100 text-[10px] uppercase font-bold px-2 py-1 rounded-md tracking-wider overflow-hidden text-ellipsis whitespace-nowrap">${recipe.category || 'Inne'}</span>
                     </div>
 
-                    <h3 class="font-bold text-lg text-slate-900 leading-tight mb-2 pr-8">${recipe.title || 'Bez tytułu'}</h3>
+                    <h3 class="font-bold text-lg text-slate-900 leading-tight mb-2 pr-2">${recipe.title || 'Bez tytułu'}</h3>
                     <p class="text-xs text-slate-500 font-mono mb-4 flex items-center gap-1"><i data-lucide="user" class="w-3 h-3"></i> ${String(authorEmail || currentUserEmail).split('@')[0]} &bull; ${recipe.created_at ? new Date(recipe.created_at).toLocaleDateString() : ''}</p>
-                    <div class="mt-auto pt-4 border-t border-slate-50 relative"><p class="text-sm text-slate-600 line-clamp-2 pr-10">Kliknij, aby ugotować...</p>${deleteBtnHtml}</div>
+                    <div class="mt-auto pt-4 border-t border-slate-50 relative"><p class="text-sm text-slate-500">Kliknij, aby ugotować...</p></div>
                 `;
                 grid.appendChild(card);
             });
