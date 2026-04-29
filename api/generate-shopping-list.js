@@ -67,15 +67,26 @@ Zwróć wynik WYŁĄCZNIE jako czysty JSON według tego schematu:
             throw new Error("AI zwróciło dane w nieprawidłowym formacie.");
         }
 
+        // WERSJA 4.3.4 - API VERCEL: Dynamiczne, estetyczne nazewnictwo list zakupów (UX Fix)
         // 5. Zapisujemy w Supabase z Family ID
-        const shortTitles = recipes.map(r => r.title).join(', ').substring(0, 40) + "...";
+        let listTitle = "";
+        
+        if (recipes.length === 1) {
+            // Dla pojedynczego przepisu zachowujemy jego nazwę (z drobnym zabezpieczeniem długości)
+            const rTitle = recipes[0].title;
+            listTitle = rTitle.length > 40 ? rTitle.substring(0, 37) + "..." : rTitle;
+        } else {
+            // Dla agregacji budujemy dynamiczny, elegancki ciąg znaków z obsługą polskiej gramatyki
+            const plural = (recipes.length >= 2 && recipes.length <= 4) ? "przepisy" : "przepisów";
+            listTitle = `Zbiorcze zakupy (${recipes.length} ${plural})`;
+        }
         
         const { error: insertError } = await supabase
             .from('shopping_lists')
             .insert([{
                 author_email: email,
                 family_id: familyId || null, // Zapisujemy ID rodziny
-                title: "Zakupy: " + shortTitles,
+                title: listTitle,
                 data: listData
             }]);
 

@@ -23,6 +23,31 @@ export default async function handler(req, res) {
         if (fetchError) throw fetchError;
 
         if (!user) {
+            // WERSJA 4.9.5 - BACKEND: Automatyczny Provisioning (Generowanie bezpiecznego FamilyID przy rejestracji)
+            const crypto = await import('crypto');
+            let isUnique = false;
+            let generatedId = "";
+
+            // Pętla gwarantująca absolutny brak kolizji
+            while (!isUnique) {
+                const segment1 = crypto.randomBytes(2).toString('hex').toUpperCase();
+                const segment2 = crypto.randomBytes(2).toString('hex').toUpperCase();
+                generatedId = `FC-${segment1}-${segment2}`;
+
+                const { data: existing, error: checkError } = await supabase
+                    .from('users')
+                    .select('id')
+                    .eq('family_id', generatedId)
+                    .limit(1);
+
+                if (checkError) throw checkError;
+                
+                if (!existing || existing.length === 0) {
+                    isUnique = true;
+                }
+            }
+
+            // Wrzucamy użytkownika do bazy OD RAZU z wygenerowanym kluczem
             const { data: newUser, error: insertError } = await supabase
                 .from('users')
                 .insert([
@@ -30,7 +55,8 @@ export default async function handler(req, res) {
                         email: email, 
                         is_premium: false,
                         default_chef: 'DEFAULT_CHEF',
-                        default_skill: 'DEFAULT_SKILL'
+                        default_skill: 'DEFAULT_SKILL',
+                        family_id: generatedId // Automatyczne przypisanie przestrzeni!
                     }
                 ])
                 .select()

@@ -6,7 +6,8 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ status: "error" });
 
-    const { email, recipe } = req.body;
+    // WERSJA 4.9.1 - API VERCEL: ATOMOWY ZAPIS I WYSYŁKA (Z UWZGLĘDNIENIEM FAMILY ID)
+    const { email, recipe, familyId } = req.body;
 
     try {
         const { createClient } = await import('@supabase/supabase-js');
@@ -23,6 +24,7 @@ export default async function handler(req, res) {
                 .from('recipes')
                 .insert([{
                     author_email: email,
+                    family_id: familyId || null, // FIX: Dodano zapisywanie ID rodziny
                     title: recipe.title,
                     ingredients: ingredientsStr,
                     instructions: instructionsStr,
@@ -35,18 +37,18 @@ export default async function handler(req, res) {
             recipeId = savedRecipe.id;
         }
 
-        // 2. WYSYŁKA MAILA (Szablon Print-Friendly)
+        // WERSJA 4.9.2 - Zaktualizowany szablon HTML e-maila z przepisem (Rebranding)
         const htmlTemplate = `
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #334155; padding: 20px;">
-            <h1 style="color: #0d9488; border-bottom: 2px solid #ccfbf1; padding-bottom: 10px;">${recipe.title}</h1>
-            <h3 style="color: #0d9488;">🛒 Składniki</h3>
-            <ul style="background: #f8fafc; padding: 20px; border-radius: 8px; list-style-type: disc;">
-                ${recipe.ingredients.map(i => `<li>${i}</li>`).join('')}
+        <div style="font-family: 'Plus Jakarta Sans', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #4A4543; padding: 20px; background-color: #ffffff;">
+            <h1 style="color: #C87E5C; border-bottom: 2px solid #FAF6F0; padding-bottom: 10px; font-weight: 800;">${recipe.title}</h1>
+            <h3 style="color: #8BA08E;">🛒 Składniki</h3>
+            <ul style="background: #FAF6F0; padding: 20px; border-radius: 12px; list-style-type: disc; margin-left: 0; padding-left: 40px; border: 1px solid #E5E0D8;">
+                ${recipe.ingredients.map(i => `<li style="margin-bottom: 8px; color: #4A4543;">${i}</li>`).join('')}
             </ul>
-            <h3 style="color: #0d9488;">📋 Instrukcje</h3>
-            <ol>${recipe.instructions.map(i => `<li style="margin-bottom: 10px;">${i}</li>`).join('')}</ol>
-            <p style="margin-top: 30px; border-top: 1px dashed #cbd5e1; padding-top: 10px; font-style: italic;">
-                ${recipe.message || 'Smacznego!'}
+            <h3 style="color: #8BA08E;">📋 Instrukcje</h3>
+            <ol style="padding-left: 20px; color: #4A4543;">${recipe.instructions.map(i => `<li style="margin-bottom: 12px; line-height: 1.5;">${i}</li>`).join('')}</ol>
+            <p style="margin-top: 30px; border-top: 1px dashed #8A8482; padding-top: 15px; font-style: italic; color: #8A8482; text-align: center; font-size: 14px;">
+                ${recipe.message || 'Smacznego życzy Twój KiedyObiad.pl!'}
             </p>
         </div>`;
 

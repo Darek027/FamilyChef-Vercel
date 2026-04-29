@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <base target="_top">
-    <title>Family Chef | Twój Asystent</title>
+    <title>KiedyObiad.pl | Twój Asystent</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Family Chef">
+    <meta name="apple-mobile-web-app-title" content="KiedyObiad.pl">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#0d9488">
+    <meta name="theme-color" content="#FAF6F0">
    
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3565/3565401.png">
     <link rel="shortcut icon" href="https://cdn-icons-png.flaticon.com/512/3565/3565401.png">
@@ -21,66 +21,60 @@
             theme: {
                 extend: {
                     fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
-                    colors: { brand: { 50: '#f0fdfa', 100: '#ccfbf1', 500: '#14b8a6', 600: '#0d9488', 900: '#134e4a' } }
+                    colors: { 
+                        cream: '#FAF6F0',
+                        terracotta: '#C87E5C',
+                        sage: '#8BA08E',
+                        sage_dark: '#738A76',
+                        teal: '#5C8080',
+                        charcoal: '#4A4543',
+                        charcoal_light: '#8A8482'
+                    }
                 }
             }
         }
     </script>
     <style>
-        .gradient-text { background: linear-gradient(135deg, #0d9488 0%, #3b82f6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .app-blob { background: radial-gradient(circle, rgba(20,184,166,0.1) 0%, rgba(255,255,255,0) 70%); }
-        /* Styl ukrywający strzałkę selecta dla czystszego wyglądu etykiety */
+        /* Zmiana bloba na delikatny szałwiowy zamiast mocnego pomarańczu */
+        .app-blob { background: radial-gradient(circle, rgba(139,160,142,0.15) 0%, rgba(255,255,255,0) 70%); }
         .select-hide-arrow { -webkit-appearance: none; -moz-appearance: none; appearance: none; text-align: center; }
-        /* WERSJA 1.21.0 - Ukrywanie paska scrollowania na telefonach */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .item-checked { text-decoration: line-through; color: #94a3b8; background-color: #f8fafc; }
+        .item-checked { text-decoration: line-through; color: #8A8482; background-color: #FAF6F0; opacity: 0.6; }
     </style>
 </head>
-<body class="font-sans text-slate-800 antialiased bg-slate-50 min-h-screen flex flex-col">
+<body class="font-sans text-charcoal antialiased bg-cream min-h-screen flex flex-col">
 
-
-
-
-    <div id="auth-overlay" class="fixed inset-0 bg-slate-50 z-[100] flex items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-3xl shadow-2xl border border-slate-100 max-w-md w-full text-center relative overflow-hidden">
-            <div class="absolute inset-0 app-blob z-0 opacity-50"></div>
-            <div class="relative z-10">
-                <div class="bg-brand-500 text-white p-4 rounded-2xl shadow-sm inline-block mb-6">
-                    <i data-lucide="chef-hat" class="w-10 h-10"></i>
-                </div>
-                <h2 class="text-3xl font-extrabold text-slate-900 mb-2">Witaj w kuchni!</h2>
-                <div class="space-y-4 mt-8">
-                    <input type="email" id="loginEmail" placeholder="twoj@email.com" class="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-brand-500 outline-none transition text-slate-700 text-center text-lg font-medium">
-                    <button onclick="processAuth()" id="authBtn" class="w-full bg-brand-600 text-white px-8 py-4 rounded-2xl text-lg font-bold hover:bg-brand-700 transition shadow-lg shadow-brand-500/30 flex items-center justify-center gap-2">
+    <div id="auth-overlay" class="fixed inset-0 bg-cream z-[100] flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-3xl shadow-xl border border-black/5 max-w-md w-full text-center relative overflow-hidden">
+            <div class="absolute inset-0 app-blob z-0 opacity-70"></div>
+            <div class="relative z-10 flex flex-col items-center">
+                <!-- NOWE LOGO + MIX-BLEND-MULTIPLY by usunąć białe tło z obrazka -->
+                <img src="https://bnijuskmzcgnojefxhnk.supabase.co/storage/v1/object/public/assets/LOGO_transparent2.png" alt="KiedyObiad.pl Logo" class="h-32 object-contain mb-8 mix-blend-multiply">
+                
+                <div class="space-y-4 w-full">
+                    <input type="email" id="loginEmail" placeholder="twoj@email.com" class="w-full px-4 py-4 bg-cream/50 border border-charcoal/10 rounded-2xl focus:ring-2 focus:ring-sage outline-none transition text-charcoal text-center text-lg font-medium">
+                    <button onclick="processAuth()" id="authBtn" class="w-full bg-sage text-white px-8 py-4 rounded-2xl text-lg font-bold hover:bg-sage_dark transition shadow-lg shadow-sage/20 flex items-center justify-center gap-2">
                         <i data-lucide="log-in" class="w-5 h-5"></i> Wejdź
                     </button>
-                    <p id="authErrorMsg" class="text-red-500 text-sm hidden mt-2 font-semibold"></p>
+                    <p id="authErrorMsg" class="text-terracotta text-sm hidden mt-2 font-semibold"></p>
                 </div>
             </div>
         </div>
     </div>
 
-
-
-
 <div id="app-container" class="hidden flex-grow flex-col">
 
-
-
-
-<nav class="w-full z-50 bg-white/80 backdrop-blur-lg border-b border-slate-100 sticky top-0">
+<nav class="w-full z-50 bg-cream/90 backdrop-blur-lg border-b border-charcoal/5 sticky top-0">
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-20">
                 <div class="flex items-center gap-2">
-                    <div class="bg-brand-500 text-white p-2 rounded-lg shadow-sm">
-                        <i data-lucide="chef-hat" class="w-5 h-5"></i>
-                    </div>
-                    <span class="font-bold text-xl tracking-tight text-slate-900">Family Chef</span>
+                    <!-- WERSJA 1.21.1 - Powiększone logo w nawigacji. Docelowo do usunięcia mix-blend po wgraniu prawdziwego PNG -->
+                    <img src="https://bnijuskmzcgnojefxhnk.supabase.co/storage/v1/object/public/assets/Header_transparent2.png" alt="KiedyObiad.pl" class="h-16 sm:h-20 w-auto object-contain mix-blend-multiply">
                 </div>
                 <div class="flex items-center gap-4">
-                    <span class="hidden md:flex text-sm font-semibold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">Wersja 1.21.0</span>
-                    <button onclick="logoutUser()" class="text-slate-400 hover:text-red-500 transition-colors bg-slate-50 p-2 rounded-full" title="Wyloguj">
+                    <span class="hidden md:flex text-xs font-bold text-charcoal_light bg-black/5 px-3 py-1 rounded-full">Wersja 1.21.0</span>
+                    <button onclick="logoutUser()" class="text-charcoal_light hover:text-terracotta transition-colors bg-white p-2 rounded-full shadow-sm" title="Wyloguj">
                          <i data-lucide="log-out" class="w-5 h-5"></i>
                     </button>
                 </div>
@@ -88,20 +82,14 @@
         </div>
     </nav>
 
-
-
-
-<div class="w-full bg-white border-b border-slate-200">
+<div class="w-full bg-white border-b border-charcoal/5">
         <div class="max-w-5xl mx-auto px-2 sm:px-4 flex flex-wrap justify-center gap-2 sm:gap-4">
-            <button onclick="switchTab('generator')" id="tab-generator" class="py-3 px-2 font-bold text-brand-600 border-b-2 border-brand-600 flex gap-2 text-sm sm:text-base"><i data-lucide="sparkles" class="w-4 h-4 sm:w-5 sm:h-5"></i> Kreator</button>
-            <button onclick="switchTab('dashboard')" id="tab-dashboard" class="py-3 px-2 font-semibold text-slate-500 border-b-2 border-transparent flex gap-2 text-sm sm:text-base"><i data-lucide="book-open" class="w-4 h-4 sm:w-5 sm:h-5"></i> Przepisy</button>
-            <button onclick="switchTab('shopping')" id="tab-shopping" class="py-3 px-2 font-semibold text-slate-500 border-b-2 border-transparent flex gap-2 text-sm sm:text-base"><i data-lucide="shopping-cart" class="w-4 h-4 sm:w-5 sm:h-5"></i> Zakupy</button>
-            <button onclick="switchTab('profile')" id="tab-profile" class="py-3 px-2 font-semibold text-slate-500 border-b-2 border-transparent flex gap-2 text-sm sm:text-base"><i data-lucide="user" class="w-4 h-4 sm:w-5 sm:h-5"></i> Profil</button>
+            <button onclick="switchTab('generator')" id="tab-generator" class="py-3 px-2 font-bold text-terracotta border-b-2 border-terracotta flex gap-2 text-sm sm:text-base"><i data-lucide="sparkles" class="w-4 h-4 sm:w-5 sm:h-5"></i> Kreator</button>
+            <button onclick="switchTab('dashboard')" id="tab-dashboard" class="py-3 px-2 font-semibold text-charcoal_light border-b-2 border-transparent flex gap-2 text-sm sm:text-base"><i data-lucide="book-open" class="w-4 h-4 sm:w-5 sm:h-5"></i> Przepisy</button>
+            <button onclick="switchTab('shopping')" id="tab-shopping" class="py-3 px-2 font-semibold text-charcoal_light border-b-2 border-transparent flex gap-2 text-sm sm:text-base"><i data-lucide="shopping-cart" class="w-4 h-4 sm:w-5 sm:h-5"></i> Zakupy</button>
+            <button onclick="switchTab('profile')" id="tab-profile" class="py-3 px-2 font-semibold text-charcoal_light border-b-2 border-transparent flex gap-2 text-sm sm:text-base"><i data-lucide="user" class="w-4 h-4 sm:w-5 sm:h-5"></i> Profil</button>
         </div>
     </div>
-
-
-
 
     <main class="flex-grow relative pt-8 pb-20 overflow-hidden">
         <div class="absolute inset-0 app-blob z-0"></div>
@@ -109,37 +97,31 @@
            
             <div id="view-generator" class="block max-w-3xl mx-auto">
                 <div class="text-center mb-10">
-                    <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 mb-4">
-                        Na co masz dzisiaj <span class="gradient-text">ochotę?</span>
+                    <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-charcoal mb-4">
+                        Na co masz dzisiaj <span class="text-terracotta">ochotę?</span>
                     </h1>
                 </div>
 
-
-
-
-                <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 mb-8">
+                <div class="bg-white p-6 rounded-3xl shadow-xl border border-black/5 mb-8">
                     <div class="flex flex-col sm:flex-row gap-3">
                         <div class="relative flex-grow">
-                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-charcoal_light">
                                 <i data-lucide="search" class="w-5 h-5"></i>
                             </div>
-                            <input type="text" id="userInput" placeholder="Np. Szybki obiad z kurczakiem..." class="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-brand-500 outline-none transition text-slate-700 text-lg">
+                            <input type="text" id="userInput" placeholder="Np. Szybki obiad z kurczakiem..." class="w-full pl-12 pr-4 py-4 bg-cream/50 border border-charcoal/10 rounded-2xl focus:ring-2 focus:ring-sage outline-none transition text-charcoal text-lg">
                         </div>
-                        <button id="submitBtn" onclick="askChef()" class="bg-brand-600 text-white px-8 py-4 rounded-2xl text-lg font-bold hover:bg-brand-700 transition shadow-lg shadow-brand-500/30 flex items-center justify-center gap-2 shrink-0">
+                        <button id="submitBtn" onclick="askChef()" class="bg-sage text-white px-8 py-4 rounded-2xl text-lg font-bold hover:bg-sage_dark transition shadow-lg shadow-sage/20 flex items-center justify-center gap-2 shrink-0">
                             <i data-lucide="wand-2" class="w-5 h-5"></i> Gotujmy!
                         </button>
                     </div>
-                    <div id="loadingMsg" class="hidden mt-6 text-center text-brand-600 font-semibold animate-pulse flex items-center justify-center gap-2"></div>
+                    <div id="loadingMsg" class="hidden mt-6 text-center text-sage font-semibold animate-pulse flex items-center justify-center gap-2"></div>
                 </div>
 
-
-
-
-                <div id="recipeContainer" class="hidden bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden">
-                    <div class="bg-gradient-to-r from-brand-600 to-brand-500 p-8 text-white relative">
+                <div id="recipeContainer" class="hidden bg-white rounded-3xl shadow-xl border border-black/5 overflow-hidden">
+                    <div class="bg-sage p-8 text-white relative">
                         <div class="absolute top-4 right-8 z-20 flex items-center gap-1 group">
                             <select id="recipeCategorySelect" onchange="changeCategoryHandler(this.value)" class="select-hide-arrow bg-white/20 text-white text-xs uppercase font-bold px-3 py-1 rounded-full backdrop-blur-sm border-none outline-none cursor-pointer hover:bg-white/30 transition shadow-sm">
-                                <option value="Inne" class="text-slate-800">Wczytywanie...</option>
+                                <option value="Inne" class="text-charcoal">Wczytywanie...</option>
                             </select>
                             <i data-lucide="pencil" class="w-3 h-3 text-white/50 group-hover:text-white transition"></i>
                         </div>
@@ -148,67 +130,88 @@
                    
                     <div class="p-8">
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            <div class="md:col-span-1 bg-brand-50/50 p-6 rounded-2xl border border-brand-100/50 h-fit">
-                                <h3 class="font-bold text-lg text-slate-900 mb-4"><i data-lucide="shopping-cart" class="w-5 h-5 inline text-brand-500 mr-2"></i> Składniki</h3>
-                                <ul id="recipeIngredients" class="space-y-3 text-slate-700 text-sm list-disc pl-5 marker:text-brand-400"></ul>
+                            <div class="md:col-span-1 bg-sage/5 p-6 rounded-2xl border border-sage/10 h-fit">
+                                <h3 class="font-bold text-lg text-charcoal mb-4"><i data-lucide="shopping-cart" class="w-5 h-5 inline text-sage mr-2"></i> Składniki</h3>
+                                <ul id="recipeIngredients" class="space-y-3 text-charcoal text-sm list-disc pl-5 marker:text-sage_dark"></ul>
                             </div>
                             <div class="md:col-span-2">
-                                <h3 class="font-bold text-lg text-slate-900 mb-4"><i data-lucide="list-ordered" class="w-5 h-5 inline text-brand-500 mr-2"></i> Instrukcje</h3>
-                                <ol id="recipeInstructions" class="space-y-4 text-slate-700 text-sm list-decimal pl-5 marker:font-bold marker:text-slate-400"></ol>
+                                <h3 class="font-bold text-lg text-charcoal mb-4"><i data-lucide="list-ordered" class="w-5 h-5 inline text-sage mr-2"></i> Instrukcje</h3>
+                                <ol id="recipeInstructions" class="space-y-4 text-charcoal text-sm list-decimal pl-5 marker:font-bold marker:text-charcoal_light"></ol>
                             </div>
                         </div>
 
-
-
-
-                        <div id="feedbackContainer" class="mt-10 p-6 bg-slate-50 border border-slate-200 rounded-2xl">
-                            <h4 class="font-bold text-slate-900 mb-2">Coś zmienić?</h4>
+                        <div id="feedbackContainer" class="mt-10 p-6 bg-cream/50 border border-charcoal/10 rounded-2xl">
+                            <h4 class="font-bold text-charcoal mb-2">Coś zmienić?</h4>
                             <div class="flex flex-col sm:flex-row gap-3">
-                                <input type="text" id="feedbackInput" placeholder="Np. Usuń czosnek..." class="flex-grow px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none text-slate-700">
-                                <button onclick="sendFeedback()" class="bg-slate-800 text-white px-6 py-3 rounded-xl font-semibold hover:bg-slate-700 transition">Popraw</button>
+                                <input type="text" id="feedbackInput" placeholder="Np. Usuń czosnek..." class="flex-grow px-4 py-3 bg-white border border-charcoal/10 rounded-xl outline-none text-charcoal focus:ring-2 focus:ring-sage">
+                                <button onclick="sendFeedback()" class="bg-charcoal text-white px-6 py-3 rounded-xl font-semibold hover:bg-charcoal_light transition">Popraw</button>
                             </div>
                         </div>
                        
-                        <!-- WERSJA 4.5.3 - FRONTEND: POPRAWKA UX COPY DLA PRZYCISKÓW -->
-                        <div id="actionButtonsDraft" class="mt-6 pt-6 border-t border-slate-100 flex flex-col sm:flex-row gap-4 justify-center">
-                            <button id="saveOnlyBtn" onclick="saveOnlyAction()" class="flex-1 inline-flex items-center justify-center gap-2 bg-slate-800 text-white border border-slate-800 px-8 py-4 rounded-xl font-bold text-lg hover:bg-slate-700 transition">
+                        <div id="actionButtonsDraft" class="mt-6 pt-6 border-t border-charcoal/5 flex flex-col sm:flex-row gap-4 justify-center">
+                            <button id="saveOnlyBtn" onclick="saveOnlyAction()" class="flex-1 inline-flex items-center justify-center gap-2 bg-charcoal text-white border border-charcoal px-8 py-4 rounded-xl font-bold text-lg hover:bg-charcoal_light transition">
                                 <i data-lucide="save" class="w-5 h-5"></i> Zapisz do bazy
                             </button>
-                            <button id="saveEmailBtn" onclick="confirmAndSend()" class="flex-1 inline-flex items-center justify-center gap-2 bg-brand-50 text-brand-700 border border-brand-200 px-8 py-4 rounded-xl font-bold text-lg hover:bg-brand-100 transition group">
-                                <i data-lucide="mail" class="w-5 h-5 text-brand-500 group-hover:scale-110 transition-transform"></i> Zapisz i wyślij na e-mail
+                            <button id="saveEmailBtn" onclick="confirmAndSend()" class="flex-1 inline-flex items-center justify-center gap-2 bg-sage/10 text-sage_dark border border-sage/20 px-8 py-4 rounded-xl font-bold text-lg hover:bg-sage/20 transition group">
+                                <i data-lucide="mail" class="w-5 h-5 text-sage group-hover:scale-110 transition-transform"></i> Zapisz i wyślij
                             </button>
                         </div>
 
-
-
-
-                        <!-- WERSJA 4.5.3 - FRONTEND: POPRAWKA UX COPY DLA PRZYCISKÓW -->
-                        <div id="actionButtonsSaved" class="hidden mt-6 pt-6 border-t border-slate-100 text-center">
-                            <button onclick="confirmAndSend()" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-brand-50 text-brand-700 border border-brand-200 px-8 py-4 rounded-xl font-bold text-lg hover:bg-brand-100 transition group">
-                                <i data-lucide="mail" class="w-5 h-5 text-brand-500 group-hover:scale-110 transition-transform"></i> Wyślij przepis na e-mail
+                        <div id="actionButtonsSaved" class="hidden mt-6 pt-6 border-t border-charcoal/5 text-center">
+                            <button onclick="confirmAndSend()" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-sage/10 text-sage_dark border border-sage/20 px-8 py-4 rounded-xl font-bold text-lg hover:bg-sage/20 transition group">
+                                <i data-lucide="mail" class="w-5 h-5 text-sage group-hover:scale-110 transition-transform"></i> Wyślij przepis na e-mail
                             </button>
                         </div>
-
-
-
 
                     </div>
                 </div>
             </div>
 
-
-
-
+            <!-- WERSJA 1.24.0 - UI: Kompaktowy nagłówek Dashboardu, lepsze filtry i separatory -->
             <div id="view-dashboard" class="hidden">
-                <div class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-slate-200 pb-6">
-                    <div>
-                        <h2 class="text-3xl font-extrabold text-slate-900">Ulubione Przepisy</h2>
-                        <p class="text-slate-500 mt-2">Baza kulinarna stworzona przez naszą rodzinę.</p>
+                <div class="mb-6 flex flex-col gap-4 border-b border-charcoal/5 pb-4">
+                    <!-- Górny wiersz: Tytuł + Wyszukiwarka -->
+                    <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                        <h2 class="text-2xl font-extrabold text-charcoal whitespace-nowrap"><i data-lucide="book-open" class="w-6 h-6 inline mr-2 text-sage"></i>Baza Przepisów</h2>
+                        
+                        <div class="relative w-full md:max-w-md flex-grow">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-charcoal_light">
+                                <i data-lucide="search" class="w-4 h-4"></i>
+                            </div>
+                            <input type="text" id="searchRecipe" oninput="applyFilters()" placeholder="Szukaj przepisu..." class="w-full pl-10 pr-4 py-2.5 bg-white border border-charcoal/10 rounded-xl focus:ring-2 focus:ring-sage outline-none transition text-charcoal text-sm font-semibold shadow-sm">
+                        </div>
                     </div>
-                    <div class="flex flex-wrap items-center gap-3 w-full md:w-auto bg-white p-2 rounded-2xl shadow-sm border border-slate-100">
-                        <select id="filterUser" onchange="applyFilters()" class="px-4 py-2 bg-slate-50 border-none rounded-xl outline-none text-slate-700 cursor-pointer text-sm font-semibold hover:bg-slate-100 transition"><option value="all">Wszyscy kucharze</option></select>
-                        <select id="filterCategory" onchange="applyFilters()" class="px-4 py-2 bg-slate-50 border-none rounded-xl outline-none text-slate-700 cursor-pointer text-sm font-semibold hover:bg-slate-100 transition"><option value="all">Wszystkie kategorie</option></select>
-                        <button onclick="loadDashboard()" class="text-brand-600 hover:text-brand-700 p-2 bg-brand-50 rounded-xl transition shrink-0 ml-auto" title="Odśwież z bazy"><i data-lucide="refresh-cw" class="w-5 h-5"></i></button>
+                    
+                    <!-- Dolny wiersz: Filtry, sortowanie i widok -->
+                    <div class="flex flex-wrap items-center gap-2 w-full bg-white p-2 rounded-2xl shadow-sm border border-charcoal/5">
+                        <select id="sortRecipe" onchange="applyFilters()" class="px-3 py-2 bg-cream/50 border-none rounded-xl outline-none text-charcoal cursor-pointer text-sm font-medium hover:bg-cream transition flex-grow md:flex-grow-0">
+                            <option value="newest">↓ Najnowsze</option>
+                            <option value="oldest">↑ Najstarsze</option>
+                            <option value="az">A-Z</option>
+                            <option value="za">Z-A</option>
+                        </select>
+                        
+                        <div class="hidden md:block w-px h-6 bg-charcoal/10 mx-1"></div> <!-- Separator -->
+                        
+                        <select id="filterUser" onchange="applyFilters()" class="px-3 py-2 bg-cream/50 border-none rounded-xl outline-none text-charcoal cursor-pointer text-sm font-medium hover:bg-cream transition flex-grow md:flex-grow-0">
+                            <option value="all">👨‍🍳 Wszyscy</option>
+                        </select>
+                        
+                        <div class="hidden md:block w-px h-6 bg-charcoal/10 mx-1"></div> <!-- Brakujący Separator! -->
+                        
+                        <select id="filterCategory" onchange="applyFilters()" class="px-3 py-2 bg-cream/50 border-none rounded-xl outline-none text-charcoal cursor-pointer text-sm font-medium hover:bg-cream transition flex-grow md:flex-grow-0">
+                            <option value="all">🍽️ Kategorie</option>
+                        </select>
+                        
+                        <!-- Przyciski akcji (rozciągnięte na mobile, z prawej na desktopie) -->
+                        <div class="flex items-center gap-2 ml-auto w-full md:w-auto justify-end mt-2 md:mt-0">
+                            <button onclick="toggleViewMode()" id="viewToggleBtn" class="text-charcoal flex-1 md:flex-none justify-center hover:text-terracotta p-2 bg-cream/50 hover:bg-cream rounded-xl transition flex items-center gap-2 text-sm font-semibold" title="Zmień widok">
+                                <i data-lucide="list" class="w-5 h-5"></i> <span class="md:hidden">Widok</span>
+                            </button>
+                            <button onclick="loadDashboard()" class="text-sage flex-1 md:flex-none justify-center hover:text-sage_dark p-2 bg-sage/10 rounded-xl transition flex items-center gap-2 text-sm font-semibold" title="Odśwież z bazy">
+                                <i data-lucide="refresh-cw" class="w-5 h-5"></i> <span class="md:hidden">Odśwież</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div id="dashboard-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
@@ -218,52 +221,62 @@
                
                 <div id="shoppingDashView" class="block">
                     <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-3xl font-extrabold text-slate-900">Listy Zakupów</h2>
-                        <button onclick="fetchShoppingLists()" class="bg-brand-50 text-brand-600 px-4 py-2 rounded-xl hover:bg-brand-100 transition shadow-sm"><i data-lucide="refresh-cw" class="w-5 h-5"></i></button>
+                        <h2 class="text-3xl font-extrabold text-charcoal">Listy Zakupów</h2>
+                        <button onclick="fetchShoppingLists()" class="bg-sage/10 text-sage px-4 py-2 rounded-xl hover:bg-sage/20 transition shadow-sm"><i data-lucide="refresh-cw" class="w-5 h-5"></i></button>
                     </div>
                     <div id="shoppingListsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div class="col-span-full text-center py-10 text-slate-400"><i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2"></i> Ładowanie...</div>
+                        <div class="col-span-full text-center py-10 text-charcoal_light"><i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2"></i> Ładowanie...</div>
                     </div>
                 </div>
-
 
                 <div id="shoppingDetailView" class="hidden">
                     <div class="flex justify-between items-center mb-6 gap-3">
-                        <!-- WERSJA 4.5.3 - FRONTEND: POPRAWKA UX COPY DLA ZAKUPÓW -->
-                        <button onclick="showShoppingDash()" class="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl font-bold flex gap-2 items-center hover:bg-slate-50 transition"><i data-lucide="arrow-left" class="w-4 h-4"></i></button>
-                        <h2 id="activeShoppingTitle" class="text-xl font-extrabold text-slate-900 truncate flex-grow text-center">Zakupy</h2>
-                        <button id="sendShoppingEmailBtn" onclick="sendShoppingPDF()" class="bg-brand-50 text-brand-700 px-4 py-2 rounded-xl font-bold flex gap-2 items-center hover:bg-brand-100 transition"><i data-lucide="mail" class="w-4 h-4"></i> E-mail</button>
+                        <button onclick="showShoppingDash()" class="bg-white border border-charcoal/10 text-charcoal_light px-4 py-2 rounded-xl font-bold flex gap-2 items-center hover:bg-cream transition"><i data-lucide="arrow-left" class="w-4 h-4"></i></button>
+                        <h2 id="activeShoppingTitle" class="text-xl font-extrabold text-charcoal truncate flex-grow text-center">Zakupy</h2>
+                        <button id="sendShoppingEmailBtn" onclick="sendShoppingPDF()" class="bg-sage/10 text-sage_dark px-4 py-2 rounded-xl font-bold flex gap-2 items-center hover:bg-sage/20 transition"><i data-lucide="mail" class="w-4 h-4 text-sage"></i> E-mail</button>
                     </div>
                    
-                    <div id="shoppingListContainer" class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 min-h-[200px]">
+                    <div id="shoppingListContainer" class="bg-white p-6 rounded-3xl shadow-sm border border-charcoal/5 min-h-[200px]">
                         <div id="shoppingContent" class="space-y-6"></div>
-                        <button id="clearShoppingBtn" onclick="deleteActiveShoppingList()" class="w-full mt-8 bg-red-50 text-red-600 font-bold py-3 rounded-xl border border-red-100 hover:bg-red-100 transition">Usuń tę listę</button>
+                        <button id="clearShoppingBtn" onclick="deleteActiveShoppingList()" class="w-full mt-8 bg-terracotta/5 text-terracotta font-bold py-3 rounded-xl border border-terracotta/20 hover:bg-terracotta/10 transition">Usuń tę listę</button>
                     </div>
                 </div>
 
-
             </div>
-
 
             <div id="view-profile" class="hidden max-w-2xl mx-auto">
-                <div class="mb-8"><h2 class="text-3xl font-extrabold text-slate-900">Ustawienia Konta</h2></div>
-                <div class="bg-white p-8 rounded-3xl shadow-xl border border-slate-100">
+                <div class="mb-8"><h2 class="text-3xl font-extrabold text-charcoal">Ustawienia Konta</h2></div>
+                <div class="bg-white p-8 rounded-3xl shadow-xl border border-charcoal/5">
                     <div class="space-y-6">
-                        <div><label class="block text-sm font-bold text-slate-700 mb-2">Zalogowano jako:</label><div class="flex items-center gap-3 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-500 font-mono text-sm opacity-80 cursor-not-allowed"><i data-lucide="mail" class="w-4 h-4"></i><span id="profileEmailDisplay"></span></div></div>
-                        <div><label class="block text-sm font-bold text-slate-700 mb-2">Twoje ID Rodziny (FamilyID)</label><input type="text" id="profileFamilyId" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700"></div>
-                        <div><label class="block text-sm font-bold text-slate-700 mb-2">Preferencje dietetyczne (dla AI)</label><textarea id="profilePreferences" rows="4" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700 resize-none"></textarea></div>
-                        <button onclick="saveUserProfile()" id="saveProfileBtn" class="w-full bg-slate-800 text-white px-8 py-4 rounded-xl text-lg font-bold hover:bg-slate-700 transition flex items-center justify-center gap-2"><i data-lucide="save" class="w-5 h-5"></i> Zapisz zmiany</button>
+                        <div><label class="block text-sm font-bold text-charcoal mb-2">Zalogowano jako:</label><div class="flex items-center gap-3 px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-xl text-charcoal_light font-mono text-sm cursor-not-allowed"><i data-lucide="mail" class="w-4 h-4"></i><span id="profileEmailDisplay"></span></div></div>
+                        
+<div>
+    <label class="block text-sm font-bold text-charcoal mb-2">Twoje ID Rodziny (Klucz dostępu)</label>
+    <div class="flex flex-col sm:flex-row gap-3">
+        <input type="text" id="profileFamilyId" readonly class="flex-grow px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-xl outline-none text-charcoal_light font-mono font-bold tracking-widest cursor-not-allowed" placeholder="Brak przypisanej rodziny">
+        <button onclick="promptFamilyChange()" class="bg-charcoal/5 text-charcoal px-6 py-3 rounded-xl font-bold hover:bg-charcoal/10 transition flex items-center justify-center gap-2 shrink-0 border border-transparent">
+            <i data-lucide="key" class="w-4 h-4"></i> Zmień Kod
+        </button>
+    </div>
+    <p class="text-xs text-charcoal_light mt-2 font-medium"><i data-lucide="info" class="w-3 h-3 inline"></i> Udostępnij ten kod domownikom, lub wpisz kod partnera by połączyć konta.</p>
+</div>
+                        <div><label class="block text-sm font-bold text-charcoal mb-2">Preferencje dietetyczne (dla AI)</label><textarea id="profilePreferences" rows="4" class="w-full px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-xl outline-none text-charcoal resize-none focus:ring-2 focus:ring-sage"></textarea></div>
+                        <button onclick="saveUserProfile()" id="saveProfileBtn" class="w-full bg-charcoal text-white px-8 py-4 rounded-xl text-lg font-bold hover:bg-charcoal_light transition flex items-center justify-center gap-2"><i data-lucide="save" class="w-5 h-5"></i> Zapisz zmiany</button>
+                        
+                        <div class="pt-6 mt-6 border-t border-charcoal/10">
+                            <button onclick="deleteUserAccount()" class="w-full bg-white text-terracotta border-2 border-terracotta/20 px-8 py-4 rounded-xl text-lg font-bold hover:bg-terracotta/5 transition flex items-center justify-center gap-2">
+                                <i data-lucide="trash-2" class="w-5 h-5"></i> Usuń konto i moje dane
+                            </button>
+                            <p class="text-xs text-center text-charcoal_light mt-3 font-medium">Ta operacja jest nieodwracalna. Usunie wszystkie Twoje przepisy i listy zakupów zgodnie z RODO.</p>
+                        </div>
                     </div>
                 </div>
             </div>
-
-
-
 
         </div>
         <div id="shoppingListFab" class="fixed bottom-6 left-0 right-0 px-4 z-50 hidden pointer-events-none">
             <div class="max-w-xs mx-auto flex justify-center">
-                <button onclick="generateShoppingListAction()" class="w-full bg-slate-900 text-white px-6 py-4 rounded-full shadow-2xl font-bold flex justify-center gap-3 pointer-events-auto border-4 border-slate-700 hover:bg-slate-800 transition hover:scale-105">
+                <button onclick="generateShoppingListAction()" class="w-full bg-sage text-white px-6 py-4 rounded-full shadow-2xl font-bold flex justify-center gap-3 pointer-events-auto border-4 border-sage_dark hover:bg-sage_dark transition hover:scale-105">
                     <i data-lucide="shopping-bag" class="w-5 h-5"></i>
                     <span>Stwórz Listę (<span id="shoppingListCount">0</span>)</span>
                 </button>
@@ -272,36 +285,29 @@
     </main>
 </div>
 
-
 <script>
         lucide.createIcons();
+        // WERSJA 1.23.0 - Dodanie stanu widoku (Kafelki vs Lista)
         let currentRecipeData = null;
         let allSavedRecipes = [];
         let filteredRecipes = [];
+        let isListView = false; // Domyślnie widok kafelkowy
         let currentUserEmail = null;
         let currentUserProfile = null;
        
         let uniqueCategories = [];
         let selectedRecipesForShopping = [];
 
-
-        // ===============================================
-        // LOGIKA ZAKUPÓW (WIELE LIST) - V 1.28.0
-        // ===============================================
-
-
         let allShoppingLists = [];
         let activeShoppingListId = null;
         let activeShoppingTitle = "";
         let activeShoppingListArray = [];
-
 
         window.onload = function() {
             lucide.createIcons();
             const storedEmail = localStorage.getItem('familyChefEmail');
             const magicEmail = window.MAGIC_LINK_EMAIL;
            
-            // LOGIKA KASKADOWA:
             if (magicEmail && magicEmail !== "") {
                 localStorage.setItem('familyChefEmail', magicEmail);
                 verifyUserInDatabase(magicEmail);
@@ -313,7 +319,6 @@
             }
         };
 
-
         function processAuth() {
             const emailInput = document.getElementById('loginEmail').value.trim().toLowerCase();
             if (!emailInput || !emailInput.includes('@')) return alert("Błędny email");
@@ -321,11 +326,8 @@
             verifyUserInDatabase(emailInput);
         }
 
-
-// WERSJA 2.0.0 - MIGRACJA NA VERCEL: Logowanie (Supabase API)
         async function verifyUserInDatabase(email) {
             try {
-                // 1. Uderzamy do naszego nowego bezserwerowego endpointu na Vercelu
                 const response = await fetch('/api/auth', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -335,20 +337,13 @@
                 const res = await response.json();
 
                 if (res.status === 'success') {
-                    // 2. Autoryzacja udana - zapisujemy dane sesji
                     localStorage.setItem('familyChefEmail', res.data.email);
                     currentUserEmail = res.data.email; 
                     currentUserProfile = res.data;
                     
-                    // 3. Odblokowanie interfejsu (Zdejmujemy Paywall/Auth)
                     document.getElementById('auth-overlay').classList.add('hidden');
                     document.getElementById('app-container').classList.remove('hidden');
                     document.getElementById('app-container').classList.add('flex');
-                    
-                    // UWAGA: Funkcje pobierające dane są tymczasowo wyciszone, 
-                    // dopóki nie zbudujemy dla nich endpointów w kolejnym kroku!
-                    // loadDashboard();
-                    // fetchShoppingLists();
                     
                     lucide.createIcons();
                 } else {
@@ -366,118 +361,164 @@
        
         function logoutUser() { localStorage.removeItem('familyChefEmail'); location.reload(); }
 
-
         function switchTab(tabName) {
             ['generator', 'dashboard', 'shopping', 'profile'].forEach(tab => {
-                document.getElementById('tab-' + tab).className = "py-4 font-semibold text-slate-500 border-b-2 border-transparent hover:text-brand-600 flex items-center gap-2 transition-colors shrink-0";
+                document.getElementById('tab-' + tab).className = "py-4 font-semibold text-charcoal_light border-b-2 border-transparent hover:text-terracotta flex items-center gap-2 transition-colors shrink-0";
                 document.getElementById('view-' + tab).classList.add('hidden');
             });
-            document.getElementById('tab-' + tabName).className = "py-4 font-bold text-brand-600 border-b-2 border-brand-600 flex items-center gap-2 transition-colors shrink-0";
+            document.getElementById('tab-' + tabName).className = "py-4 font-bold text-terracotta border-b-2 border-terracotta flex items-center gap-2 transition-colors shrink-0";
             document.getElementById('view-' + tabName).classList.remove('hidden');
-
 
             if(tabName === 'dashboard') { loadDashboard(); document.getElementById('shoppingListFab').style.display = selectedRecipesForShopping.length > 0 ? 'block' : 'none'; }
             else { document.getElementById('shoppingListFab').style.display = 'none'; }
            
-            if(tabName === 'shopping') showShoppingDash(); // Przełącza na Dashboard list
+            if(tabName === 'shopping') showShoppingDash();
             if(tabName === 'profile') loadProfileData();
         }
 
-
-// WERSJA 4.1.1 - MIGRACJA NA VERCEL: Ładowanie Dashboardu (Poprawione UI)
-        // WERSJA 4.1.2 - FETCH DASHBOARD Z FAMILY ID
         async function loadDashboard() {
             var grid = document.getElementById("dashboard-grid");
-            grid.innerHTML = `<div class="col-span-full text-center py-12"><i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto text-teal-600 mb-2"></i><p class="text-slate-500 font-semibold">Wczytuję z bazy...</p></div>`;
+            grid.innerHTML = `<div class="col-span-full text-center py-12"><i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto text-sage mb-2"></i><p class="text-charcoal_light font-semibold">Wczytuję z bazy...</p></div>`;
             lucide.createIcons();
 
             try {
-                // Bezpieczne pobranie family_id (zabezpieczenie przed nullem, gdy profil nie wczytał się w pełni)
                 const fId = (currentUserProfile && currentUserProfile.family_id) ? currentUserProfile.family_id : '';
                 const response = await fetch(`/api/get-dashboard?email=${encodeURIComponent(currentUserEmail)}&familyId=${encodeURIComponent(fId)}`);
                 const res = await response.json();
 
                 if (res.status === 'success') {
-                    // Przypisujemy do TWOJEJ zmiennej globalnej!
                     allSavedRecipes = res.recipes || [];
-                    
-                    // Aktualizujemy kategorie do filtrów
                     uniqueCategories = [...new Set(allSavedRecipes.map(r => r.category).filter(Boolean))];
                     
-                    populateFilters(); // Ładuje filtry na górze strony
-                    applyFilters();    // Renderuje grid używając renderGrid()
-
-                    // Pamiętaj: Jeśli dodałeś też odczyt list zakupów, zrobimy to w fetchShoppingLists.
+                    populateFilters(); 
+                    applyFilters();    
                 } else {
-                    grid.innerHTML = `<p class="col-span-full text-red-500 text-center font-bold">Błąd: ${res.message}</p>`;
+                    grid.innerHTML = `<p class="col-span-full text-terracotta text-center font-bold">Błąd: ${res.message}</p>`;
                 }
             } catch (error) {
                 console.error("Dashboard Fetch Error:", error);
-                grid.innerHTML = `<p class="col-span-full text-red-500 text-center font-bold">Krytyczny błąd połączenia z serwerem.</p>`;
+                grid.innerHTML = `<p class="col-span-full text-terracotta text-center font-bold">Krytyczny błąd połączenia z serwerem.</p>`;
             }
         }
 
-
+        // WERSJA 1.24.1 - Poprawiony scope funkcji i skrócone teksty w dropdownach
         function populateFilters() {
             const userSelect = document.getElementById('filterUser');
             const catSelect = document.getElementById('filterCategory');
-            userSelect.innerHTML = '<option value="all">👨‍👩‍👧 Wszyscy kucharze</option>';
-            catSelect.innerHTML = '<option value="all">🍽️ Wszystkie kategorie</option>';
+            // Skrócone nazwy dla lepszego wyświetlania na smartfonach
+            userSelect.innerHTML = '<option value="all">👨‍👩‍👧 Wszyscy</option>';
+            catSelect.innerHTML = '<option value="all">🍽️ Kategorie</option>';
            
-            // WERSJA 4.1.3 - FRONTEND: POPRAWNE MAPOWANIE AUTORA W FILTRACH
-            // Szukamy author_email (nowy standard bazy) lub author (kompatybilność wsteczna)
             const users = [...new Set(allSavedRecipes.map(r => String(r.author_email || r.author).trim().toLowerCase()))];
             users.forEach(u => userSelect.innerHTML += `<option value="${u}">${u.split('@')[0]}${u===currentUserEmail ? " (Ty)" : ""}</option>`);
             uniqueCategories.forEach(c => catSelect.innerHTML += `<option value="${c}">${c}</option>`);
         }
 
-
-        // WERSJA 4.1.5 - FRONTEND: NAPRAWA FILTROWANIA PO NOWYM POLU AUTHOR_EMAIL
-        function applyFilters() {
-            const uFilter = document.getElementById('filterUser').value;
-            const cFilter = document.getElementById('filterCategory').value;
-            
-            // Logika fallbacku: szukamy author_email, a jeśli go nie ma (stare dane), bierzemy author
-            filteredRecipes = allSavedRecipes.filter(r => 
-                (uFilter === 'all' || String(r.author_email || r.author).trim().toLowerCase() === uFilter) && 
-                (cFilter === 'all' || (r.category || 'Inne') === cFilter)
-            );
+        // Funkcja wyciągnięta poza applyFilters (naprawa błędu scope'u)
+        function toggleViewMode() {
+            isListView = !isListView;
+            const btn = document.getElementById('viewToggleBtn');
+            // Zmieniamy ikonę (oraz tekst na mobile) w zależności od trybu
+            btn.innerHTML = isListView 
+                ? `<i data-lucide="grid" class="w-5 h-5"></i> <span class="md:hidden">Siatka</span>` 
+                : `<i data-lucide="list" class="w-5 h-5"></i> <span class="md:hidden">Lista</span>`;
+            lucide.createIcons();
             
             renderGrid(filteredRecipes);
         }
 
+        function applyFilters() {
+            const uFilter = document.getElementById('filterUser').value;
+            const cFilter = document.getElementById('filterCategory').value;
+            const searchVal = document.getElementById('searchRecipe').value.toLowerCase().trim();
+            const sortVal = document.getElementById('sortRecipe').value;
+            
+            // 1. Filtrowanie (User + Kategoria + Wyszukiwanie tekstowe)
+            filteredRecipes = allSavedRecipes.filter(r => {
+                const matchUser = (uFilter === 'all' || String(r.author_email || r.author).trim().toLowerCase() === uFilter);
+                const matchCat = (cFilter === 'all' || (r.category || 'Inne') === cFilter);
+                const matchSearch = (r.title && r.title.toLowerCase().includes(searchVal));
+                
+                return matchUser && matchCat && matchSearch;
+            });
 
-// WERSJA 4.1.4 - MIGRACJA: Renderowanie siatki (Poprawiony UI - Kosz Top-Right)
+            // 2. Sortowanie wyników
+            filteredRecipes.sort((a, b) => {
+                if (sortVal === 'newest') {
+                    return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+                } else if (sortVal === 'oldest') {
+                    return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+                } else if (sortVal === 'az') {
+                    return String(a.title || '').localeCompare(String(b.title || ''), 'pl');
+                } else if (sortVal === 'za') {
+                    return String(b.title || '').localeCompare(String(a.title || ''), 'pl');
+                }
+                return 0;
+            });
+            
+            renderGrid(filteredRecipes);
+        }
+
+// WERSJA 1.23.3 - Rozbudowany renderGrid wspierający układ Listy i Kafelków
         function renderGrid(recipesToRender) {
             var grid = document.getElementById("dashboard-grid");
             grid.innerHTML = "";
+            
+            // Jeśli lista jest pusta
+            if (recipesToRender.length === 0) {
+                 grid.innerHTML = `<p class="col-span-full text-center text-charcoal_light py-8 font-medium">Brak przepisów spełniających kryteria.</p>`;
+                 return;
+            }
+
+            // Dopasowanie kontenera: widok listy to kolumna z odstępami, widok siatki to grid
+            grid.className = isListView 
+                ? "flex flex-col gap-3" 
+                : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6";
+
             recipesToRender.forEach(recipe => {
-                // KRYTYCZNE: Mapowanie na nowe pole z bazy (author_email)
                 let authorEmail = recipe.author_email || recipe.author; 
                 let isMe = String(authorEmail).trim().toLowerCase() === currentUserEmail;
-                
-                // Kosz na śmieci - PRZENIESIONY NA GÓRĘ
-                let deleteBtnHtml = isMe ? `<button onclick="event.stopPropagation(); deleteRecipeAction('${recipe.id}')" class="absolute top-4 right-4 text-slate-300 bg-slate-50 p-2 rounded-full hover:text-red-500 hover:bg-red-50 transition z-30" title="Usuń ten przepis"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : '';
-                
                 let isChecked = selectedRecipesForShopping.includes(recipe.id) ? 'checked' : '';
                 
                 var card = document.createElement('div');
-                let borderClass = isChecked ? 'border-brand-400 ring-2 ring-brand-100 shadow-md' : 'border-slate-100 shadow-sm';
-                card.className = `bg-white p-6 rounded-3xl ${borderClass} border hover:border-brand-200 hover:shadow-md transition cursor-pointer group relative flex flex-col`;
-                card.onclick = function() { openRecipe(recipe.id); };
+                let borderClass = isChecked ? 'border-sage ring-2 ring-sage/20 shadow-md' : 'border-black/5 shadow-sm';
                 
-                card.innerHTML = `
-                    ${deleteBtnHtml}
+                if (isListView) {
+                    // --- STRUKTURA DLA WIDOKU LISTY (Mobilna & Kompaktowa) ---
+                    card.className = `bg-white p-4 rounded-2xl ${borderClass} border hover:border-sage/30 hover:shadow-md transition cursor-pointer flex items-center gap-3 md:gap-4`;
+                    card.onclick = function() { openRecipe(recipe.id); };
                     
-                    <div class="flex items-center gap-2 mb-3 relative z-20 pr-12">
-                        <input type="checkbox" ${isChecked} onclick="event.stopPropagation(); toggleCart('${recipe.id}')" class="w-5 h-5 accent-brand-600 rounded cursor-pointer shrink-0">
-                        <span class="bg-brand-50 text-brand-600 border border-brand-100 text-[10px] uppercase font-bold px-2 py-1 rounded-md tracking-wider overflow-hidden text-ellipsis whitespace-nowrap">${recipe.category || 'Inne'}</span>
-                    </div>
+                    let deleteBtnListHtml = isMe ? `<button onclick="event.stopPropagation(); deleteRecipeAction('${recipe.id}')" class="text-charcoal_light hover:text-terracotta p-2 rounded-full hover:bg-terracotta/10 transition z-30 shrink-0" title="Usuń ten przepis"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : '';
 
-                    <h3 class="font-bold text-lg text-slate-900 leading-tight mb-2 pr-2">${recipe.title || 'Bez tytułu'}</h3>
-                    <p class="text-xs text-slate-500 font-mono mb-4 flex items-center gap-1"><i data-lucide="user" class="w-3 h-3"></i> ${String(authorEmail || currentUserEmail).split('@')[0]} &bull; ${recipe.created_at ? new Date(recipe.created_at).toLocaleDateString() : ''}</p>
-                    <div class="mt-auto pt-4 border-t border-slate-50 relative"><p class="text-sm text-slate-500">Kliknij, aby ugotować...</p></div>
-                `;
+                    card.innerHTML = `
+                        <input type="checkbox" ${isChecked} onclick="event.stopPropagation(); toggleCart('${recipe.id}')" class="w-5 h-5 accent-sage rounded cursor-pointer shrink-0">
+                        <div class="flex-grow min-w-0 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                            <h3 class="font-bold text-base text-charcoal truncate">${recipe.title || 'Bez tytułu'}</h3>
+                            <span class="bg-terracotta/10 text-terracotta border border-terracotta/20 text-[10px] uppercase font-bold px-2 py-0.5 rounded-md tracking-wider w-max">${recipe.category || 'Inne'}</span>
+                        </div>
+                        <div class="hidden sm:flex text-xs text-charcoal_light font-mono shrink-0 items-center gap-1">
+                            <i data-lucide="user" class="w-3 h-3"></i> ${String(authorEmail || currentUserEmail).split('@')[0]}
+                        </div>
+                        ${deleteBtnListHtml}
+                    `;
+                } else {
+                    // --- STRUKTURA DLA WIDOKU KAFELEK (Klasyczna) ---
+                    card.className = `bg-white p-6 rounded-3xl ${borderClass} border hover:border-sage/30 hover:shadow-md transition cursor-pointer group relative flex flex-col`;
+                    card.onclick = function() { openRecipe(recipe.id); };
+                    
+                    let deleteBtnGridHtml = isMe ? `<button onclick="event.stopPropagation(); deleteRecipeAction('${recipe.id}')" class="absolute top-4 right-4 text-charcoal_light bg-cream/50 p-2 rounded-full hover:text-terracotta hover:bg-terracotta/10 transition z-30" title="Usuń ten przepis"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : '';
+                    
+                    card.innerHTML = `
+                        ${deleteBtnGridHtml}
+                        <div class="flex items-center gap-2 mb-3 relative z-20 pr-12">
+                            <input type="checkbox" ${isChecked} onclick="event.stopPropagation(); toggleCart('${recipe.id}')" class="w-5 h-5 accent-sage rounded cursor-pointer shrink-0">
+                            <span class="bg-terracotta/10 text-terracotta border border-terracotta/20 text-[10px] uppercase font-bold px-2 py-1 rounded-md tracking-wider overflow-hidden text-ellipsis whitespace-nowrap">${recipe.category || 'Inne'}</span>
+                        </div>
+                        <h3 class="font-bold text-lg text-charcoal leading-tight mb-2 pr-2">${recipe.title || 'Bez tytułu'}</h3>
+                        <p class="text-xs text-charcoal_light font-mono mb-4 flex items-center gap-1"><i data-lucide="user" class="w-3 h-3"></i> ${String(authorEmail || currentUserEmail).split('@')[0]} &bull; ${recipe.created_at ? new Date(recipe.created_at).toLocaleDateString() : ''}</p>
+                        <div class="mt-auto pt-4 border-t border-charcoal/5 relative"><p class="text-sm text-charcoal_light">Kliknij, aby ugotować...</p></div>
+                    `;
+                }
                 grid.appendChild(card);
             });
             lucide.createIcons();
@@ -492,22 +533,19 @@
             renderGrid(filteredRecipes);
         }
 
-
         function populateCategoryDropdown(activeCat) {
             const select = document.getElementById("recipeCategorySelect");
             select.innerHTML = '';
             uniqueCategories.forEach(c => {
-                select.innerHTML += `<option value="${c}" class="text-slate-800">${c}</option>`;
+                select.innerHTML += `<option value="${c}" class="text-charcoal">${c}</option>`;
             });
             if (!uniqueCategories.includes(activeCat)) {
-                select.innerHTML += `<option value="${activeCat}" class="text-slate-800">${activeCat}</option>`;
+                select.innerHTML += `<option value="${activeCat}" class="text-charcoal">${activeCat}</option>`;
             }
-            select.innerHTML += `<option value="NEW_CUSTOM" class="text-brand-600 font-bold">+ DODAJ NOWĄ</option>`;
+            select.innerHTML += `<option value="NEW_CUSTOM" class="text-sage font-bold">+ DODAJ NOWĄ</option>`;
             select.value = activeCat;
         }
 
-
-// WERSJA 4.8.0 - MIGRACJA: Zmiana kategorii przepisu
         async function changeCategoryHandler(newVal) {
             if (newVal === "NEW_CUSTOM") {
                 const customCat = prompt("Wpisz nową kategorię:");
@@ -524,7 +562,6 @@
             
             currentRecipeData.category = newVal;
 
-            // Jeśli przepis jest już w bazie (ma UUID), aktualizujemy go zdalnie
             if (currentRecipeData.id && currentRecipeData.id !== "temporary_saved") {
                 try {
                     await fetch('/api/update-recipe-category', {
@@ -536,7 +573,7 @@
                             email: currentUserEmail 
                         })
                     });
-                    loadDashboard(); // Odświeżamy listę przepisów w tle
+                    loadDashboard(); 
                 } catch (error) {
                     console.error("Błąd aktualizacji kategorii w bazie:", error);
                 }
@@ -553,18 +590,14 @@
             }
         }
 
-
-// WERSJA 4.2.1 - API VERCEL: Pobieranie pełnego przepisu po kliknięciu
         async function openRecipe(id) {
-            // Włączamy loader z Kreatora
             startLoadingProcess("Pobieram przepis z bazy...");
             
             try {
-                // Uderzamy do Twojego nowego endpointu Vercel!
                 const response = await fetch(`/api/get-recipe?id=${id}`);
                 const recipe = await response.json();
 
-                if (recipe && !recipe.status) { // Jeśli nie ma błędu statusu
+                if (recipe && !recipe.status) { 
                     currentRecipeData = {
                         id: recipe.id,
                         author: recipe.author_email,
@@ -574,7 +607,6 @@
                         category: recipe.category || 'Inne'
                     };
                     
-                    // Renderowanie UI
                     populateCategoryDropdown(currentRecipeData.category);
                     document.getElementById("recipeTitle").innerText = currentRecipeData.title;
                     
@@ -584,14 +616,12 @@
                     var instList = document.getElementById("recipeInstructions");
                     instList.innerHTML = ""; currentRecipeData.instructions.forEach(i => { if(i) { let li = document.createElement("li"); li.innerText = i; instList.appendChild(li); }});
 
-                    // Aktywujemy widok z zapisanym stanem
                     setActionButtonsMode(true);
-                    switchTab('generator'); // Przełącza widok na Kreator
+                    switchTab('generator'); 
                     document.getElementById("recipeContainer").classList.remove("hidden");
                     document.getElementById("feedbackContainer").style.display = "block";
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                     
-                    // Wyłączamy loader
                     document.getElementById("loadingMsg").classList.add("hidden"); 
                     document.getElementById("submitBtn").disabled = false;
                 } else {
@@ -605,15 +635,12 @@
             }
         }
 
-
-// WERSJA 3.0.0 - MIGRACJA NA VERCEL: Silnik AI (askChef & sendFeedback)
         async function askChef() {
             var inputField = document.getElementById("userInput");
             if (!inputField.value) return alert("Wpisz pomysł!");
             startLoadingProcess("Szef kuchni pracuje... 👨‍🍳");
             
             try {
-                // Uderzamy do nowego serwera na Vercelu zamiast do Google Apps Script
                 const response = await fetch('/api/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -628,7 +655,6 @@
                 const res = await response.json();
                 
                 if (res.status === 'success') {
-                    // Pakujemy odpowiedź tak, by stare funkcje UI (onSuccess) ją zrozumiały
                     onSuccess({ status: "success", data: res.recipe });
                     inputField.value = "";
                 } else {
@@ -646,7 +672,6 @@
             startLoadingProcess("Koryguję... 🔄");
             
             try {
-                // Uderzamy do Vercela w trybie "Pętli Konwersacyjnej"
                 const response = await fetch('/api/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -672,13 +697,11 @@
             }
         }
 
-
         function startLoadingProcess(msg) {
             document.getElementById("loadingMsg").innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i><span>${msg}</span>`;
             document.getElementById("loadingMsg").classList.remove("hidden"); document.getElementById("loadingMsg").classList.add("flex");
             document.getElementById("recipeContainer").classList.add("hidden"); document.getElementById("submitBtn").disabled = true; lucide.createIcons();
         }
-
 
         function onSuccess(response) {
             document.getElementById("loadingMsg").classList.add("hidden"); document.getElementById("submitBtn").disabled = false;
@@ -697,14 +720,11 @@
             } else alert("Błąd: " + response.message);
         }
 
-
         function onFailure(error) {
             document.getElementById("loadingMsg").classList.add("hidden"); document.getElementById("submitBtn").disabled = false;
             alert("Błąd połączenia: " + error.message);
         }
 
-
-// WERSJA 4.0.0 - MIGRACJA NA VERCEL: Zapis Przepisu do Supabase
         async function saveOnlyAction() {
             if (!currentRecipeData) return;
             var btn = document.getElementById("saveOnlyBtn");
@@ -712,12 +732,10 @@
             btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Zapisywanie...`;
             btn.disabled = true; lucide.createIcons();
             
-try {
-                // Uderzamy do nowego API Vercel
+            try {
                 const response = await fetch('/api/save-recipe', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-// WERSJA 4.0.1 - ZAPIS Z FAMILY ID NA FRONCIE
                     body: JSON.stringify({
                         email: currentUserEmail,
                         familyId: (currentUserProfile && currentUserProfile.family_id) ? currentUserProfile.family_id : null,
@@ -732,7 +750,7 @@ try {
                     btn.innerHTML = `<i data-lucide="check" class="w-5 h-5"></i> Zapisano!`;
                     lucide.createIcons();
                     setTimeout(() => {
-                        currentRecipeData.id = res.recipeId; // Przypisujemy prawdziwe UUID z bazy!
+                        currentRecipeData.id = res.recipeId; 
                         setActionButtonsMode(true);
                         btn.innerHTML = originalHtml; btn.disabled = false;
                     }, 2000);
@@ -747,20 +765,40 @@ try {
             }
         }
 
+        function promptFamilyChange() {
+            const currentCode = document.getElementById('profileFamilyId').value;
+            const msg = currentCode 
+                ? "Wpisz kod rodziny partnera, aby połączyć wasze konta.\nJeśli chcesz stworzyć nową rodzinę, zostaw to pole puste i wciśnij OK:"
+                : "Wpisz kod rodziny (otrzymany od partnera) lub zostaw to pole puste, aby serwer wygenerował Twój bezpieczny kod:";
+                
+            const newCode = prompt(msg, "");
+            
+            if (newCode !== null) {
+                const finalCode = newCode.trim().toUpperCase();
+                const inputEl = document.getElementById('profileFamilyId');
+                
+                if (finalCode === "") {
+                    inputEl.value = "";
+                    inputEl.placeholder = "Serwer wygeneruje nowy kod po zapisie...";
+                } else {
+                    inputEl.value = finalCode;
+                }
+                
+                inputEl.classList.remove('bg-cream/50', 'text-charcoal_light', 'cursor-not-allowed');
+                inputEl.classList.add('bg-sage/10', 'text-sage_dark', 'ring-2', 'ring-sage');
+                
+                alert("Gotowe! Kliknij 'Zapisz zmiany' na dole ekranu, aby wysłać żądanie do serwera.");
+            }
+        }
 
-
-// WERSJA 4.8.0 - POPRAWKA: Ładowanie profilu bez "undefined"
         function loadProfileData() {
             if (currentUserProfile) {
                 document.getElementById('profileEmailDisplay').innerText = currentUserEmail;
-                // Czytamy poprawne klucze z bazy Supabase (z podkreślnikami)
                 document.getElementById('profileFamilyId').value = currentUserProfile.family_id || "";
                 document.getElementById('profilePreferences').value = currentUserProfile.preferences || "";
             }
         }
 
-
-// WERSJA 4.8.0 - MIGRACJA: Zapis profilu do Supabase
         async function saveUserProfile() {
             const fId = document.getElementById('profileFamilyId').value;
             const pref = document.getElementById('profilePreferences').value || "Brak wytycznych";
@@ -779,10 +817,10 @@ try {
                 const res = await response.json();
 
                 if (res.status === 'success') {
-                    btn.innerHTML = `<i data-lucide="check" class="w-5 h-5 text-green-400"></i> Zapisano`;
-                    // Aktualizujemy lokalny obiekt profilu
-                    currentUserProfile.family_id = fId;
+                    btn.innerHTML = `<i data-lucide="check" class="w-5 h-5 text-sage"></i> Zapisano`;
+                    currentUserProfile.family_id = res.newFamilyId || fId;
                     currentUserProfile.preferences = pref;
+                    document.getElementById('profileFamilyId').value = currentUserProfile.family_id;
                 } else {
                     alert(res.message);
                     btn.innerHTML = oHtml;
@@ -794,12 +832,40 @@ try {
             setTimeout(() => { btn.innerHTML = oHtml; btn.disabled = false; lucide.createIcons(); }, 2000);
         }
 
+        async function deleteUserAccount() {
+            if (!confirm("⚠️ UWAGA! Czy na pewno chcesz trwale usunąć swoje konto? Wszystkie Twoje przepisy i listy zakupów zostaną bezpowrotnie skasowane.")) return;
+            if (!confirm("Ostatnie ostrzeżenie. Tej operacji nie można cofnąć. Kontynuować?")) return;
 
-// WERSJA 4.9.0 - MIGRACJA: Usuwanie przepisu z bazy Supabase
+            const btn = document.querySelector('button[onclick="deleteUserAccount()"]');
+            const oHtml = btn.innerHTML;
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Trwa usuwanie danych...`;
+            btn.disabled = true; lucide.createIcons();
+
+            try {
+                const response = await fetch('/api/delete-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: currentUserEmail })
+                });
+                const res = await response.json();
+
+                if (res.status === 'success') {
+                    alert("Twoje konto zostało trwale usunięte. Zostaniesz wylogowany.");
+                    logoutUser(); 
+                } else {
+                    alert("Błąd: " + res.message);
+                    btn.innerHTML = oHtml; btn.disabled = false; lucide.createIcons();
+                }
+            } catch (error) {
+                alert("Błąd połączenia z serwerem.");
+                btn.innerHTML = oHtml; btn.disabled = false; lucide.createIcons();
+            }
+        }
+
         async function deleteRecipeAction(recipeId) {
             if (!confirm("Trwale usunąć ten przepis?")) return;
             var grid = document.getElementById("dashboard-grid"); 
-            grid.innerHTML = `<div class="col-span-full text-center py-12"><i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto mb-3 text-red-500"></i> Usuwanie...</div>`; 
+            grid.innerHTML = `<div class="col-span-full text-center py-12"><i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto mb-3 text-terracotta"></i> Usuwanie...</div>`; 
             lucide.createIcons();
             
             try {
@@ -808,51 +874,41 @@ try {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ recipeId: recipeId, email: currentUserEmail })
                 });
-                loadDashboard(); // Odświeża bibliotekę
+                loadDashboard(); 
             } catch (error) {
                 alert("Błąd połączenia.");
                 loadDashboard();
             }
         }
 
-        // ===============================================
-        // LOGIKA LIST ZAKUPÓW (DASHBOARD & DETAILS)
-        // ===============================================
-
-
-// WERSJA 4.4.0 - MIGRACJA NA VERCEL: Pobieranie list zakupów z API
-        // WERSJA 4.4.1 - FRONTEND: POBIERANIE LIST ZAKUPÓW Z FAMILY ID
         async function fetchShoppingLists() {
-            document.getElementById('shoppingListsGrid').innerHTML = `<div class="col-span-full text-center py-10 text-slate-400"><i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2"></i></div>`;
+            document.getElementById('shoppingListsGrid').innerHTML = `<div class="col-span-full text-center py-10 text-charcoal_light"><i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2"></i></div>`;
             lucide.createIcons();
             
             try {
-                // Bezpieczne pobranie ID rodziny z profilu
                 const fId = (currentUserProfile && currentUserProfile.family_id) ? currentUserProfile.family_id : '';
                 
-                // Doklejamy familyId do adresu URL (Query Params)
                 const response = await fetch(`/api/get-shopping-lists?email=${encodeURIComponent(currentUserEmail)}&familyId=${encodeURIComponent(fId)}`);
                 const res = await response.json();
 
                 if (res.status === 'success') {
-                    // Magia Vercel + Supabase (JSONB): dane są od razu gotowe, nie trzeba robić JSON.parse() jak w Google Apps Script
                     allShoppingLists = res.lists.map(listObj => {
                         return {
                             id: listObj.id,
                             title: listObj.title,
-                            date: listObj.created_at,       // Zmiana nazwy kolumny pod Supabase
-                            author: listObj.author_email,   // Zmiana nazwy kolumny pod Supabase
-                            data: listObj.data              // Natywny obiekt JSON
+                            date: listObj.created_at,       
+                            author: listObj.author_email,   
+                            data: listObj.data              
                         };
                     });
                     
                     renderShoppingListsDash();
                 } else {
-                    document.getElementById('shoppingListsGrid').innerHTML = `<div class="col-span-full text-center text-red-500">Błąd pobierania list: ${res.message}</div>`;
+                    document.getElementById('shoppingListsGrid').innerHTML = `<div class="col-span-full text-center text-terracotta">Błąd pobierania list: ${res.message}</div>`;
                 }
             } catch (error) {
                 console.error("Krytyczny błąd zapytania:", error);
-                document.getElementById('shoppingListsGrid').innerHTML = `<div class="col-span-full text-center text-red-500 font-bold">Krytyczny błąd połączenia z bazą. Odśwież stronę.</div>`;
+                document.getElementById('shoppingListsGrid').innerHTML = `<div class="col-span-full text-center text-terracotta font-bold">Krytyczny błąd połączenia z bazą. Odśwież stronę.</div>`;
             }
         }
 
@@ -861,46 +917,41 @@ try {
             grid.innerHTML = '';
            
             if (allShoppingLists.length === 0) {
-                grid.innerHTML = `<div class="col-span-full text-center py-10 text-slate-500 bg-white rounded-3xl border border-slate-100 shadow-sm">Nie masz żadnych list zakupów. Zaznacz przepisy w Bazie i kliknij 'Stwórz Listę'.</div>`;
+                grid.innerHTML = `<div class="col-span-full text-center py-10 text-charcoal_light bg-white rounded-3xl border border-charcoal/5 shadow-sm">Nie masz żadnych list zakupów. Zaznacz przepisy w Bazie i kliknij 'Stwórz Listę'.</div>`;
                 return;
             }
-
 
             allShoppingLists.forEach(list => {
                 let totalItems = 0; let checkedItems = 0;
                 list.data.forEach(g => g.items.forEach(i => { totalItems++; if(i.checked) checkedItems++; }));
                 const progress = totalItems === 0 ? 0 : Math.round((checkedItems/totalItems)*100);
 
-
                 const card = document.createElement('div');
-                card.className = "bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:border-brand-300 hover:shadow-md transition cursor-pointer relative flex flex-col";
+                card.className = "bg-white p-5 rounded-2xl border border-charcoal/5 shadow-sm hover:border-sage/30 hover:shadow-md transition cursor-pointer relative flex flex-col";
                 card.onclick = () => openShoppingListDetail(list.id);
-
 
                 card.innerHTML = `
                     <div class="flex justify-between items-start mb-3 pr-8">
-                        <h3 class="font-bold text-slate-900 leading-tight">${list.title}</h3>
+                        <h3 class="font-bold text-charcoal leading-tight">${list.title}</h3>
                     </div>
-                    <button onclick="event.stopPropagation(); deleteShoppingListFromDash('${list.id}')" class="absolute top-4 right-4 p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition z-20"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                    <p class="text-xs text-slate-400 mb-4 font-mono"><i data-lucide="calendar" class="w-3 h-3 inline mr-1"></i>${new Date(list.date).toLocaleDateString()} • ${String(list.author).split('@')[0]}</p>
+                    <button onclick="event.stopPropagation(); deleteShoppingListFromDash('${list.id}')" class="absolute top-4 right-4 p-2 text-charcoal_light hover:text-terracotta hover:bg-terracotta/10 rounded-full transition z-20"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    <p class="text-xs text-charcoal_light mb-4 font-mono"><i data-lucide="calendar" class="w-3 h-3 inline mr-1"></i>${new Date(list.date).toLocaleDateString()} • ${String(list.author).split('@')[0]}</p>
                    
-                    <div class="mt-auto w-full bg-slate-100 rounded-full h-2.5 mb-1 overflow-hidden">
-                        <div class="bg-brand-500 h-2.5 rounded-full transition-all" style="width: ${progress}%"></div>
+                    <div class="mt-auto w-full bg-charcoal/5 rounded-full h-2.5 mb-1 overflow-hidden">
+                        <div class="bg-sage h-2.5 rounded-full transition-all" style="width: ${progress}%"></div>
                     </div>
-                    <div class="text-xs text-right text-slate-500 font-bold">${checkedItems}/${totalItems} produktów</div>
+                    <div class="text-xs text-right text-charcoal_light font-bold">${checkedItems}/${totalItems} produktów</div>
                 `;
                 grid.appendChild(card);
             });
             lucide.createIcons();
         }
 
-
         function showShoppingDash() {
             document.getElementById('shoppingDashView').style.display = 'block';
             document.getElementById('shoppingDetailView').style.display = 'none';
             fetchShoppingLists();
         }
-
 
         function openShoppingListDetail(listId) {
             const list = allShoppingLists.find(l => l.id === listId);
@@ -911,16 +962,14 @@ try {
             activeShoppingTitle = list.title;
             document.getElementById('activeShoppingTitle').innerText = list.title;
 
-
             document.getElementById('shoppingDashView').style.display = 'none';
             document.getElementById('shoppingDetailView').style.display = 'block';
             renderShoppingListUI();
         }
-// WERSJA 4.5.2 - FRONTEND: WYSYŁKA FAMILY ID DO USUWANIA LIST ZAKUPÓW
+
         async function deleteShoppingListFromDash(listId) {
             if (!confirm("Usunąć tę listę zakupów?")) return;
             try {
-                // Pobieramy ID rodziny z profilu
                 const fId = (currentUserProfile && currentUserProfile.family_id) ? currentUserProfile.family_id : null;
                 
                 await fetch('/api/delete-shopping-list', {
@@ -928,7 +977,7 @@ try {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ listId: listId, email: currentUserEmail, familyId: fId })
                 });
-                fetchShoppingLists(); // Odświeżamy widok po usunięciu
+                fetchShoppingLists(); 
             } catch (error) {
                 alert("Błąd usuwania listy.");
             }
@@ -939,7 +988,6 @@ try {
             const btn = document.getElementById('clearShoppingBtn');
             btn.innerText = "Usuwanie...";
             try {
-                // Pobieramy ID rodziny z profilu
                 const fId = (currentUserProfile && currentUserProfile.family_id) ? currentUserProfile.family_id : null;
                 
                 await fetch('/api/delete-shopping-list', {
@@ -948,25 +996,21 @@ try {
                     body: JSON.stringify({ listId: activeShoppingListId, email: currentUserEmail, familyId: fId })
                 });
                 btn.innerText = "Usuń tę listę";
-                showShoppingDash(); // Wracamy do kokpitu po udanym usunięciu
+                showShoppingDash(); 
             } catch (error) {
                 alert("Błąd usuwania listy.");
                 btn.innerText = "Usuń tę listę";
             }
         }
 
-        // WERSJA 4.5.1 - FRONTEND: WYSYŁKA FAMILY ID DO EDYCJI LISTY ZAKUPÓW
         let syncTimeout;
         function toggleShoppingItem(gIdx, iIdx) {
-            // Natychmiastowa aktualizacja UI
             activeShoppingListArray[gIdx].items[iIdx].checked = !activeShoppingListArray[gIdx].items[iIdx].checked;
             renderShoppingListUI();
             
-            // "Debouncing" - zapis do bazy w tle po 1 sekundzie bezczynności
             clearTimeout(syncTimeout);
             syncTimeout = setTimeout(async () => {
                 try {
-                    // Pobieramy ID rodziny do autoryzacji zmiany
                     const fId = (currentUserProfile && currentUserProfile.family_id) ? currentUserProfile.family_id : null;
                     
                     await fetch('/api/update-shopping-list', {
@@ -975,7 +1019,7 @@ try {
                         body: JSON.stringify({ 
                             listId: activeShoppingListId, 
                             email: currentUserEmail, 
-                            familyId: fId, // Dodane!
+                            familyId: fId,
                             listData: activeShoppingListArray 
                         })
                     });
@@ -984,7 +1028,7 @@ try {
                 }
             }, 1000);
         }
-// WERSJA 4.3.0 - MIGRACJA NA VERCEL: Generowanie Listy Zakupów
+
         async function generateShoppingListAction() {
             if (selectedRecipesForShopping.length === 0) return;
             const btn = document.querySelector('#shoppingListFab button'); const oHtml = btn.innerHTML;
@@ -995,7 +1039,6 @@ try {
                 const response = await fetch('/api/generate-shopping-list', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-// WERSJA 4.3.4 - FRONTEND: WYSYŁKA FAMILY ID DO GENERATORA LIST
                     body: JSON.stringify({
                         email: currentUserEmail,
                         familyId: (currentUserProfile && currentUserProfile.family_id) ? currentUserProfile.family_id : null,
@@ -1008,11 +1051,10 @@ try {
                 btn.innerHTML = oHtml; btn.disabled = false; lucide.createIcons();
                 
                 if (res.status === 'success') {
-                    selectedRecipesForShopping = []; // Czyścimy koszyk
+                    selectedRecipesForShopping = []; 
                     document.getElementById("shoppingListFab").style.display = 'none';
-                    // Odświeżamy interfejs
                     renderGrid(filteredRecipes); 
-                    switchTab('shopping'); // Zmienia widok na listy zakupów
+                    switchTab('shopping'); 
                 } else {
                     alert("Błąd: " + res.message);
                 }
@@ -1023,17 +1065,16 @@ try {
             }
         }
 
-
         function renderShoppingListUI() {
             const content = document.getElementById('shoppingContent'); content.innerHTML = "";
             activeShoppingListArray.forEach((group, gIndex) => {
                 const grpDiv = document.createElement('div');
-                grpDiv.innerHTML = `<h3 class="font-bold text-brand-600 mb-2 border-b border-brand-50 pb-1">${group.category}</h3>`;
+                grpDiv.innerHTML = `<h3 class="font-bold text-sage_dark mb-2 border-b border-charcoal/5 pb-1">${group.category}</h3>`;
                
                 const ul = document.createElement('div'); ul.className = "space-y-2";
                 group.items.forEach((item, iIndex) => {
-                    const checkedClass = item.checked ? 'item-checked' : 'bg-white border-slate-100 shadow-sm hover:border-brand-200';
-                    const icon = item.checked ? `<i data-lucide="check-square" class="text-brand-500 w-5 h-5"></i>` : `<i data-lucide="square" class="text-slate-300 w-5 h-5"></i>`;
+                    const checkedClass = item.checked ? 'item-checked' : 'bg-white border-charcoal/5 shadow-sm hover:border-sage/30';
+                    const icon = item.checked ? `<i data-lucide="check-square" class="text-sage w-5 h-5"></i>` : `<i data-lucide="square" class="text-charcoal/20 w-5 h-5"></i>`;
                     ul.innerHTML += `
                         <div onclick="toggleShoppingItem(${gIndex}, ${iIndex})" class="flex items-start gap-3 p-3 rounded-xl border transition cursor-pointer ${checkedClass}">
                             <div class="mt-0.5 shrink-0">${icon}</div>
@@ -1046,7 +1087,7 @@ try {
             });
             lucide.createIcons();
         }
-// WERSJA 4.6.0 - MIGRACJA NA VERCEL: Wysyłka e-maili przez API
+
         async function confirmAndSend() {
             if (!currentRecipeData) return;
             var isSavedMode = currentRecipeData.id ? true : false;
@@ -1057,11 +1098,16 @@ try {
             btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Wysyłanie...`;
             btn.disabled = true; lucide.createIcons();
             
+            // WERSJA 1.21.2 - Frontend: Dodanie familyId do payloadu dla atomowego zapisu i wysyłki
             try {
                 const response = await fetch('/api/send-recipe', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: currentUserEmail, recipe: currentRecipeData })
+                    body: JSON.stringify({ 
+                        email: currentUserEmail, 
+                        familyId: (currentUserProfile && currentUserProfile.family_id) ? currentUserProfile.family_id : null,
+                        recipe: currentRecipeData 
+                    })
                 });
                 const res = await response.json();
                 
@@ -1070,7 +1116,6 @@ try {
                     btn.innerHTML = `<i data-lucide="check-circle" class="w-5 h-5"></i> Wysłano i Zapisano!`;
                     lucide.createIcons();
                     setTimeout(() => {
-                        // KRYTYCZNE: Przypisujemy ID z bazy, żeby przycisk "Zapisz" zniknął
                         currentRecipeData.id = res.recipeId; 
                         setActionButtonsMode(true);
                         btn.innerHTML = originalHtml; btn.disabled = false; lucide.createIcons();
@@ -1085,7 +1130,7 @@ try {
             }
         }
 
-        async function sendShoppingPDF() { // Pozostawiam oryginalną nazwę dla kompatybilności z przyciskiem HTML
+        async function sendShoppingPDF() {
             const btn = document.getElementById('sendShoppingEmailBtn'); const oHtml = btn.innerHTML;
             btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>`;
             
@@ -1112,4 +1157,3 @@ try {
 </script>
 </body>
 </html>
-

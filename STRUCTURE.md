@@ -4,6 +4,7 @@
 │   ├── auth.js                 # Logowanie (Działa)
 │   ├── delete-recipe.js        # Usuwanie przepisu
 │   ├── delete-shopping-list.js # Usuwanie listy zakupów
+│   ├── delete-user.js          # Usuwanie użytkowników
 │   ├── generate-shopping-list.js # Generowanie listy zakupów
 │   ├── generate.js             # Silnik AI (Działa)
 │   ├── get-dashboard.js        # Pobieranie danych do panelu głównego
