@@ -2,8 +2,8 @@
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ status: "error" });
 
-    // DODANO defaultServings ODBIERANE Z FRONETENDU
-    let { email, familyId, preferences, defaultServings } = req.body;
+    // WERSJA 4.9.0 - API VERCEL: ODBIÓR DANYCH PROMPT MATRIX
+    let { email, familyId, preferences, defaultServings, defaultChef, defaultSkill } = req.body;
 
     try {
         const { createClient } = await import('@supabase/supabase-js');
@@ -34,14 +34,20 @@ export default async function handler(req, res) {
             familyId = generatedId;
         }
 
-        // 1. Zapisanie danych w głównej tabeli użytkownika (DODANO default_servings)
+        // 1. Zapisanie danych w głównej tabeli użytkownika (Wersja 4.9.0 - Dynamiczny Payload)
+        const updatePayload = { 
+            family_id: familyId, 
+            preferences: preferences,
+            default_servings: defaultServings || 2 
+        };
+
+        // Zabezpieczenie: Aktualizujemy parametry AI tylko jeśli zostały przesłane z frontendu
+        if (defaultChef) updatePayload.default_chef = defaultChef;
+        if (defaultSkill) updatePayload.default_skill = defaultSkill;
+
         const { error: userError } = await supabase
             .from('users')
-            .update({ 
-                family_id: familyId, 
-                preferences: preferences,
-                default_servings: defaultServings || 2 
-            })
+            .update(updatePayload)
             .eq('email', email);
 
         if (userError) throw userError;

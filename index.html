@@ -65,19 +65,27 @@
 
 <div id="app-container" class="hidden flex-grow flex-col">
 
-<nav class="w-full z-50 bg-cream/90 backdrop-blur-lg border-b border-charcoal/5 sticky top-0">
+<!-- WERSJA 4.3.1 - Zabezpieczenie responsywności menu głównego -->
+    <nav class="w-full z-50 bg-cream/90 backdrop-blur-lg border-b border-charcoal/5 sticky top-0 overflow-hidden">
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-20">
-                <div class="flex items-center gap-2">
-                    <!-- WERSJA 1.21.1 - Powiększone logo w nawigacji. Docelowo do usunięcia mix-blend po wgraniu prawdziwego PNG -->
-                    <img src="https://bnijuskmzcgnojefxhnk.supabase.co/storage/v1/object/public/assets/Header_transparent2.png" alt="KiedyObiad.pl" class="h-16 sm:h-20 w-auto object-contain mix-blend-multiply">
+            <div class="flex justify-between items-center h-20 gap-4">
+                
+                <!-- Kontener logo z twardymi blokadami rozpychania -->
+                <div class="flex items-center min-w-0 shrink">
+                    <img src="https://bnijuskmzcgnojefxhnk.supabase.co/storage/v1/object/public/assets/Header_transparent2.png" alt="KiedyObiad.pl" class="h-14 sm:h-16 md:h-20 max-w-[150px] sm:max-w-[220px] md:max-w-xs w-auto object-contain object-left mix-blend-multiply">
                 </div>
-                <div class="flex items-center gap-4">
-                    <span class="hidden md:flex text-xs font-bold text-charcoal_light bg-black/5 px-3 py-1 rounded-full">Wersja 1.21.0</span>
-                    <button onclick="logoutUser()" class="text-charcoal_light hover:text-terracotta transition-colors bg-white p-2 rounded-full shadow-sm" title="Wyloguj">
+
+                <!-- Kontener prawy z zabezpieczeniem przed ściskaniem (shrink-0) -->
+                <div class="flex items-center gap-2 sm:gap-4 shrink-0">
+                    <button id="premiumBadge" onclick="triggerUpgradeModal()" class="hidden">
+                        Wczytywanie...
+                    </button>
+                    <span class="hidden md:flex text-xs font-bold text-charcoal_light bg-black/5 px-3 py-1 rounded-full shrink-0">Wersja 1.21.0</span>
+                    <button onclick="logoutUser()" class="text-charcoal_light hover:text-terracotta transition-colors bg-white p-2 rounded-full shadow-sm shrink-0" title="Wyloguj">
                          <i data-lucide="log-out" class="w-5 h-5"></i>
                     </button>
                 </div>
+                
             </div>
         </div>
     </nav>
@@ -102,28 +110,54 @@
                     </h1>
                 </div>
 
+                <!-- WERSJA 4.0.0 - Wdrożenie UI dla Prompt Matrix -->
                 <div class="bg-white p-6 rounded-3xl shadow-xl border border-black/5 mb-8">
-                    <div class="flex flex-col sm:flex-row gap-3">
-                        <div class="relative flex-grow">
+                    <div class="flex flex-col gap-3">
+                        <!-- Wyszukiwarka -->
+                        <div class="relative w-full">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-charcoal_light">
                                 <i data-lucide="search" class="w-5 h-5"></i>
                             </div>
                             <input type="text" id="userInput" placeholder="Np. Szybki obiad z kurczakiem..." class="w-full pl-12 pr-4 py-4 bg-cream/50 border border-charcoal/10 rounded-2xl focus:ring-2 focus:ring-sage outline-none transition text-charcoal text-lg">
                         </div>
                         
-                        <!-- NOWE: Licznik porcji -->
-                        <div class="flex items-center justify-between bg-cream/50 border border-charcoal/10 rounded-2xl px-2 shrink-0 min-w-[120px]">
-                            <button onclick="changeServings(-1)" class="p-3 text-charcoal_light hover:text-terracotta transition"><i data-lucide="minus" class="w-5 h-5"></i></button>
-                            <div class="flex flex-col items-center justify-center">
-                                <input type="number" id="recipeServings" value="2" min="1" max="20" class="w-8 text-center bg-transparent border-none outline-none text-charcoal font-bold text-lg p-0 pointer-events-none" readonly>
-                                <span class="text-[10px] uppercase font-bold text-charcoal_light -mt-1">Porcje</span>
-                            </div>
-                            <button onclick="changeServings(1)" class="p-3 text-charcoal_light hover:text-sage transition"><i data-lucide="plus" class="w-5 h-5"></i></button>
+                        <!-- Opcje Persony i Poziomu (WERSJA 4.2.0 - Soft Paywall UI) -->
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <select id="generatorChef" onchange="enforcePremiumSelect(this, 'DEFAULT_CHEF')" class="flex-grow px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-2xl outline-none text-charcoal_light text-sm font-semibold hover:bg-cream focus:ring-2 focus:ring-sage transition cursor-pointer">
+                                <option value="DEFAULT_CHEF">👨‍🍳 Zwykły Kucharz</option>
+                                <option value="PRO_CHEF">⭐ Profesjonalny Chef</option>
+                                <option value="BUSY_MOM">🏃‍♀️ Zabiegana Mama</option>
+                                <option value="KIDS_HERO">🦸‍♂️ Poskramiacz Dzieci</option>
+                                <option value="GRANDMA">👵 Tradycyjnie u Babci</option>
+                                <option value="ECO_PURE">🌱 Eko Purysta</option>
+                                <option value="VEGE_MASTER">🥦 Vege Master</option>
+                                <!-- WERSJA 4.9.7 -->
+                                <option value="POLISH_TRADITION">🥟 Polskie Tradycje</option>
+                                <option value="HUNTER">🌲 Kuchnia Myśliwska</option>
+                            </select>
+                            <!-- WERSJA 4.9.6 - Lepsze emojis dla poziomów -->
+                            <select id="generatorSkill" onchange="enforcePremiumSelect(this, 'DEFAULT_SKILL')" class="flex-grow px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-2xl outline-none text-charcoal_light text-sm font-semibold hover:bg-cream focus:ring-2 focus:ring-sage transition cursor-pointer">
+                                <option value="SKILL_NOOB">🟢 Poziom: Początkujący</option>
+                                <option value="DEFAULT_SKILL">🟡 Poziom: Średni</option>
+                                <option value="SKILL_EXPERT">🔴 Poziom: Ekspert</option>
+                            </select>
                         </div>
 
-                        <button id="submitBtn" onclick="askChef()" class="bg-sage text-white px-8 py-4 rounded-2xl text-lg font-bold hover:bg-sage_dark transition shadow-lg shadow-sage/20 flex items-center justify-center gap-2 shrink-0">
-                            <i data-lucide="wand-2" class="w-5 h-5"></i> Gotujmy!
-                        </button>
+                        <!-- Przyciski i porcje -->
+                        <div class="flex flex-col sm:flex-row gap-3 mt-1">
+                            <div class="flex items-center justify-between bg-cream/50 border border-charcoal/10 rounded-2xl px-2 shrink-0 min-w-[120px] sm:w-auto w-full">
+                                <button onclick="changeServings(-1)" class="p-3 text-charcoal_light hover:text-terracotta transition"><i data-lucide="minus" class="w-5 h-5"></i></button>
+                                <div class="flex flex-col items-center justify-center">
+                                    <input type="number" id="recipeServings" value="2" min="1" max="20" class="w-8 text-center bg-transparent border-none outline-none text-charcoal font-bold text-lg p-0 pointer-events-none" readonly>
+                                    <span class="text-[10px] uppercase font-bold text-charcoal_light -mt-1">Porcje</span>
+                                </div>
+                                <button onclick="changeServings(1)" class="p-3 text-charcoal_light hover:text-sage transition"><i data-lucide="plus" class="w-5 h-5"></i></button>
+                            </div>
+
+                            <button id="submitBtn" onclick="askChef()" class="w-full sm:w-auto flex-grow bg-sage text-white px-8 py-4 rounded-2xl text-lg font-bold hover:bg-sage_dark transition shadow-lg shadow-sage/20 flex items-center justify-center gap-2">
+                                <i data-lucide="wand-2" class="w-5 h-5"></i> Gotujmy!
+                            </button>
+                        </div>
                     </div>
                     <div id="loadingMsg" class="hidden mt-6 text-center text-sage font-semibold animate-pulse flex items-center justify-center gap-2"></div>
                 </div>
@@ -273,6 +307,34 @@
     </div>
     <p class="text-xs text-charcoal_light mt-2 font-medium"><i data-lucide="info" class="w-3 h-3 inline"></i> Udostępnij ten kod domownikom, lub wpisz kod partnera by połączyć konta.</p>
 </div>
+                        <!-- WERSJA 4.2.0 - Domyślna Persona i Poziom (Profil z Soft Paywallem UI) -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-bold text-charcoal mb-2">Domyślny Szef Kuchni</label>
+                                <select id="profileChef" onchange="enforcePremiumSelect(this, 'DEFAULT_CHEF')" class="w-full px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-xl outline-none text-charcoal focus:ring-2 focus:ring-sage font-semibold cursor-pointer">
+                                    <option value="DEFAULT_CHEF">👨‍🍳 Zwykły Kucharz (Free)</option>
+                                    <option value="PRO_CHEF">⭐ Profesjonalny Chef (Premium)</option>
+                                    <option value="BUSY_MOM">🏃‍♀️ Zabiegana Mama (Premium)</option>
+                                    <option value="KIDS_HERO">🦸‍♂️ Poskramiacz Dzieci (Premium)</option>
+                                    <option value="GRANDMA">👵 Tradycyjnie u Babci (Premium)</option>
+                                    <option value="ECO_PURE">🌱 Eko Purysta (Premium)</option>
+                                    <option value="VEGE_MASTER">🥦 Vege Master (Premium)</option>
+                                    <!-- WERSJA 4.9.7 -->
+                                    <option value="POLISH_TRADITION">🥟 Polskie Tradycje (Premium)</option>
+                                    <option value="HUNTER">🌲 Kuchnia Myśliwska (Premium)</option>
+                                </select>
+                            </div>
+                            <!-- WERSJA 4.9.6 - Lepsze emojis dla poziomów w profilu -->
+                            <div>
+                                <label class="block text-sm font-bold text-charcoal mb-2">Domyślny Poziom</label>
+                                <select id="profileSkill" onchange="enforcePremiumSelect(this, 'DEFAULT_SKILL')" class="w-full px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-xl outline-none text-charcoal focus:ring-2 focus:ring-sage font-semibold cursor-pointer">
+                                    <option value="SKILL_NOOB">🟢 Początkujący (Premium)</option>
+                                    <option value="DEFAULT_SKILL">🟡 Średni (Free)</option>
+                                    <option value="SKILL_EXPERT">🔴 Ekspert (Premium)</option>
+                                </select>
+                            </div>
+                        </div>
+
                         <div>
                             <label class="block text-sm font-bold text-charcoal mb-2">Domyślna liczba porcji</label>
                             <input type="number" id="profileServings" min="1" max="12" class="w-full px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-xl outline-none text-charcoal focus:ring-2 focus:ring-sage font-bold" placeholder="Np. 2">
@@ -292,10 +354,13 @@
 
         </div>
         <div id="shoppingListFab" class="fixed bottom-6 left-0 right-0 px-4 z-50 hidden pointer-events-none">
-            <div class="max-w-xs mx-auto flex justify-center">
-                <button onclick="generateShoppingListAction()" class="w-full bg-sage text-white px-6 py-4 rounded-full shadow-2xl font-bold flex justify-center gap-3 pointer-events-auto border-4 border-sage_dark hover:bg-sage_dark transition hover:scale-105">
-                    <i data-lucide="shopping-bag" class="w-5 h-5"></i>
-                    <span>Stwórz Listę (<span id="shoppingListCount">0</span>)</span>
+            <div class="max-w-md mx-auto flex justify-center gap-2">
+                <button onclick="generateShoppingListAction()" class="flex-grow bg-sage text-white px-6 py-4 rounded-full shadow-2xl font-bold flex justify-center items-center gap-2 pointer-events-auto border-4 border-sage_dark hover:bg-sage_dark transition hover:scale-105">
+                    <i data-lucide="shopping-bag" class="w-5 h-5 shrink-0"></i>
+                    <span class="whitespace-nowrap">Stwórz Listę (<span id="shoppingListCount">0</span>)</span>
+                </button>
+                <button onclick="bulkDeleteRecipesAction()" class="bg-white text-terracotta px-6 py-4 rounded-full shadow-2xl font-bold flex justify-center items-center gap-2 pointer-events-auto border-4 border-terracotta/20 hover:bg-terracotta/10 hover:border-terracotta/40 transition hover:scale-105 shrink-0" title="Usuń zaznaczone przepisy">
+                    <i data-lucide="trash-2" class="w-5 h-5 shrink-0"></i>
                 </button>
             </div>
         </div>
@@ -319,7 +384,61 @@
         let activeShoppingListId = null;
         let activeShoppingTitle = "";
         let activeShoppingListArray = [];
-// WERSJA 4.9.4 - Normalizacja kategorii (naprawa duplikatów)
+
+        // WERSJA 4.9.6 - Mapowanie odznak dla Persony i Poziomu
+        const CHEF_BADGES = {
+            'DEFAULT_CHEF': '👨‍🍳 Zwykły Kucharz',
+            'PRO_CHEF': '⭐ Profesjonalny Chef',
+            'BUSY_MOM': '🏃‍♀️ Zabiegana Mama',
+            'KIDS_HERO': '🦸‍♂️ Poskramiacz Dzieci',
+            'GRANDMA': '👵 Tradycyjna Babcia',
+            'ECO_PURE': '🌱 Eko Purysta',
+            'VEGE_MASTER': '🥦 Vege Master',
+            // WERSJA 4.9.7
+            'POLISH_TRADITION': '🥟 Polskie Tradycje',
+            'HUNTER': '🌲 Kuchnia Myśliwska'
+        };
+        const SKILL_BADGES = {
+            'SKILL_NOOB': '🟢 Początkujący',
+            'DEFAULT_SKILL': '🟡 Średni',
+            'SKILL_EXPERT': '🔴 Ekspert'
+        };
+
+        // WERSJA 4.3.1 - Obsługa wskaźnika planu (Zabezpieczenie przed ściskaniem)
+        function updatePremiumBadge() {
+            const badge = document.getElementById('premiumBadge');
+            if (!badge) return;
+            
+            if (currentUserProfile && currentUserProfile.is_premium) {
+                // Wygląd dla PREMIUM (dumnie, nieklikalne)
+                badge.innerHTML = `<i data-lucide="star" class="w-3 h-3 fill-current text-terracotta"></i> PREMIUM`;
+                badge.className = "text-[10px] sm:text-xs font-extrabold px-3 py-1.5 rounded-full transition-all border shadow-sm flex items-center gap-1 shrink-0 cursor-default bg-sage/10 text-sage_dark border-sage/20";
+                badge.onclick = null; 
+            } else {
+                // Wygląd dla FREE (zachęcające do kliknięcia)
+                badge.innerHTML = `FREE <span class="font-normal opacity-75 hidden sm:inline">- Ulepsz</span>`;
+                badge.className = "text-[10px] sm:text-xs font-bold px-3 py-1.5 rounded-full transition-all border shadow-sm flex items-center gap-1 shrink-0 cursor-pointer bg-white text-charcoal_light border-charcoal/10 hover:border-terracotta/30 hover:text-terracotta hover:bg-terracotta/5";
+                badge.onclick = triggerUpgradeModal;
+            }
+            lucide.createIcons(); 
+        }
+
+        function triggerUpgradeModal() {
+            // Tutaj w Fazie 6 podmienimy alert na wywołanie okna Checkout / Paywall
+            alert("🚀 Moduł płatności Premium jest w przygotowaniu (Faza 6).\n\nWkrótce będziesz mógł przejść na pakiet Premium, aby odblokować zaawansowane persony Szefów Kuchni, łączenie kont i bezlimitową bazę przepisów!");
+        }
+
+        // WERSJA 4.3.2 - Funkcja blokująca wybór opcji Premium dla darmowych użytkowników (Soft Paywall UI)
+        function enforcePremiumSelect(selectElement, fallbackValue) {
+            if (currentUserProfile && !currentUserProfile.is_premium) {
+                if (selectElement.value !== fallbackValue) {
+                    triggerUpgradeModal(); // Pokazuje alert z zachętą do Premium
+                    selectElement.value = fallbackValue; // Cofa UI natychmiast do darmowej opcji
+                }
+            }
+        }
+
+        // WERSJA 4.9.4 - Normalizacja kategorii (naprawa duplikatów)
         function normalizeCategory(cat) {
             if (!cat) return 'Inne';
             cat = cat.trim();
@@ -364,6 +483,13 @@
                     currentUserEmail = res.data.email; 
                     currentUserProfile = res.data;
                     document.getElementById('recipeServings').value = currentUserProfile.default_servings || 2;
+                    
+                    // WERSJA 4.0.0 - Inicjalizacja domyślnego Prompt Matrixa z bazy (do kreatora)
+                    document.getElementById('generatorChef').value = currentUserProfile.default_chef || 'DEFAULT_CHEF';
+                    document.getElementById('generatorSkill').value = currentUserProfile.default_skill || 'DEFAULT_SKILL';
+
+                    // WERSJA 4.3.0 - Aktualizacja wskaźnika Premium w interfejsie
+                    updatePremiumBadge();
 
                     document.getElementById('auth-overlay').classList.add('hidden');
                     // WERSJA 1.24.2 - Pre-fetch danych do cache po autoryzacji (Fix dla brakujących kategorii)
@@ -637,9 +763,11 @@ function switchTab(tabName) {
                         ingredients: recipe.ingredients,
                         instructions: recipe.instructions,
                         category: recipe.category || 'Inne',
-                        // WERSJA 3.2.0 - Dodane mapowanie danych z bazy do stanu UI
                         servings: recipe.servings,
-                        calories_per_serving: recipe.calories_per_serving
+                        calories_per_serving: recipe.calories_per_serving,
+                        // WERSJA 4.9.9.1 - Odczyt zapisanych odznak
+                        usedChef: recipe.used_chef,
+                        usedSkill: recipe.used_skill
                     };
                     
                     populateCategoryDropdown(currentRecipeData.category);
@@ -653,13 +781,22 @@ function switchTab(tabName) {
                     }
                     if(currentRecipeData.calories_per_serving) {
                          badgesContainer.innerHTML += `<span class="bg-white/20 text-white px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm shadow-sm flex items-center gap-1"><i data-lucide="flame" class="w-3 h-3"></i> ok. ${currentRecipeData.calories_per_serving} kcal/porcja</span>`;
-                         // Wyliczanie całości (fallback do 'Brak danych', jeśli brakuje wartości w starej bazie)
-                         const totalKcal = currentRecipeData.calories_per_serving * currentRecipeData.servings;
-                         if(!isNaN(totalKcal)) {
-                             badgesContainer.innerHTML += `<span class="bg-white/10 text-white/80 px-3 py-1 rounded-full text-[10px] font-medium backdrop-blur-sm shadow-sm flex items-center gap-1">(Całość: ${totalKcal} kcal)</span>`;
-                         }
-                    }
-                    badgesContainer.classList.remove('hidden');
+// Wyliczanie całości (fallback do 'Brak danych', jeśli brakuje wartości w starej bazie)
+                             const totalKcal = currentRecipeData.calories_per_serving * currentRecipeData.servings;
+                             if(!isNaN(totalKcal)) {
+                                 badgesContainer.innerHTML += `<span class="bg-white/10 text-white/80 px-3 py-1 rounded-full text-[10px] font-medium backdrop-blur-sm shadow-sm flex items-center gap-1">(Całość: ${totalKcal} kcal)</span>`;
+                             }
+                        }
+
+                        // WERSJA 4.9.9.2 - [POPRAWKA] Renderowanie odznak po odczycie z bazy
+                        if (currentRecipeData.usedChef && CHEF_BADGES[currentRecipeData.usedChef]) {
+                            badgesContainer.innerHTML += `<span class="bg-white/20 text-white px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm shadow-sm flex items-center gap-1">${CHEF_BADGES[currentRecipeData.usedChef]}</span>`;
+                        }
+                        if (currentRecipeData.usedSkill && SKILL_BADGES[currentRecipeData.usedSkill]) {
+                            badgesContainer.innerHTML += `<span class="bg-white/20 text-white px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm shadow-sm flex items-center gap-1">${SKILL_BADGES[currentRecipeData.usedSkill]}</span>`;
+                        }
+
+                        badgesContainer.classList.remove('hidden');
                     
                     var ingList = document.getElementById("recipeIngredients");
                     ingList.innerHTML = ""; currentRecipeData.ingredients.forEach(i => { if(i) { let li = document.createElement("li"); li.innerText = i; ingList.appendChild(li); }});
@@ -693,6 +830,7 @@ function switchTab(tabName) {
             startLoadingProcess("Szef kuchni pracuje... 👨‍🍳");
             
             try {
+                // WERSJA 4.9.6 - CRITICAL FIX: Wysłanie wybranych opcji do API
                 const response = await fetch('/api/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -701,14 +839,22 @@ function switchTab(tabName) {
                         userMessage: inputField.value,
                         isAdjustment: false,
                         previousRecipe: null,
-                        servings: parseInt(document.getElementById("recipeServings").value)
+                        servings: parseInt(document.getElementById("recipeServings").value),
+                        chefPersona: document.getElementById("generatorChef").value,
+                        skillLevel: document.getElementById("generatorSkill").value
                     })
                 });
                 
+                // WERSJA 4.9.9.2 - [POPRAWKA] Przekazywanie tagów z API do UI
                 const res = await response.json();
                 
                 if (res.status === 'success') {
-                    onSuccess({ status: "success", data: res.recipe });
+                    onSuccess({ 
+                        status: "success", 
+                        data: res.recipe, 
+                        usedChef: res.usedChef, 
+                        usedSkill: res.usedSkill 
+                    });
                     inputField.value = "";
                 } else {
                     onFailure({ message: res.message });
@@ -725,6 +871,7 @@ function switchTab(tabName) {
             startLoadingProcess("Koryguję... 🔄");
             
             try {
+                // WERSJA 4.9.6 - CRITICAL FIX: Wysłanie wybranych opcji przy modyfikacji
                 const response = await fetch('/api/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -732,14 +879,23 @@ function switchTab(tabName) {
                         email: currentUserEmail,
                         userMessage: feedbackInput.value,
                         isAdjustment: true,
-                        previousRecipe: currentRecipeData
+                        previousRecipe: currentRecipeData,
+                        servings: parseInt(document.getElementById("recipeServings").value),
+                        chefPersona: document.getElementById("generatorChef").value,
+                        skillLevel: document.getElementById("generatorSkill").value
                     })
                 });
                 
+                // WERSJA 4.9.9.2 - [POPRAWKA] Przekazywanie tagów po użyciu Feedbacku
                 const res = await response.json();
                 
                 if (res.status === 'success') {
-                    onSuccess({ status: "success", data: res.recipe });
+                    onSuccess({ 
+                        status: "success", 
+                        data: res.recipe, 
+                        usedChef: res.usedChef, 
+                        usedSkill: res.usedSkill 
+                    });
                     feedbackInput.value = "";
                 } else {
                     onFailure({ message: res.message });
@@ -760,6 +916,11 @@ function switchTab(tabName) {
             document.getElementById("loadingMsg").classList.add("hidden"); document.getElementById("submitBtn").disabled = false;
             if (response.status === "success") {
                 currentRecipeData = response.data;
+                
+                // WERSJA 4.9.9.2 - Zapisujemy metadane z API do głównego stanu, aby save-recipe.js mogło je odebrać i wrzucić do Supabase
+                currentRecipeData.usedChef = response.usedChef;
+                currentRecipeData.usedSkill = response.usedSkill;
+                
                 // Normalizujemy to, co wymyśliło AI
                 currentRecipeData.category = normalizeCategory(currentRecipeData.category);
                 populateCategoryDropdown(currentRecipeData.category);
@@ -778,6 +939,15 @@ function switchTab(tabName) {
                         badgesContainer.innerHTML += `<span class="bg-white/10 text-white/80 px-3 py-1 rounded-full text-[10px] font-medium backdrop-blur-sm shadow-sm flex items-center gap-1">(Całość: ${totalKcal} kcal)</span>`;
                      }
                 }
+                
+                // WERSJA 4.9.6 - Dynamiczne odznaki Persony i Poziomu
+                if (response.usedChef && CHEF_BADGES[response.usedChef]) {
+                    badgesContainer.innerHTML += `<span class="bg-white/20 text-white px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm shadow-sm flex items-center gap-1">${CHEF_BADGES[response.usedChef]}</span>`;
+                }
+                if (response.usedSkill && SKILL_BADGES[response.usedSkill]) {
+                    badgesContainer.innerHTML += `<span class="bg-white/20 text-white px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm shadow-sm flex items-center gap-1">${SKILL_BADGES[response.usedSkill]}</span>`;
+                }
+
                 badgesContainer.classList.remove('hidden');
                 lucide.createIcons();
                 var ingList = document.getElementById("recipeIngredients");
@@ -868,6 +1038,9 @@ function switchTab(tabName) {
                 document.getElementById('profileFamilyId').value = currentUserProfile.family_id || "";
                 document.getElementById('profilePreferences').value = currentUserProfile.preferences || "";
                 document.getElementById('profileServings').value = currentUserProfile.default_servings || 2;
+                // WERSJA 4.0.0 - Ładowanie Persony do widoku ustawień profilu
+                document.getElementById('profileChef').value = currentUserProfile.default_chef || 'DEFAULT_CHEF';
+                document.getElementById('profileSkill').value = currentUserProfile.default_skill || 'DEFAULT_SKILL';
             }
         }
 
@@ -875,18 +1048,36 @@ function switchTab(tabName) {
             const fId = document.getElementById('profileFamilyId').value;
             const pref = document.getElementById('profilePreferences').value || "Brak wytycznych";
             const serv = parseInt(document.getElementById('profileServings').value) || 2;
+            // WERSJA 4.0.0 - Pobranie ustawień persony
+            const chef = document.getElementById('profileChef').value;
+            const skill = document.getElementById('profileSkill').value;
+            
+            // WERSJA 4.0.0 - Soft Paywall
+            if (!currentUserProfile.is_premium && (chef !== 'DEFAULT_CHEF' || skill !== 'DEFAULT_SKILL')) {
+                alert("⭐ Zapisanie innej persony lub poziomu niż domyślne wymaga pakietu Premium! (Wkrótce dostępne)");
+                // Przywracamy domyślne wartości
+                document.getElementById('profileChef').value = 'DEFAULT_CHEF';
+                document.getElementById('profileSkill').value = 'DEFAULT_SKILL';
+                return;
+            }
+
             const btn = document.getElementById('saveProfileBtn'); 
             const oHtml = btn.innerHTML;
-            
             btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Zapisywanie...`; 
             btn.disabled = true; lucide.createIcons();
 
             try {
-                // WERSJA 3.2.0 - Wysyłamy również porcje do API zapisu profilu
                 const response = await fetch('/api/update-user-profile', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: currentUserEmail, familyId: fId, preferences: pref, defaultServings: serv })
+                    body: JSON.stringify({ 
+                        email: currentUserEmail, 
+                        familyId: fId, 
+                        preferences: pref, 
+                        defaultServings: serv,
+                        defaultChef: chef, 
+                        defaultSkill: skill 
+                    })
                 });
                 const res = await response.json();
 
@@ -895,9 +1086,14 @@ function switchTab(tabName) {
                     currentUserProfile.family_id = res.newFamilyId || fId;
                     currentUserProfile.preferences = pref;
                     currentUserProfile.default_servings = serv;
+                    currentUserProfile.default_chef = chef;
+                    currentUserProfile.default_skill = skill;
+                    
                     document.getElementById('profileFamilyId').value = currentUserProfile.family_id;
-                    // Odświeżamy też input w generatorze w razie przełączenia zakładek
+                    // WERSJA 4.0.0 - Odświeżamy też inputy w kreatorze w razie przełączenia zakładek
                     document.getElementById('recipeServings').value = serv;
+                    document.getElementById('generatorChef').value = chef;
+                    document.getElementById('generatorSkill').value = skill;
                 } else {
                     alert(res.message);
                     btn.innerHTML = oHtml;
@@ -1139,6 +1335,54 @@ function switchTab(tabName) {
                 console.error("Błąd generowania listy:", error);
                 alert("Krytyczny błąd połączenia z serwerem.");
                 btn.innerHTML = oHtml; btn.disabled = false; lucide.createIcons();
+            }
+        }
+
+// WERSJA 4.9.5 - MASOWE USUWANIE PRZEPISÓW (Bulk Delete z 2-stopniowym RODO-safe potwierdzeniem)
+        async function bulkDeleteRecipesAction() {
+            if (selectedRecipesForShopping.length === 0) return;
+            
+            const count = selectedRecipesForShopping.length;
+            
+            // Etap 1: Standardowe ostrzeżenie
+            if (!confirm(`⚠️ UWAGA! Zamierzasz usunąć ${count} zaznaczonych przepisów. Kontynuować?`)) return;
+            
+            // Etap 2: Twarda blokada psychologiczna (tzw. "Idiot-proof Check")
+            if (!confirm(`Ostatnie ostrzeżenie. Usunięcie ${count} przepisów jest absolutnie nieodwracalne. Na pewno usunąć?`)) return;
+
+            const fab = document.getElementById("shoppingListFab");
+            const originalHtml = fab.innerHTML;
+            
+            // Estetyczny stan ładowania w czerwonym tonie
+            fab.innerHTML = `<div class="max-w-xs mx-auto bg-white px-6 py-4 rounded-full shadow-2xl font-bold flex justify-center gap-3 text-terracotta pointer-events-auto border-4 border-terracotta/20"><i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Usuwanie...</div>`;
+            lucide.createIcons();
+
+            try {
+                const response = await fetch('/api/delete-recipe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        recipeIds: selectedRecipesForShopping, // Wysyłamy tablicę do nowego endpointu
+                        email: currentUserEmail 
+                    })
+                });
+                
+                const res = await response.json();
+                
+                if (res.status === 'success') {
+                    // Czyścimy koszyk i przeładowujemy widok z bazy
+                    selectedRecipesForShopping = []; 
+                    fab.style.display = 'none';
+                    fab.innerHTML = originalHtml; 
+                    loadDashboard(); 
+                } else {
+                    alert("Błąd bazy danych: " + res.message);
+                    fab.innerHTML = originalHtml; lucide.createIcons();
+                }
+            } catch (error) {
+                console.error("Błąd masowego usuwania:", error);
+                alert("Krytyczny błąd połączenia z serwerem.");
+                fab.innerHTML = originalHtml; lucide.createIcons();
             }
         }
 

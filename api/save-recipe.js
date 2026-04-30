@@ -12,6 +12,7 @@ export default async function handler(req, res) {
         const ingredientsStr = Array.isArray(recipe.ingredients) ? recipe.ingredients.join('\n') : recipe.ingredients;
         const instructionsStr = Array.isArray(recipe.instructions) ? recipe.instructions.join('\n') : recipe.instructions;
 
+        // WERSJA 4.9.9.1 - API VERCEL: Zapis metadanych Persony i Poziomu Trudności
         // 2. Zapis do Supabase (zgodnie ze schematem: author_email)
         const { data: savedRecipe, error: dbError } = await supabase
                 .from('recipes')
@@ -22,9 +23,11 @@ export default async function handler(req, res) {
                     ingredients: ingredientsStr,
                     instructions: instructionsStr,
                     category: recipe.category || 'Inne',
-                    // DODANE POLA DOTYCZĄCE PORCJI I KALORII
                     servings: recipe.servings || 2, 
-                    calories_per_serving: recipe.calories_per_serving || null
+                    calories_per_serving: recipe.calories_per_serving || null,
+                    // Zapisujemy tagi Premium!
+                    used_chef: recipe.usedChef || null,
+                    used_skill: recipe.usedSkill || null
                 }])
             .select('id') 
             .single();

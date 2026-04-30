@@ -19,6 +19,43 @@ export default async function handler(req, res) {
         if (recipesError) throw recipesError;
         if (!recipes || recipes.length === 0) throw new Error("Nie znaleziono przepisów w bazie.");
 
+        // WERSJA 4.3.6 - ZABEZPIECZENIE LIMITÓW AI DLA LIST ZAKUPÓW (Współdzielona pula z przepisami)
+        // 1b. Pobranie profilu użytkownika do weryfikacji limitów
+        const { data: user } = await supabase
+            .from('users')
+            .select('is_premium, daily_generations, last_generation_date')
+            .eq('email', email)
+            .maybeSingle();
+
+        // WERSJA 4.9.0 - CENTRALIZACJA LIMITÓW BIZNESOWYCH (Zmienne .env)
+        const isPremium = user?.is_premium || false;
+        const DAILY_FREE_LIMIT = parseInt(process.env.DAILY_FREE_LIMIT || '3', 10);   
+        const DAILY_PREMIUM_LIMIT = parseInt(process.env.DAILY_PREMIUM_LIMIT || '50', 10); 
+        
+        const todayStr = new Date().toISOString().split('T')[0];
+        const userLastDate = user?.last_generation_date ? new Date(user.last_generation_date).toISOString().split('T')[0] : null;
+        
+        let currentDailyCount = user?.daily_generations || 0;
+        if (userLastDate !== todayStr) {
+            currentDailyCount = 0;
+        }
+
+        if (!isPremium && currentDailyCount >= DAILY_FREE_LIMIT) {
+            return res.status(403).json({ 
+                status: "error", 
+                message: `Wykorzystałeś dzienny limit akcji AI (${DAILY_FREE_LIMIT}) dla konta Free. Wróć jutro lub przejdź na Premium!`
+            });
+        }
+
+        if (isPremium && currentDailyCount >= DAILY_PREMIUM_LIMIT) {
+            return res.status(403).json({ 
+                status: "error", 
+                message: `Osiągnąłeś limit Premium (${DAILY_PREMIUM_LIMIT} akcji AI).`
+            });
+        }
+
+        const newDailyCount = currentDailyCount + 1;
+
         // 2. Łączymy w jeden blok tekstowy
         const allIngredients = recipes.map(r => `Przepis: ${r.title}\nSkładniki:\n${r.ingredients || 'Brak danych'}`).join('\n\n');
 
@@ -35,27 +72,60 @@ Zwróć wynik WYŁĄCZNIE jako czysty JSON według tego schematu:
   }
 ]`;
 
-        // WERSJA 4.3.2 - API VERCEL: INTEGRACJA Z MODELEM PREMIUM
-        // 4. API Gemini (Używamy modelu Premium, funkcja dedykowana dla PRO)
-        const aiModel = process.env.GEMINI_MODEL_PREMIUM || 'gemini-2.5-flash'; 
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${aiModel}:generateContent?key=${process.env.GEMINI_API_KEY}`;
-        
-        const aiResponse = await fetch(geminiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                system_instruction: { parts: [{ text: systemInstruction }] },
-                contents: [{ parts: [{ text: allIngredients }] }],
-                generationConfig: { response_mime_type: "application/json", temperature: 0.1 }
-            })
-        });
+        // WERSJA 4.3.5 - [ERROR HANDLING & AGGREGATION FIX]
+        // 4. API Gemini (Rozpoczynamy od Premium dla matematyki, spadamy na Lite w razie awarii)
+        let currentModel = process.env.GEMINI_MODEL_PREMIUM || 'gemini-2.5-flash'; 
+        const MAX_RETRIES = 3;
+        let attempt = 0;
+        let aiResponse;
+        let data;
 
-        const data = await aiResponse.json();
+        while (attempt < MAX_RETRIES) {
+            const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${process.env.GEMINI_API_KEY}`;
+            
+            aiResponse = await fetch(geminiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    system_instruction: { parts: [{ text: systemInstruction }] },
+                    contents: [{ parts: [{ text: allIngredients }] }],
+                    generationConfig: { response_mime_type: "application/json", temperature: 0.1 }
+                })
+            });
+
+            data = await aiResponse.json();
+
+            // Przerywamy pętlę, jeśli sukces LUB błąd to nie nasza wina (inny niż 503/429)
+            if (aiResponse.ok || (data.error?.code !== 503 && data.error?.code !== 429)) {
+                break;
+            }
+
+            attempt++;
+            if (attempt < MAX_RETRIES) {
+                // FALLBACK: Ostatnia deska ratunku - jeśli Premium całkowicie leży, próbujemy z Lite
+                if (attempt === MAX_RETRIES - 1) {
+                    console.warn(`🛒 Model Listy Zakupów (${currentModel}) wciąż przeciążony. Fallback na model Lite.`);
+                    currentModel = process.env.GEMINI_MODEL_FREE || 'gemini-2.5-flash-lite';
+                }
+
+                const waitTime = attempt * 1500; 
+                console.warn(`🛒 GEMINI API PRZECIĄŻONE (${data.error?.code}). Próba ${attempt}/${MAX_RETRIES}. Ponawiam za ${waitTime}ms...`);
+                await new Promise(resolve => setTimeout(resolve, waitTime));
+            }
+        }
+
+        // BEZPIECZEŃSTWO: Obsługa błędów po wykorzystaniu wszystkich prób
+        if (!aiResponse.ok || data.error) {
+            console.error("🔥 GEMINI API ERROR (SHOPPING):", JSON.stringify(data.error || data, null, 2));
+            if (data.error?.code === 503) throw new Error("Serwery AI są przeciążone. Odczekaj chwilę i spróbuj ponownie.");
+            if (data.error?.code === 429) throw new Error("Przekroczono limit zapytań do AI.");
+            throw new Error(`Błąd połączenia z mózgiem AI: ${data.error?.message || aiResponse.statusText}`);
+        }
 
         // BEZPIECZEŃSTWO: Sprawdzamy, czy Gemini w ogóle odpowiedziało prawidłowo
         if (!data.candidates || data.candidates.length === 0) {
-            console.error("🔥 GEMINI RAW ERROR:", JSON.stringify(data, null, 2));
-            throw new Error(data.error?.message || "Google Gemini odmówiło odpowiedzi (Sprawdź konsolę VSC).");
+            console.error("🔥 GEMINI EMPTY RESPONSE (Safety Block?):", JSON.stringify(data, null, 2));
+            throw new Error("AI odmówiło wygenerowania listy (Filtry bezpieczeństwa lub pusty zwrot).");
         }
 
         // BEZPIECZEŃSTWO: Ochrona przed błędnym JSONem
@@ -91,6 +161,17 @@ Zwróć wynik WYŁĄCZNIE jako czysty JSON według tego schematu:
             }]);
 
         if (insertError) throw insertError;
+
+        // WERSJA 4.3.6 - KONSUMPCJA LIMITU (Aktualizacja w bazie po udanym generowaniu listy)
+        const { error: updateError } = await supabase
+            .from('users')
+            .update({ 
+                daily_generations: newDailyCount, 
+                last_generation_date: new Date().toISOString() 
+            })
+            .eq('email', email);
+
+        if (updateError) console.error("🔥 Błąd zapisu limitu dziennego (Shopping List):", updateError);
 
         return res.status(200).json({ status: "success", message: "Zsumowana lista gotowa!" });
 
