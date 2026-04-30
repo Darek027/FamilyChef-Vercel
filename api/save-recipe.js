@@ -1,4 +1,4 @@
-// WERSJA 4.9.1 - API VERCEL: ZAPIS Z UWZGLĘDNIENIEM FAMILY ID
+// WERSJA 4.9.1 - API VERCEL: ZAPIS Z UWZGLĘDNIENIEM FAMILY ID ORAZ PORCJI
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ status: "error" });
 
@@ -13,27 +13,27 @@ export default async function handler(req, res) {
         const instructionsStr = Array.isArray(recipe.instructions) ? recipe.instructions.join('\n') : recipe.instructions;
 
         // 2. Zapis do Supabase (zgodnie ze schematem: author_email)
-const { data: savedRecipe, error: dbError } = await supabase
+        const { data: savedRecipe, error: dbError } = await supabase
                 .from('recipes')
                 .insert([{
                     author_email: email,
-                    family_id: familyId || null, // Zapisujemy ID rodziny
+                    family_id: familyId || null, 
                     title: recipe.title,
                     ingredients: ingredientsStr,
                     instructions: instructionsStr,
-                    category: recipe.category || 'Inne'
+                    category: recipe.category || 'Inne',
+                    // DODANE POLA DOTYCZĄCE PORCJI I KALORII
+                    servings: recipe.servings || 2, 
+                    calories_per_serving: recipe.calories_per_serving || null
                 }])
-            // WERSJA 4.9.3 - API VERCEL: POPRAWKA ZMIENNYCH PO DESTRUKTURYZACJI
-            .select('id') // Pobieramy wygenerowane ID, żeby front wiedział, że zapisano
+            .select('id') 
             .single();
 
-        // Używamy dbError zamiast error
         if (dbError) throw dbError;
 
         return res.status(200).json({ 
             status: "success", 
             message: "Przepis zapisany w Twojej bazie!",
-            // Używamy savedRecipe zamiast data
             recipeId: savedRecipe.id
         });
 

@@ -1,4 +1,4 @@
-// WERSJA 4.9.0 - API VERCEL: ATOMOWY ZAPIS I WYSYŁKA (Supabase + Resend)
+// WERSJA 4.9.0 - API VERCEL: ATOMOWY ZAPIS I WYSYŁKA ORAZ OBSŁUGA PORCJI
 import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -6,7 +6,6 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ status: "error" });
 
-    // WERSJA 4.9.1 - API VERCEL: ATOMOWY ZAPIS I WYSYŁKA (Z UWZGLĘDNIENIEM FAMILY ID)
     const { email, recipe, familyId } = req.body;
 
     try {
@@ -24,11 +23,14 @@ export default async function handler(req, res) {
                 .from('recipes')
                 .insert([{
                     author_email: email,
-                    family_id: familyId || null, // FIX: Dodano zapisywanie ID rodziny
+                    family_id: familyId || null, 
                     title: recipe.title,
                     ingredients: ingredientsStr,
                     instructions: instructionsStr,
-                    category: recipe.category || 'Inne'
+                    category: recipe.category || 'Inne',
+                    // DODANE POLA DOTYCZĄCE PORCJI I KALORII
+                    servings: recipe.servings || 2,
+                    calories_per_serving: recipe.calories_per_serving || null
                 }])
                 .select('id')
                 .single();
@@ -37,7 +39,6 @@ export default async function handler(req, res) {
             recipeId = savedRecipe.id;
         }
 
-        // WERSJA 4.9.2 - Zaktualizowany szablon HTML e-maila z przepisem (Rebranding)
         const htmlTemplate = `
         <div style="font-family: 'Plus Jakarta Sans', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #4A4543; padding: 20px; background-color: #ffffff;">
             <h1 style="color: #C87E5C; border-bottom: 2px solid #FAF6F0; padding-bottom: 10px; font-weight: 800;">${recipe.title}</h1>

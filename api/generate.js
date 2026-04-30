@@ -1,8 +1,9 @@
-// WERSJA 3.0.2 - SILNIK AI SAAS (Bez twardych limitów, pełna elastyczność)
+// WERSJA 3.2.0 - SILNIK AI SAAS (Wsparcie dla porcji i kaloryczności)
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ status: "error" });
 
-    const { email, userMessage, isAdjustment, previousRecipe } = req.body;
+    // WERSJA 3.2.0: Dodano pobieranie parametru servings z żądania frontendu
+    const { email, userMessage, isAdjustment, previousRecipe, servings } = req.body;
 
     try {
         const { createClient } = await import('@supabase/supabase-js');
@@ -21,7 +22,7 @@ export default async function handler(req, res) {
             .select('category')
             .eq('author', email);
         
-// WERSJA 3.1.0 - ZABEZPIECZENIE LIMITÓW I WALIDACJA PREMIUM
+        // WERSJA 3.1.0 - ZABEZPIECZENIE LIMITÓW I WALIDACJA PREMIUM
         const recipeCount = userRecipes?.length || 0;
         const isPremium = user?.is_premium || false;
         const FREE_LIMIT = 25;
@@ -40,28 +41,35 @@ export default async function handler(req, res) {
             ? `Twoje istniejące kategorie: [${existingCats.join(", ")}]. Użyj jednej z nich, jeśli pasuje, lub stwórz nową.` 
             : "Możesz stworzyć nową kategorię (np. Śniadanie, Obiad).";
 
-// WERSJA 3.1.3 - DYNAMIC MODEL ROUTING (Centralizacja via .env)
+        // WERSJA 3.1.3 - DYNAMIC MODEL ROUTING (Centralizacja via .env)
         const aiModel = isPremium 
             ? (process.env.GEMINI_MODEL_PREMIUM || 'gemini-2.5-flash') 
             : (process.env.GEMINI_MODEL_FREE || 'gemini-2.5-flash-lite');
 
-        // 4. Budowa System Instruction (PROMPT MATRIX)
-        // Usunięto twarde limity (max 10/max 6). Złożoność wynika z kontekstu.
+        // WERSJA 3.2.0: Ustalenie docelowej liczby porcji (frontend -> profil -> domyślnie 2)
+        const finalServings = servings || user?.default_servings || 2;
+
+        // 4. Budowa System Instruction (PROMPT MATRIX) - Zaktualizowano o porcje i kalorie
         const systemInstruction = `Jesteś aplikacją Family Chef. Twoim zadaniem jest wygenerowanie przepisu idealnie dopasowanego do kontekstu.
 
 KONTEKST SYSTEMOWY:
 - SZEF KUCHNI (Styl wypowiedzi/gotowania): ${user?.default_chef || 'Standardowy'}
 - POZIOM TRUDNOŚCI: ${user?.default_skill || 'Początkujący'}
 - PREFERENCJE DIETETYCZNE (KRYTYCZNE): ${user?.preferences || 'Brak specjalnych wymagań'}
+- LICZBA PORCJI: ${finalServings}
 
 ZASADY KREACJI:
-- Dostosuj liczbę składników i kroków do poziomu trudności i prośby użytkownika.
+- Wygeneruj krótką, chwytliwą nazwę potrawy (MAKSYMALNIE 4-5 SŁÓW!).
+- Dostosuj ilość składników dokładnie do podanej liczby porcji (${finalServings}).
+- Oszacuj przybliżoną kaloryczność dla JEDNEJ porcji (podaj samą liczbę jako integer).
 - Bądź precyzyjny w miarach (g, ml, łyżki).
 - Kategoria: ${categoryLogic}
 
 WYNIK MUSI BYĆ CZYSTYM JSONEM:
 {
-  "title": "Nazwa przepisu",
+  "title": "Krótka nazwa przepisu",
+  "servings": ${finalServings},
+  "calories_per_serving": 450,
   "ingredients": ["lista wszystkich potrzebnych produktów"],
   "instructions": ["kolejne kroki przygotowania"],
   "category": "kategoria dania",

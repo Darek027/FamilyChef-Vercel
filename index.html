@@ -110,6 +110,17 @@
                             </div>
                             <input type="text" id="userInput" placeholder="Np. Szybki obiad z kurczakiem..." class="w-full pl-12 pr-4 py-4 bg-cream/50 border border-charcoal/10 rounded-2xl focus:ring-2 focus:ring-sage outline-none transition text-charcoal text-lg">
                         </div>
+                        
+                        <!-- NOWE: Licznik porcji -->
+                        <div class="flex items-center justify-between bg-cream/50 border border-charcoal/10 rounded-2xl px-2 shrink-0 min-w-[120px]">
+                            <button onclick="changeServings(-1)" class="p-3 text-charcoal_light hover:text-terracotta transition"><i data-lucide="minus" class="w-5 h-5"></i></button>
+                            <div class="flex flex-col items-center justify-center">
+                                <input type="number" id="recipeServings" value="2" min="1" max="20" class="w-8 text-center bg-transparent border-none outline-none text-charcoal font-bold text-lg p-0 pointer-events-none" readonly>
+                                <span class="text-[10px] uppercase font-bold text-charcoal_light -mt-1">Porcje</span>
+                            </div>
+                            <button onclick="changeServings(1)" class="p-3 text-charcoal_light hover:text-sage transition"><i data-lucide="plus" class="w-5 h-5"></i></button>
+                        </div>
+
                         <button id="submitBtn" onclick="askChef()" class="bg-sage text-white px-8 py-4 rounded-2xl text-lg font-bold hover:bg-sage_dark transition shadow-lg shadow-sage/20 flex items-center justify-center gap-2 shrink-0">
                             <i data-lucide="wand-2" class="w-5 h-5"></i> Gotujmy!
                         </button>
@@ -126,6 +137,8 @@
                             <i data-lucide="pencil" class="w-3 h-3 text-white/50 group-hover:text-white transition"></i>
                         </div>
                         <h2 id="recipeTitle" class="text-3xl font-bold leading-tight mt-2"></h2>
+                        <!-- NOWE: Pojemnik na odznaki -->
+                        <div id="recipeBadges" class="flex flex-wrap gap-2 mt-4 hidden"></div>
                     </div>
                    
                     <div class="p-8">
@@ -260,6 +273,10 @@
     </div>
     <p class="text-xs text-charcoal_light mt-2 font-medium"><i data-lucide="info" class="w-3 h-3 inline"></i> Udostępnij ten kod domownikom, lub wpisz kod partnera by połączyć konta.</p>
 </div>
+                        <div>
+                            <label class="block text-sm font-bold text-charcoal mb-2">Domyślna liczba porcji</label>
+                            <input type="number" id="profileServings" min="1" max="12" class="w-full px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-xl outline-none text-charcoal focus:ring-2 focus:ring-sage font-bold" placeholder="Np. 2">
+                        </div>
                         <div><label class="block text-sm font-bold text-charcoal mb-2">Preferencje dietetyczne (dla AI)</label><textarea id="profilePreferences" rows="4" class="w-full px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-xl outline-none text-charcoal resize-none focus:ring-2 focus:ring-sage"></textarea></div>
                         <button onclick="saveUserProfile()" id="saveProfileBtn" class="w-full bg-charcoal text-white px-8 py-4 rounded-xl text-lg font-bold hover:bg-charcoal_light transition flex items-center justify-center gap-2"><i data-lucide="save" class="w-5 h-5"></i> Zapisz zmiany</button>
                         
@@ -302,7 +319,13 @@
         let activeShoppingListId = null;
         let activeShoppingTitle = "";
         let activeShoppingListArray = [];
-
+// WERSJA 4.9.4 - Normalizacja kategorii (naprawa duplikatów)
+        function normalizeCategory(cat) {
+            if (!cat) return 'Inne';
+            cat = cat.trim();
+            // Pierwsza litera duża, reszta mała (np. "Danie główne")
+            return cat.charAt(0).toUpperCase() + cat.slice(1).toLowerCase();
+        }
         window.onload = function() {
             lucide.createIcons();
             const storedEmail = localStorage.getItem('familyChefEmail');
@@ -340,12 +363,17 @@
                     localStorage.setItem('familyChefEmail', res.data.email);
                     currentUserEmail = res.data.email; 
                     currentUserProfile = res.data;
-                    
+                    document.getElementById('recipeServings').value = currentUserProfile.default_servings || 2;
+
                     document.getElementById('auth-overlay').classList.add('hidden');
+                    // WERSJA 1.24.2 - Pre-fetch danych do cache po autoryzacji (Fix dla brakujących kategorii)
                     document.getElementById('app-container').classList.remove('hidden');
                     document.getElementById('app-container').classList.add('flex');
                     
                     lucide.createIcons();
+                    
+                    // Ładujemy dashboard w tle od razu po wejściu. Inicjalizuje to m.in. uniqueCategories
+                    loadDashboard();
                 } else {
                     document.getElementById('authErrorMsg').innerText = res.message;
                     document.getElementById('authErrorMsg').classList.remove('hidden');
@@ -388,6 +416,8 @@
 
                 if (res.status === 'success') {
                     allSavedRecipes = res.recipes || [];
+                    // Normalizujemy kategorie w pamięci przy starcie
+                    allSavedRecipes.forEach(r => r.category = normalizeCategory(r.category));
                     uniqueCategories = [...new Set(allSavedRecipes.map(r => r.category).filter(Boolean))];
                     
                     populateFilters(); 
@@ -550,7 +580,7 @@
             if (newVal === "NEW_CUSTOM") {
                 const customCat = prompt("Wpisz nową kategorię:");
                 if (customCat && customCat.trim() !== "") {
-                    newVal = customCat.trim();
+                    newVal = normalizeCategory(customCat);
                     const select = document.getElementById("recipeCategorySelect");
                     select.innerHTML = `<option value="${newVal}">${newVal}</option>` + select.innerHTML;
                     select.value = newVal;
@@ -604,11 +634,30 @@
                         title: recipe.title,
                         ingredients: recipe.ingredients,
                         instructions: recipe.instructions,
-                        category: recipe.category || 'Inne'
+                        category: recipe.category || 'Inne',
+                        // WERSJA 3.2.0 - Dodane mapowanie danych z bazy do stanu UI
+                        servings: recipe.servings,
+                        calories_per_serving: recipe.calories_per_serving
                     };
                     
                     populateCategoryDropdown(currentRecipeData.category);
                     document.getElementById("recipeTitle").innerText = currentRecipeData.title;
+                    
+                    // WERSJA 3.2.0 - Renderowanie odznak dla pobranego przepisu
+                    const badgesContainer = document.getElementById("recipeBadges");
+                    badgesContainer.innerHTML = '';
+                    if(currentRecipeData.servings) {
+                        badgesContainer.innerHTML += `<span class="bg-white/20 text-white px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm shadow-sm flex items-center gap-1"><i data-lucide="users" class="w-3 h-3"></i> ${currentRecipeData.servings} porcje</span>`;
+                    }
+                    if(currentRecipeData.calories_per_serving) {
+                         badgesContainer.innerHTML += `<span class="bg-white/20 text-white px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm shadow-sm flex items-center gap-1"><i data-lucide="flame" class="w-3 h-3"></i> ok. ${currentRecipeData.calories_per_serving} kcal/porcja</span>`;
+                         // Wyliczanie całości (fallback do 'Brak danych', jeśli brakuje wartości w starej bazie)
+                         const totalKcal = currentRecipeData.calories_per_serving * currentRecipeData.servings;
+                         if(!isNaN(totalKcal)) {
+                             badgesContainer.innerHTML += `<span class="bg-white/10 text-white/80 px-3 py-1 rounded-full text-[10px] font-medium backdrop-blur-sm shadow-sm flex items-center gap-1">(Całość: ${totalKcal} kcal)</span>`;
+                         }
+                    }
+                    badgesContainer.classList.remove('hidden');
                     
                     var ingList = document.getElementById("recipeIngredients");
                     ingList.innerHTML = ""; currentRecipeData.ingredients.forEach(i => { if(i) { let li = document.createElement("li"); li.innerText = i; ingList.appendChild(li); }});
@@ -624,6 +673,7 @@
                     
                     document.getElementById("loadingMsg").classList.add("hidden"); 
                     document.getElementById("submitBtn").disabled = false;
+                    lucide.createIcons(); // Ważne: renderowanie ikonek Lucide w wstrzykniętym HTML-u
                 } else {
                     alert("Błąd: " + (recipe.message || "Nie udało się pobrać przepisu."));
                     onFailure({message: "Anulowano"});
@@ -648,7 +698,8 @@
                         email: currentUserEmail,
                         userMessage: inputField.value,
                         isAdjustment: false,
-                        previousRecipe: null
+                        previousRecipe: null,
+                        servings: parseInt(document.getElementById("recipeServings").value)
                     })
                 });
                 
@@ -707,8 +758,26 @@
             document.getElementById("loadingMsg").classList.add("hidden"); document.getElementById("submitBtn").disabled = false;
             if (response.status === "success") {
                 currentRecipeData = response.data;
-                populateCategoryDropdown(currentRecipeData.category || "Inne");
+                // Normalizujemy to, co wymyśliło AI
+                currentRecipeData.category = normalizeCategory(currentRecipeData.category);
+                populateCategoryDropdown(currentRecipeData.category);
                 document.getElementById("recipeTitle").innerText = currentRecipeData.title;
+                // WERSJA 3.2.0 - Renderowanie odznak
+                const badgesContainer = document.getElementById("recipeBadges");
+                badgesContainer.innerHTML = '';
+                if(currentRecipeData.servings) {
+                    badgesContainer.innerHTML += `<span class="bg-white/20 text-white px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm shadow-sm flex items-center gap-1"><i data-lucide="users" class="w-3 h-3"></i> ${currentRecipeData.servings} porcje</span>`;
+                }
+                if(currentRecipeData.calories_per_serving) {
+                     badgesContainer.innerHTML += `<span class="bg-white/20 text-white px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm shadow-sm flex items-center gap-1"><i data-lucide="flame" class="w-3 h-3"></i> ok. ${currentRecipeData.calories_per_serving} kcal/porcja</span>`;
+                     // Dodajemy też info o całości potrawy by było to ultra jasne
+                     const totalKcal = currentRecipeData.calories_per_serving * currentRecipeData.servings;
+                     if(!isNaN(totalKcal)) {
+                        badgesContainer.innerHTML += `<span class="bg-white/10 text-white/80 px-3 py-1 rounded-full text-[10px] font-medium backdrop-blur-sm shadow-sm flex items-center gap-1">(Całość: ${totalKcal} kcal)</span>`;
+                     }
+                }
+                badgesContainer.classList.remove('hidden');
+                lucide.createIcons();
                 var ingList = document.getElementById("recipeIngredients");
                 ingList.innerHTML = ""; currentRecipeData.ingredients.forEach(i => { let li = document.createElement("li"); li.innerText = i; ingList.appendChild(li); });
                 var instList = document.getElementById("recipeInstructions");
@@ -796,12 +865,14 @@
                 document.getElementById('profileEmailDisplay').innerText = currentUserEmail;
                 document.getElementById('profileFamilyId').value = currentUserProfile.family_id || "";
                 document.getElementById('profilePreferences').value = currentUserProfile.preferences || "";
+                document.getElementById('profileServings').value = currentUserProfile.default_servings || 2;
             }
         }
 
         async function saveUserProfile() {
             const fId = document.getElementById('profileFamilyId').value;
             const pref = document.getElementById('profilePreferences').value || "Brak wytycznych";
+            const serv = parseInt(document.getElementById('profileServings').value) || 2;
             const btn = document.getElementById('saveProfileBtn'); 
             const oHtml = btn.innerHTML;
             
@@ -809,10 +880,11 @@
             btn.disabled = true; lucide.createIcons();
 
             try {
+                // WERSJA 3.2.0 - Wysyłamy również porcje do API zapisu profilu
                 const response = await fetch('/api/update-user-profile', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: currentUserEmail, familyId: fId, preferences: pref })
+                    body: JSON.stringify({ email: currentUserEmail, familyId: fId, preferences: pref, defaultServings: serv })
                 });
                 const res = await response.json();
 
@@ -820,7 +892,10 @@
                     btn.innerHTML = `<i data-lucide="check" class="w-5 h-5 text-sage"></i> Zapisano`;
                     currentUserProfile.family_id = res.newFamilyId || fId;
                     currentUserProfile.preferences = pref;
+                    currentUserProfile.default_servings = serv;
                     document.getElementById('profileFamilyId').value = currentUserProfile.family_id;
+                    // Odświeżamy też input w generatorze w razie przełączenia zakładek
+                    document.getElementById('recipeServings').value = serv;
                 } else {
                     alert(res.message);
                     btn.innerHTML = oHtml;
@@ -1152,6 +1227,12 @@
                 alert("Krytyczny błąd połączenia.");
                 btn.innerHTML = oHtml; lucide.createIcons();
             }
+        }
+
+        function changeServings(delta) {
+            const el = document.getElementById('recipeServings');
+            let val = parseInt(el.value) + delta;
+            if(val >= 1 && val <= 20) el.value = val;
         }
 
 </script>
