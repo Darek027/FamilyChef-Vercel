@@ -23,3 +23,4 @@
 ├── package-lock.json           # Dokładne wersje zainstalowanych zależności
 ├── package.json                # Konfiguracja projektu i zależności (@supabase/supabase-js)
 └── STRUCTURE.md                # Dokumentacja struktury projektu
+
