@@ -35,6 +35,12 @@
         }
     </script>
     <style>
+        /* WERSJA 4.5.0 - Preloader CSS (Natywny, chroni przed opóźnieniami Tailwind CDN) */
+        #initial-preloader { position: fixed; inset: 0; background-color: #FAF6F0; z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
+        .spinner { width: 40px; height: 40px; border: 4px solid rgba(139,160,142,0.2); border-left-color: #8BA08E; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 16px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .preloader-text { font-family: 'Plus Jakarta Sans', sans-serif; color: #4A4543; font-weight: 700; font-size: 14px; letter-spacing: 1px; }
+
         /* Zmiana bloba na delikatny szałwiowy zamiast mocnego pomarańczu */
         .app-blob { background: radial-gradient(circle, rgba(139,160,142,0.15) 0%, rgba(255,255,255,0) 70%); }
         .select-hide-arrow { -webkit-appearance: none; -moz-appearance: none; appearance: none; text-align: center; }
@@ -44,6 +50,12 @@
     </style>
 </head>
 <body class="font-sans text-charcoal antialiased bg-cream min-h-screen flex flex-col">
+
+    <!-- WERSJA 4.5.0 - Globalny Preloader startowy -->
+    <div id="initial-preloader">
+        <div class="spinner"></div>
+        <div class="preloader-text">GOTOWANIE INTERFEJSU...</div>
+    </div>
 
     <div id="auth-overlay" class="fixed inset-0 bg-cream z-[100] flex items-center justify-center p-4">
         <div class="bg-white p-8 rounded-3xl shadow-xl border border-black/5 max-w-md w-full text-center relative overflow-hidden">
@@ -136,9 +148,9 @@
                                 <option value="POLISH_TRADITION">🥟 Polskie Tradycje</option>
                                 <option value="HUNTER">🌲 Kuchnia Myśliwska</option>
                             </select>
-                            <!-- WERSJA 4.9.6 - Lepsze emojis dla poziomów -->
+                            <!-- WERSJA 4.9.11 - Optymalizacja UX (Mobile Fix v2) -->
                             <select id="generatorSkill" onchange="enforcePremiumSelect(this, 'DEFAULT_SKILL')" class="flex-grow px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-2xl outline-none text-charcoal_light text-sm font-semibold hover:bg-cream focus:ring-2 focus:ring-sage transition cursor-pointer">
-                                <option value="SKILL_NOOB">🟢 Poziom: Początkujący</option>
+                                <option value="SKILL_NOOB">🟢 Poziom: Łatwy</option>
                                 <option value="DEFAULT_SKILL">🟡 Poziom: Średni</option>
                                 <option value="SKILL_EXPERT">🔴 Poziom: Ekspert</option>
                             </select>
@@ -340,13 +352,13 @@
                                     <option value="HUNTER">🌲 Kuchnia Myśliwska (Premium)</option>
                                 </select>
                             </div>
-                            <!-- WERSJA 4.9.6 - Lepsze emojis dla poziomów w profilu -->
+                            <!-- WERSJA 4.9.11 - Optymalizacja UX profilu (Mobile Fix v2) -->
                             <div>
                                 <label class="block text-sm font-bold text-charcoal mb-2">Domyślny Poziom</label>
                                 <select id="profileSkill" onchange="enforcePremiumSelect(this, 'DEFAULT_SKILL')" class="w-full px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-xl outline-none text-charcoal focus:ring-2 focus:ring-sage font-semibold cursor-pointer">
-                                    <option value="SKILL_NOOB">🟢 Początkujący (Premium)</option>
+                                    <option value="SKILL_NOOB">🟢 Łatwy (PRO)</option>
                                     <option value="DEFAULT_SKILL">🟡 Średni (Free)</option>
-                                    <option value="SKILL_EXPERT">🔴 Ekspert (Premium)</option>
+                                    <option value="SKILL_EXPERT">🔴 Ekspert (PRO)</option>
                                 </select>
                             </div>
                         </div>
@@ -415,10 +427,11 @@
             'POLISH_TRADITION': '🥟 Polskie Tradycje',
             'HUNTER': '🌲 Kuchnia Myśliwska'
         };
+        // WERSJA 4.9.11 - Aktualizacja nazewnictwa poziomów
         const SKILL_BADGES = {
-            'SKILL_NOOB': '🟢 Początkujący',
-            'DEFAULT_SKILL': '🟡 Średni',
-            'SKILL_EXPERT': '🔴 Ekspert'
+            'SKILL_NOOB': '🟢 Poziom: Łatwy',
+            'DEFAULT_SKILL': '🟡 Poziom: Średni',
+            'SKILL_EXPERT': '🔴 Poziom: Ekspert'
         };
 
         // WERSJA 4.3.1 - Obsługa wskaźnika planu (Zabezpieczenie przed ściskaniem)
@@ -463,6 +476,13 @@
             return cat.charAt(0).toUpperCase() + cat.slice(1).toLowerCase();
         }
         window.onload = function() {
+            // WERSJA 4.5.0 - Płynne ukrycie preloadera po załadowaniu skryptów
+            const preloader = document.getElementById('initial-preloader');
+            if(preloader) {
+                preloader.style.opacity = '0';
+                setTimeout(() => preloader.remove(), 500); // 500ms na CSS transition
+            }
+
             lucide.createIcons();
             const storedEmail = localStorage.getItem('familyChefEmail');
             const magicEmail = window.MAGIC_LINK_EMAIL;
