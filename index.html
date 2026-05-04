@@ -124,12 +124,13 @@
                         <!-- Opcje Persony i Poziomu (WERSJA 4.2.0 - Soft Paywall UI) -->
                         <div class="flex flex-col sm:flex-row gap-3">
                             <select id="generatorChef" onchange="enforcePremiumSelect(this, 'DEFAULT_CHEF')" class="flex-grow px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-2xl outline-none text-charcoal_light text-sm font-semibold hover:bg-cream focus:ring-2 focus:ring-sage transition cursor-pointer">
-                                <option value="DEFAULT_CHEF">👨‍🍳 Zwykły Kucharz</option>
-                                <option value="PRO_CHEF">⭐ Profesjonalny Chef</option>
+                                <option value="DEFAULT_CHEF">👨‍🍳 Codzienny Kucharz</option>
+                                <option value="PREMIUM_CHEF">⭐ Kucharz PRO</option>
+                                <option value="PRO_CHEF">🎩 Chef Restauracji</option>
                                 <option value="BUSY_MOM">🏃‍♀️ Zabiegana Mama</option>
                                 <option value="KIDS_HERO">🦸‍♂️ Poskramiacz Dzieci</option>
-                                <option value="GRANDMA">👵 Tradycyjnie u Babci</option>
-                                <option value="ECO_PURE">🌱 Eko Purysta</option>
+                                <option value="GRANDMA">👵 Wspomnienie Babci</option>
+                                <option value="ECO_PURE">🌱 Ekologiczny</option>
                                 <option value="VEGE_MASTER">🥦 Vege Master</option>
                                 <!-- WERSJA 4.9.7 -->
                                 <option value="POLISH_TRADITION">🥟 Polskie Tradycje</option>
@@ -195,18 +196,19 @@
                             </div>
                         </div>
                        
-                        <div id="actionButtonsDraft" class="mt-6 pt-6 border-t border-charcoal/5 flex flex-col sm:flex-row gap-4 justify-center">
-                            <button id="saveOnlyBtn" onclick="saveOnlyAction()" class="flex-1 inline-flex items-center justify-center gap-2 bg-charcoal text-white border border-charcoal px-8 py-4 rounded-xl font-bold text-lg hover:bg-charcoal_light transition">
-                                <i data-lucide="save" class="w-5 h-5"></i> Zapisz do bazy
+                        <!-- WERSJA 4.4.2 - Responsywne przyciski akcji (Poprawki mobilne) -->
+                        <div id="actionButtonsDraft" class="mt-6 pt-6 border-t border-charcoal/5 flex flex-col sm:flex-row gap-3 justify-center">
+                            <button id="saveOnlyBtn" onclick="saveOnlyAction()" class="flex-1 inline-flex items-center justify-center gap-2 bg-charcoal text-white border border-charcoal px-4 py-3 sm:px-8 sm:py-4 rounded-xl font-bold text-sm sm:text-lg hover:bg-charcoal_light transition">
+                                <i data-lucide="save" class="w-5 h-5 shrink-0"></i> Zapisz do bazy
                             </button>
-                            <button id="saveEmailBtn" onclick="confirmAndSend()" class="flex-1 inline-flex items-center justify-center gap-2 bg-sage/10 text-sage_dark border border-sage/20 px-8 py-4 rounded-xl font-bold text-lg hover:bg-sage/20 transition group">
-                                <i data-lucide="mail" class="w-5 h-5 text-sage group-hover:scale-110 transition-transform"></i> Zapisz i wyślij
+                            <button id="saveEmailBtn" onclick="confirmAndSend()" class="flex-1 inline-flex items-center justify-center gap-2 bg-sage/10 text-sage_dark border border-sage/20 px-4 py-3 sm:px-8 sm:py-4 rounded-xl font-bold text-sm sm:text-lg hover:bg-sage/20 transition group">
+                                <i data-lucide="mail" class="w-5 h-5 text-sage shrink-0 group-hover:scale-110 transition-transform"></i> Zapisz i wyślij
                             </button>
                         </div>
 
                         <div id="actionButtonsSaved" class="hidden mt-6 pt-6 border-t border-charcoal/5 text-center">
-                            <button onclick="confirmAndSend()" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-sage/10 text-sage_dark border border-sage/20 px-8 py-4 rounded-xl font-bold text-lg hover:bg-sage/20 transition group">
-                                <i data-lucide="mail" class="w-5 h-5 text-sage group-hover:scale-110 transition-transform"></i> Wyślij przepis na e-mail
+                            <button onclick="confirmAndSend()" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-sage/10 text-sage_dark border border-sage/20 px-4 py-3 sm:px-8 sm:py-4 rounded-xl font-bold text-sm sm:text-lg hover:bg-sage/20 transition group mx-auto">
+                                <i data-lucide="mail" class="w-5 h-5 text-sage shrink-0 group-hover:scale-110 transition-transform"></i> Wyślij na e-mail
                             </button>
                         </div>
 
@@ -266,21 +268,34 @@
            
             <div id="view-shopping" class="hidden w-full">
                
+<!-- WERSJA 4.4.0 - UI Ręcznej Listy Zakupów (Ad-hoc) -->
                 <div id="shoppingDashView" class="block">
                     <div class="flex justify-between items-center mb-6">
                         <h2 class="text-3xl font-extrabold text-charcoal">Listy Zakupów</h2>
-                        <button onclick="fetchShoppingLists()" class="bg-sage/10 text-sage px-4 py-2 rounded-xl hover:bg-sage/20 transition shadow-sm"><i data-lucide="refresh-cw" class="w-5 h-5"></i></button>
+                        <div class="flex items-center gap-2">
+                            <button onclick="toggleCustomListInput()" class="bg-terracotta text-white px-4 py-2 rounded-xl font-bold hover:bg-terracotta/90 transition shadow-sm flex items-center gap-2" title="Stwórz szybką listę"><i data-lucide="plus" class="w-5 h-5"></i><span class="hidden sm:inline">Nowa</span></button>
+                            <button onclick="fetchShoppingLists()" class="bg-sage/10 text-sage px-4 py-2 rounded-xl hover:bg-sage/20 transition shadow-sm"><i data-lucide="refresh-cw" class="w-5 h-5"></i></button>
+                        </div>
+                    </div>
+                    
+                    <div id="customListContainer" class="hidden mb-6 bg-white p-5 rounded-2xl border border-charcoal/5 shadow-sm">
+                        <label class="block text-sm font-bold text-charcoal mb-2">Szybkie zakupy (AI pogrupuje produkty)</label>
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <input type="text" id="customListInput" placeholder="Np. mleko, chleb, masło, 5 jajek..." class="flex-grow px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-xl outline-none text-charcoal focus:ring-2 focus:ring-sage font-medium">
+                            <button id="customListSubmitBtn" onclick="generateCustomShoppingList()" class="bg-sage text-white px-6 py-3 rounded-xl font-bold hover:bg-sage_dark transition flex justify-center items-center gap-2 whitespace-nowrap"><i data-lucide="wand-2" class="w-5 h-5"></i> Utwórz</button>
+                        </div>
                     </div>
                     <div id="shoppingListsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div class="col-span-full text-center py-10 text-charcoal_light"><i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2"></i> Ładowanie...</div>
                     </div>
                 </div>
 
+                <!-- WERSJA 4.4.2 - Responsywny nagłówek Listy Zakupów -->
                 <div id="shoppingDetailView" class="hidden">
                     <div class="flex justify-between items-center mb-6 gap-3">
-                        <button onclick="showShoppingDash()" class="bg-white border border-charcoal/10 text-charcoal_light px-4 py-2 rounded-xl font-bold flex gap-2 items-center hover:bg-cream transition"><i data-lucide="arrow-left" class="w-4 h-4"></i></button>
-                        <h2 id="activeShoppingTitle" class="text-xl font-extrabold text-charcoal truncate flex-grow text-center">Zakupy</h2>
-                        <button id="sendShoppingEmailBtn" onclick="sendShoppingPDF()" class="bg-sage/10 text-sage_dark px-4 py-2 rounded-xl font-bold flex gap-2 items-center hover:bg-sage/20 transition"><i data-lucide="mail" class="w-4 h-4 text-sage"></i> E-mail</button>
+                        <button onclick="showShoppingDash()" class="bg-white border border-charcoal/10 text-charcoal_light p-3 rounded-xl font-bold flex items-center hover:bg-cream transition shrink-0"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+                        <h2 id="activeShoppingTitle" class="text-lg sm:text-xl font-extrabold text-charcoal truncate flex-grow text-center">Zakupy</h2>
+                        <button id="sendShoppingEmailBtn" onclick="sendShoppingPDF()" class="bg-sage/10 text-sage_dark p-3 rounded-xl hover:bg-sage/20 transition shrink-0" title="Wyślij listę na e-mail"><i data-lucide="mail" class="w-5 h-5 text-sage"></i></button>
                     </div>
                    
                     <div id="shoppingListContainer" class="bg-white p-6 rounded-3xl shadow-sm border border-charcoal/5 min-h-[200px]">
@@ -312,12 +327,13 @@
                             <div>
                                 <label class="block text-sm font-bold text-charcoal mb-2">Domyślny Szef Kuchni</label>
                                 <select id="profileChef" onchange="enforcePremiumSelect(this, 'DEFAULT_CHEF')" class="w-full px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-xl outline-none text-charcoal focus:ring-2 focus:ring-sage font-semibold cursor-pointer">
-                                    <option value="DEFAULT_CHEF">👨‍🍳 Zwykły Kucharz (Free)</option>
-                                    <option value="PRO_CHEF">⭐ Profesjonalny Chef (Premium)</option>
+                                    <option value="DEFAULT_CHEF">👨‍🍳 Codzienny Kucharz (Free)</option>
+                                    <option value="PREMIUM_CHEF">⭐ Kucharz PRO (Premium)</option>
+                                    <option value="PRO_CHEF">🎩 Chef Restauracji (Premium)</option>
                                     <option value="BUSY_MOM">🏃‍♀️ Zabiegana Mama (Premium)</option>
                                     <option value="KIDS_HERO">🦸‍♂️ Poskramiacz Dzieci (Premium)</option>
-                                    <option value="GRANDMA">👵 Tradycyjnie u Babci (Premium)</option>
-                                    <option value="ECO_PURE">🌱 Eko Purysta (Premium)</option>
+                                    <option value="GRANDMA">👵 Wspomnienie Babci (Premium)</option>
+                                    <option value="ECO_PURE">🌱 Ekologiczny (Premium)</option>
                                     <option value="VEGE_MASTER">🥦 Vege Master (Premium)</option>
                                     <!-- WERSJA 4.9.7 -->
                                     <option value="POLISH_TRADITION">🥟 Polskie Tradycje (Premium)</option>
@@ -385,14 +401,15 @@
         let activeShoppingTitle = "";
         let activeShoppingListArray = [];
 
-        // WERSJA 4.9.6 - Mapowanie odznak dla Persony i Poziomu
+        // WERSJA 4.9.9 - Aktualizacja mapowania odznak dla nowych person
         const CHEF_BADGES = {
-            'DEFAULT_CHEF': '👨‍🍳 Zwykły Kucharz',
-            'PRO_CHEF': '⭐ Profesjonalny Chef',
+            'DEFAULT_CHEF': '👨‍🍳 Codzienny Kucharz',
+            'PREMIUM_CHEF': '⭐ Kucharz PRO',
+            'PRO_CHEF': '🎩 Chef Restauracji',
             'BUSY_MOM': '🏃‍♀️ Zabiegana Mama',
             'KIDS_HERO': '🦸‍♂️ Poskramiacz Dzieci',
-            'GRANDMA': '👵 Tradycyjna Babcia',
-            'ECO_PURE': '🌱 Eko Purysta',
+            'GRANDMA': '👵 Wspomnienie Babci',
+            'ECO_PURE': '🌱 Ekologiczny',
             'VEGE_MASTER': '🥦 Vege Master',
             // WERSJA 4.9.7
             'POLISH_TRADITION': '🥟 Polskie Tradycje',
@@ -1335,6 +1352,54 @@ function switchTab(tabName) {
                 console.error("Błąd generowania listy:", error);
                 alert("Krytyczny błąd połączenia z serwerem.");
                 btn.innerHTML = oHtml; btn.disabled = false; lucide.createIcons();
+            }
+        }
+
+// WERSJA 4.4.0 - Logika własnych list zakupów AI
+        function toggleCustomListInput() {
+            const container = document.getElementById('customListContainer');
+            container.classList.toggle('hidden');
+            if(!container.classList.contains('hidden')) {
+                document.getElementById('customListInput').focus();
+            }
+        }
+
+        async function generateCustomShoppingList() {
+            const inputField = document.getElementById('customListInput');
+            const rawText = inputField.value.trim();
+            if (!rawText) return alert("Wpisz produkty, które chcesz kupić!");
+
+            const btn = document.getElementById('customListSubmitBtn');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Organizuję...`;
+            btn.disabled = true; lucide.createIcons();
+
+            try {
+                const fId = (currentUserProfile && currentUserProfile.family_id) ? currentUserProfile.family_id : null;
+                const response = await fetch('/api/generate-custom-shopping-list', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: currentUserEmail,
+                        familyId: fId,
+                        rawItems: rawText
+                    })
+                });
+
+                const res = await response.json();
+
+                if (res.status === 'success') {
+                    inputField.value = "";
+                    toggleCustomListInput();
+                    fetchShoppingLists(); // Odśwież widok by pokazać nową listę
+                } else {
+                    alert("Błąd: " + res.message);
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Krytyczny błąd połączenia z serwerem.");
+            } finally {
+                btn.innerHTML = originalHtml; btn.disabled = false; lucide.createIcons();
             }
         }
 
