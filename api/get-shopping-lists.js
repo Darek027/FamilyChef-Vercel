@@ -34,8 +34,13 @@ export default async function handler(req, res) {
 
         return res.status(200).json({ status: "success", lists: data });
 
+// WERSJA 4.7.3 - Shopping List: Agresywne łapanie błędów JWT
     } catch (error) {
-        console.error("🔥 GET SHOPPING LISTS ERROR:", error);
-        return res.status(500).json({ status: "error", message: "Błąd ładowania list zakupów." });
+        console.error("🔥 SHOPPING LIST ERROR:", error);
+        // Zabezpieczamy się na różne warianty zwracania błędu wygasłego tokena przez Supabase
+        if (error.code === 'PGRST301' || error.status === 401 || (error.message && error.message.includes('JWT'))) {
+            return res.status(401).json({ status: "error", message: "Sesja wygasła." });
+        }
+        return res.status(500).json({ status: "error", message: "Błąd ładowania Twojej kuchni." });
     }
 }

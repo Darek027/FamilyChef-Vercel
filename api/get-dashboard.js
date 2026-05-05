@@ -53,8 +53,13 @@ export default async function handler(req, res) {
             shoppingLists: shoppingLists || []
         });
 
+    // WERSJA 4.7.3 - DASHBOARD: Agresywne łapanie błędów JWT
     } catch (error) {
         console.error("🔥 DASHBOARD ERROR:", error);
+        // Zabezpieczamy się na różne warianty zwracania błędu wygasłego tokena przez Supabase
+        if (error.code === 'PGRST301' || error.status === 401 || (error.message && error.message.includes('JWT'))) {
+            return res.status(401).json({ status: "error", message: "Sesja wygasła." });
+        }
         return res.status(500).json({ status: "error", message: "Błąd ładowania Twojej kuchni." });
     }
 }
