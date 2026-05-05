@@ -6,8 +6,14 @@ export default async function handler(req, res) {
     const { email, recipeIds, familyId } = req.body;
 
     try {
+        // WERSJA 5.0.0 - RLS SECURITY: Zabezpieczony klient do masowych list zakupów
+        const authHeader = req.headers.authorization;
+        if (!authHeader) return res.status(401).json({ status: "error", message: "Brak dostępu." });
+
         const { createClient } = await import('@supabase/supabase-js');
-        const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+        const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+            global: { headers: { Authorization: authHeader } }
+        });
 
         // 1. Pobieramy składniki
         const { data: recipes, error: recipesError } = await supabase

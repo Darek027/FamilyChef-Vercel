@@ -36,8 +36,14 @@ export default async function handler(req, res) {
     };
 
     try {
+        // WERSJA 5.0.0 - RLS SECURITY: Walidacja tokenu i bezpieczny klient (zamiast klucza Boga)
+        const authHeader = req.headers.authorization;
+        if (!authHeader) return res.status(401).json({ status: "error", message: "Brak dostępu. Zaloguj się ponownie." });
+
         const { createClient } = await import('@supabase/supabase-js');
-        const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+        const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+            global: { headers: { Authorization: authHeader } }
+        });
 
         // 1. Pobranie pełnego profilu użytkownika
         const { data: user } = await supabase
@@ -87,8 +93,20 @@ export default async function handler(req, res) {
             });
         }
         
-        // Zapisujemy nowy stan do zmiennej, zaktualizujemy bazę na samym końcu (po udanym strzale do AI)
         const newDailyCount = currentDailyCount + 1;
+
+        // WERSJA 5.1.0 - SECURITY FIX: Zapis limitu PRZED wywołaniem AI (Ochrona przed Race Condition)
+        const { error: limitUpdateError } = await supabase
+            .from('users')
+            .update({ 
+                daily_generations: newDailyCount, 
+                last_generation_date: todayStr 
+            })
+            .eq('email', email);
+
+        if (limitUpdateError) {
+            throw new Error("Błąd autoryzacji limitów przed wywołaniem AI.");
+        }
 
         const existingCats = [...new Set(userRecipes?.map(r => r.category).filter(Boolean))];
         const categoryLogic = existingCats.length > 0 
@@ -252,21 +270,9 @@ WYNIK MUSI BYĆ CZYSTYM JSONEM (bez znaczników markdown):
         recipeData.ingredients = recipeData.ingredients.map(i => typeof i === 'string' ? i : Object.values(i).join(' '));
         recipeData.instructions = recipeData.instructions.map(i => typeof i === 'string' ? i : Object.values(i).join(' '));
 
-        // WERSJA 4.8.0 - KONSUMPCJA LIMITU (Aktualizacja w bazie po udanym generowaniu)
-        const { error: updateError } = await supabase
-            .from('users')
-            .update({ 
-                daily_generations: newDailyCount, 
-                last_generation_date: new Date().toISOString() 
-            })
-            .eq('email', email);
+        // WERSJA 5.1.0 - Konsumpcja limitu AI została przeniesiona na początek zapytania (Race Condition Fix)
 
-        if (updateError) {
-            console.error("🔥 Błąd zapisu limitu dziennego w bazie, ale przepis wygenerowano:", updateError);
-            // Nie blokujemy zwrotki, ale logujemy problem biznesowy (ktoś może mieć darmowe użycia)
-        }
-
-// WERSJA 4.9.6 - Zwracamy użytą Personę i Poziom do frontendu dla odznak
+        // WERSJA 4.9.6 - Zwracamy użytą Personę i Poziom do frontendu dla odznak
         return res.status(200).json({ 
             status: "success", 
             recipe: recipeData,
@@ -277,9 +283,15 @@ WYNIK MUSI BYĆ CZYSTYM JSONEM (bez znaczników markdown):
 
     } catch (error) {
         console.error("🔥 AI ERROR DETAILED:", error);
+        
+        // WERSJA 5.1.0 - REFUND KREDYTU (Jeśli AI wyrzuci błąd po pobraniu opłaty)
+        if (typeof currentDailyCount !== 'undefined') {
+            await supabase.from('users').update({ daily_generations: currentDailyCount }).eq('email', email);
+        }
+
         return res.status(500).json({ 
             status: "error", 
-            message: "Wystąpił błąd podczas pracy Szefa Kuchni.",
+            message: "Wystąpił błąd podczas pracy Szefa Kuchni. Limit AI nie został zużyty.",
             details: error.message 
         });
     }

@@ -4,9 +4,15 @@ export default async function handler(req, res) {
 
     const { recipeId, category, email } = req.body;
 
+    // WERSJA 4.9.0 - RLS SECURITY: Zabezpieczony klient aktualizacji kategorii
     try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader) return res.status(401).json({ status: "error", message: "Brak dostępu." });
+
         const { createClient } = await import('@supabase/supabase-js');
-        const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+        const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+            global: { headers: { Authorization: authHeader } }
+        });
 
         const { error } = await supabase
             .from('recipes')

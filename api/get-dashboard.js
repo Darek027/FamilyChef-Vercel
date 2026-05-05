@@ -8,8 +8,18 @@ export default async function handler(req, res) {
     if (!email) return res.status(400).json({ status: "error", message: "Brak identyfikatora użytkownika." });
 
     try {
+        // WERSJA 4.7.0 - RLS SECURITY (Zbudowanie bezpiecznego klienta Supabase)
+        const authHeader = req.headers.authorization;
+        if (!authHeader) {
+            return res.status(401).json({ status: "error", message: "Brak dostępu. Zaloguj się ponownie." });
+        }
+
         const { createClient } = await import('@supabase/supabase-js');
-        const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+        
+        // Używamy ANON_KEY i wstrzykujemy token użytkownika do KAŻDEGO zapytania tego klienta
+        const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+            global: { headers: { Authorization: authHeader } }
+        });
 
         // 1. Dynamiczne budowanie zapytania dla przepisów
         let recipeQuery = supabase

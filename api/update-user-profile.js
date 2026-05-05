@@ -5,10 +5,16 @@ export default async function handler(req, res) {
     // WERSJA 4.9.0 - API VERCEL: ODBIÓR DANYCH PROMPT MATRIX
     let { email, familyId, preferences, defaultServings, defaultChef, defaultSkill } = req.body;
 
+    // WERSJA 4.8.1 - RLS SECURITY: Bezpieczny klient aktualizacji profilu
     try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader) return res.status(401).json({ status: "error", message: "Brak dostępu." });
+
         const { createClient } = await import('@supabase/supabase-js');
         const crypto = await import('crypto'); 
-        const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+        const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+            global: { headers: { Authorization: authHeader } }
+        });
 
         if (!familyId || familyId.trim() === "") {
             let isUnique = false;

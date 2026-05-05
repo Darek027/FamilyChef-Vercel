@@ -5,7 +5,8 @@
 │   ├── delete-recipe.js        # Usuwanie przepisu
 │   ├── delete-shopping-list.js # Usuwanie listy zakupów
 │   ├── delete-user.js          # Usuwanie użytkowników
-│   ├── generate-shopping-list.js # Generowanie listy zakupów
+│   ├── generate-custom_shopping-list.js # Generowanie listy zakupów 
+│   ├── generate-shopping-list.js # Generowanie listy zakupów z wybranych przepisów
 │   ├── generate.js             # Silnik AI (Działa)
 │   ├── get-dashboard.js        # Pobieranie danych do panelu głównego
 │   ├── get-recipe.js           # Pobieranie pojedynczego przepisu/przepisów

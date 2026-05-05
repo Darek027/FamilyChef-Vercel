@@ -64,12 +64,25 @@
                 <!-- NOWE LOGO + MIX-BLEND-MULTIPLY by usunąć białe tło z obrazka -->
                 <img src="https://bnijuskmzcgnojefxhnk.supabase.co/storage/v1/object/public/assets/LOGO_transparent2.png" alt="KiedyObiad.pl Logo" class="h-32 object-contain mb-8 mix-blend-multiply">
                 
-                <div class="space-y-4 w-full">
+                <!-- WERSJA 4.6.0 - UI logowania OTP -->
+                <div class="space-y-4 w-full" id="authStep1">
                     <input type="email" id="loginEmail" placeholder="twoj@email.com" class="w-full px-4 py-4 bg-cream/50 border border-charcoal/10 rounded-2xl focus:ring-2 focus:ring-sage outline-none transition text-charcoal text-center text-lg font-medium">
                     <button onclick="processAuth()" id="authBtn" class="w-full bg-sage text-white px-8 py-4 rounded-2xl text-lg font-bold hover:bg-sage_dark transition shadow-lg shadow-sage/20 flex items-center justify-center gap-2">
-                        <i data-lucide="log-in" class="w-5 h-5"></i> Wejdź
+                        <i data-lucide="mail" class="w-5 h-5"></i> Wyślij kod
                     </button>
                     <p id="authErrorMsg" class="text-terracotta text-sm hidden mt-2 font-semibold"></p>
+                </div>
+
+                <div class="space-y-4 w-full hidden" id="authStep2">
+                    <p class="text-charcoal_light text-sm font-medium mb-2">Wpisz 6-cyfrowy kod wysłany na Twój e-mail.</p>
+                    <input type="text" id="loginCode" placeholder="000000" maxlength="6" class="w-full px-4 py-4 bg-cream/50 border border-charcoal/10 rounded-2xl focus:ring-2 focus:ring-sage outline-none transition text-charcoal text-center text-2xl font-bold tracking-[0.5em]">
+                    <button onclick="verifyAuthCode()" id="verifyBtn" class="w-full bg-charcoal text-white px-8 py-4 rounded-2xl text-lg font-bold hover:bg-charcoal_light transition shadow-lg flex items-center justify-center gap-2">
+                        <i data-lucide="check-circle" class="w-5 h-5"></i> Weryfikuj
+                    </button>
+                    <button onclick="resetAuth()" class="w-full text-charcoal_light text-sm font-bold mt-2 hover:text-terracotta transition">
+                        Cofnij
+                    </button>
+                    <p id="verifyErrorMsg" class="text-terracotta text-sm hidden mt-2 font-semibold"></p>
                 </div>
             </div>
         </div>
@@ -312,7 +325,16 @@
                    
                     <div id="shoppingListContainer" class="bg-white p-6 rounded-3xl shadow-sm border border-charcoal/5 min-h-[200px]">
                         <div id="shoppingContent" class="space-y-6"></div>
-                        <button id="clearShoppingBtn" onclick="deleteActiveShoppingList()" class="w-full mt-8 bg-terracotta/5 text-terracotta font-bold py-3 rounded-xl border border-terracotta/20 hover:bg-terracotta/10 transition">Usuń tę listę</button>
+                        
+                        <div id="addMoreItemsContainer" class="mt-8 pt-6 border-t border-charcoal/5">
+                            <label class="block text-sm font-bold text-charcoal mb-3">Zapomniałeś o czymś? Dodaj do listy:</label>
+                            <div class="flex flex-col sm:flex-row gap-3">
+                                <input type="text" id="addMoreItemsInput" placeholder="Np. jabłka, płyn do naczyń..." class="flex-grow px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-xl outline-none text-charcoal focus:ring-2 focus:ring-sage font-medium">
+                                <button id="addMoreItemsBtn" onclick="addItemsToExistingList()" class="bg-sage text-white px-6 py-3 rounded-xl font-bold hover:bg-sage_dark transition flex justify-center items-center gap-2 whitespace-nowrap"><i data-lucide="plus" class="w-5 h-5"></i> Dodaj</button>
+                            </div>
+                        </div>
+
+                        <button id="clearShoppingBtn" onclick="deleteActiveShoppingList()" class="w-full mt-6 bg-terracotta/5 text-terracotta font-bold py-3 rounded-xl border border-terracotta/20 hover:bg-terracotta/10 transition">Usuń tę listę</button>
                     </div>
                 </div>
 
@@ -498,59 +520,133 @@
             }
         };
 
+        // WERSJA 4.6.0 - Logika OTP (Send, Verify & Auto-login)
         function processAuth() {
             const emailInput = document.getElementById('loginEmail').value.trim().toLowerCase();
             if (!emailInput || !emailInput.includes('@')) return alert("Błędny email");
-            document.getElementById('authBtn').innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Autoryzacja...`;
-            verifyUserInDatabase(emailInput);
+            
+            document.getElementById('authBtn').innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Wysyłam kod...`;
+            document.getElementById('authBtn').disabled = true;
+            document.getElementById('authErrorMsg').classList.add('hidden');
+            
+            sendOTP(emailInput);
         }
 
-        async function verifyUserInDatabase(email) {
+        async function sendOTP(email) {
             try {
                 const response = await fetch('/api/auth', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: email })
+                    body: JSON.stringify({ email: email, step: 'send' })
                 });
-                
                 const res = await response.json();
 
                 if (res.status === 'success') {
-                    localStorage.setItem('familyChefEmail', res.data.email);
-                    currentUserEmail = res.data.email; 
-                    currentUserProfile = res.data;
-                    document.getElementById('recipeServings').value = currentUserProfile.default_servings || 2;
-                    
-                    // WERSJA 4.0.0 - Inicjalizacja domyślnego Prompt Matrixa z bazy (do kreatora)
-                    document.getElementById('generatorChef').value = currentUserProfile.default_chef || 'DEFAULT_CHEF';
-                    document.getElementById('generatorSkill').value = currentUserProfile.default_skill || 'DEFAULT_SKILL';
-
-                    // WERSJA 4.3.0 - Aktualizacja wskaźnika Premium w interfejsie
-                    updatePremiumBadge();
-
-                    document.getElementById('auth-overlay').classList.add('hidden');
-                    // WERSJA 1.24.2 - Pre-fetch danych do cache po autoryzacji (Fix dla brakujących kategorii)
-                    document.getElementById('app-container').classList.remove('hidden');
-                    document.getElementById('app-container').classList.add('flex');
-                    
-                    lucide.createIcons();
-                    
-                    // Ładujemy dashboard w tle od razu po wejściu. Inicjalizuje to m.in. uniqueCategories
-                    loadDashboard();
+                    document.getElementById('authStep1').classList.add('hidden');
+                    document.getElementById('authStep2').classList.remove('hidden');
+                    document.getElementById('loginCode').focus();
                 } else {
                     document.getElementById('authErrorMsg').innerText = res.message;
                     document.getElementById('authErrorMsg').classList.remove('hidden');
-                    document.getElementById('authBtn').innerHTML = `<i data-lucide="log-in" class="w-5 h-5"></i> Wejdź`;
                 }
             } catch (error) {
-                console.error(error);
-                document.getElementById('authErrorMsg').innerText = "Krytyczny błąd połączenia z serwerem.";
+                document.getElementById('authErrorMsg').innerText = "Krytyczny błąd serwera.";
                 document.getElementById('authErrorMsg').classList.remove('hidden');
-                document.getElementById('authBtn').innerHTML = `<i data-lucide="log-in" class="w-5 h-5"></i> Wejdź`;
+            } finally {
+                document.getElementById('authBtn').innerHTML = `<i data-lucide="mail" class="w-5 h-5"></i> Wyślij kod`;
+                document.getElementById('authBtn').disabled = false;
+                lucide.createIcons();
             }
         }
+
+        async function verifyAuthCode() {
+            const emailInput = document.getElementById('loginEmail').value.trim().toLowerCase();
+            const codeInput = document.getElementById('loginCode').value.trim();
+            
+            if (codeInput.length !== 6) return alert("Kod musi mieć 6 cyfr.");
+
+            document.getElementById('verifyBtn').innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Sprawdzam...`;
+            document.getElementById('verifyBtn').disabled = true;
+            document.getElementById('verifyErrorMsg').classList.add('hidden');
+
+            try {
+                const response = await fetch('/api/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: emailInput, step: 'verify', token: codeInput })
+                });
+                const res = await response.json();
+
+                if (res.status === 'success') {
+                    // SaaS Foundation: Zachowujemy JWT Token pod późniejszy mechanizm RLS
+                    if(res.session && res.session.access_token) {
+                        localStorage.setItem('supabaseToken', res.session.access_token);
+                    }
+                    finalizeLogin(res.data);
+                } else {
+                    document.getElementById('verifyErrorMsg').innerText = res.message;
+                    document.getElementById('verifyErrorMsg').classList.remove('hidden');
+                }
+            } catch (error) {
+                document.getElementById('verifyErrorMsg').innerText = "Błąd weryfikacji.";
+                document.getElementById('verifyErrorMsg').classList.remove('hidden');
+            } finally {
+                document.getElementById('verifyBtn').innerHTML = `<i data-lucide="check-circle" class="w-5 h-5"></i> Weryfikuj`;
+                document.getElementById('verifyBtn').disabled = false;
+                lucide.createIcons();
+            }
+        }
+
+        function resetAuth() {
+            document.getElementById('authStep2').classList.add('hidden');
+            document.getElementById('authStep1').classList.remove('hidden');
+            document.getElementById('loginCode').value = '';
+            document.getElementById('verifyErrorMsg').classList.add('hidden');
+        }
+
+        async function verifyUserInDatabase(email) {
+            // Służy teraz jako auto-logowanie dla powracających użytkowników (z cache'u)
+            try {
+                const response = await fetch('/api/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email, step: 'get_profile' })
+                });
+                const res = await response.json();
+                
+                if (res.status === 'success') {
+                    finalizeLogin(res.data);
+                } else {
+                    logoutUser();
+                }
+            } catch (error) {
+                console.error("Auto-login error", error);
+            }
+        }
+
+        function finalizeLogin(userData) {
+            localStorage.setItem('familyChefEmail', userData.email);
+            currentUserEmail = userData.email; 
+            currentUserProfile = userData;
+            
+            document.getElementById('recipeServings').value = currentUserProfile.default_servings || 2;
+            document.getElementById('generatorChef').value = currentUserProfile.default_chef || 'DEFAULT_CHEF';
+            document.getElementById('generatorSkill').value = currentUserProfile.default_skill || 'DEFAULT_SKILL';
+            
+            updatePremiumBadge();
+            document.getElementById('auth-overlay').classList.add('hidden');
+            document.getElementById('app-container').classList.remove('hidden');
+            document.getElementById('app-container').classList.add('flex');
+            
+            lucide.createIcons();
+            loadDashboard();
+        }
        
-        function logoutUser() { localStorage.removeItem('familyChefEmail'); location.reload(); }
+        function logoutUser() { 
+            localStorage.removeItem('familyChefEmail'); 
+            localStorage.removeItem('supabaseToken'); // Czyścimy token RLS przy wylogowaniu
+            location.reload(); 
+        }
 
 function switchTab(tabName) {
             ['generator', 'dashboard', 'shopping', 'profile'].forEach(tab => {
@@ -575,8 +671,15 @@ function switchTab(tabName) {
             lucide.createIcons();
 
             try {
+                // WERSJA 4.7.0 - RLS SECURITY (Wysyłka tokenu autoryzacyjnego)
                 const fId = (currentUserProfile && currentUserProfile.family_id) ? currentUserProfile.family_id : '';
-                const response = await fetch(`/api/get-dashboard?email=${encodeURIComponent(currentUserEmail)}&familyId=${encodeURIComponent(fId)}`);
+                const token = localStorage.getItem('supabaseToken');
+                
+                const response = await fetch(`/api/get-dashboard?email=${encodeURIComponent(currentUserEmail)}&familyId=${encodeURIComponent(fId)}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
                 const res = await response.json();
 
                 if (res.status === 'success') {
@@ -758,10 +861,15 @@ function switchTab(tabName) {
             currentRecipeData.category = newVal;
 
             if (currentRecipeData.id && currentRecipeData.id !== "temporary_saved") {
+                // WERSJA 4.9.1 - RLS SECURITY: Przekazanie tokenu do edycji kategorii
                 try {
+                    const token = localStorage.getItem('supabaseToken');
                     await fetch('/api/update-recipe-category', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
                         body: JSON.stringify({ 
                             recipeId: currentRecipeData.id, 
                             category: newVal, 
@@ -785,11 +893,15 @@ function switchTab(tabName) {
             }
         }
 
+        // WERSJA 4.8.1 - RLS SECURITY: Przekazanie tokenu dla pobierania przepisu
         async function openRecipe(id) {
             startLoadingProcess("Pobieram przepis z bazy...");
             
             try {
-                const response = await fetch(`/api/get-recipe?id=${id}`);
+                const token = localStorage.getItem('supabaseToken');
+                const response = await fetch(`/api/get-recipe?id=${id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
                 const recipe = await response.json();
 
                 if (recipe && !recipe.status) { 
@@ -867,10 +979,14 @@ function switchTab(tabName) {
             startLoadingProcess("Szef kuchni pracuje... 👨‍🍳");
             
             try {
-                // WERSJA 4.9.6 - CRITICAL FIX: Wysłanie wybranych opcji do API
+                // WERSJA 5.0.0 - RLS SECURITY: Przekazanie tokenu do endpointu AI
+                const token = localStorage.getItem('supabaseToken');
                 const response = await fetch('/api/generate', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({
                         email: currentUserEmail,
                         userMessage: inputField.value,
@@ -908,10 +1024,14 @@ function switchTab(tabName) {
             startLoadingProcess("Koryguję... 🔄");
             
             try {
-                // WERSJA 4.9.6 - CRITICAL FIX: Wysłanie wybranych opcji przy modyfikacji
+                // WERSJA 5.0.0 - RLS SECURITY: Przekazanie tokenu dla poprawki przepisu
+                const token = localStorage.getItem('supabaseToken');
                 const response = await fetch('/api/generate', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({
                         email: currentUserEmail,
                         userMessage: feedbackInput.value,
@@ -1010,10 +1130,15 @@ function switchTab(tabName) {
             btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Zapisywanie...`;
             btn.disabled = true; lucide.createIcons();
             
+            // WERSJA 4.9.3 - RLS SECURITY: Przekazanie tokenu przy zapisie do bazy
             try {
+                const token = localStorage.getItem('supabaseToken');
                 const response = await fetch('/api/save-recipe', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({
                         email: currentUserEmail,
                         familyId: (currentUserProfile && currentUserProfile.family_id) ? currentUserProfile.family_id : null,
@@ -1103,10 +1228,15 @@ function switchTab(tabName) {
             btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Zapisywanie...`; 
             btn.disabled = true; lucide.createIcons();
 
+            // WERSJA 4.8.3 - RLS SECURITY: Przekazanie tokenu do aktualizacji profilu
             try {
+                const token = localStorage.getItem('supabaseToken');
                 const response = await fetch('/api/update-user-profile', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({ 
                         email: currentUserEmail, 
                         familyId: fId, 
@@ -1151,10 +1281,15 @@ function switchTab(tabName) {
             btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Trwa usuwanie danych...`;
             btn.disabled = true; lucide.createIcons();
 
+            // WERSJA 4.9.9 - RLS SECURITY: Przekazanie tokenu dla procesu usuwania konta
             try {
+                const token = localStorage.getItem('supabaseToken');
                 const response = await fetch('/api/delete-user', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({ email: currentUserEmail })
                 });
                 const res = await response.json();
@@ -1178,10 +1313,15 @@ function switchTab(tabName) {
             grid.innerHTML = `<div class="col-span-full text-center py-12"><i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto mb-3 text-terracotta"></i> Usuwanie...</div>`; 
             lucide.createIcons();
             
+            // WERSJA 4.9.7 - RLS SECURITY: Przekazanie tokenu dla pojedynczego usunięcia przepisu
             try {
+                const token = localStorage.getItem('supabaseToken');
                 await fetch('/api/delete-recipe', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({ recipeId: recipeId, email: currentUserEmail })
                 });
                 loadDashboard(); 
@@ -1195,10 +1335,14 @@ function switchTab(tabName) {
             document.getElementById('shoppingListsGrid').innerHTML = `<div class="col-span-full text-center py-10 text-charcoal_light"><i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2"></i></div>`;
             lucide.createIcons();
             
+            // WERSJA 4.7.1 - Przekazanie tokenu RLS do list zakupów z frontendu
             try {
                 const fId = (currentUserProfile && currentUserProfile.family_id) ? currentUserProfile.family_id : '';
+                const token = localStorage.getItem('supabaseToken');
                 
-                const response = await fetch(`/api/get-shopping-lists?email=${encodeURIComponent(currentUserEmail)}&familyId=${encodeURIComponent(fId)}`);
+                const response = await fetch(`/api/get-shopping-lists?email=${encodeURIComponent(currentUserEmail)}&familyId=${encodeURIComponent(fId)}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
                 const res = await response.json();
 
                 if (res.status === 'success') {
@@ -1279,12 +1423,17 @@ function switchTab(tabName) {
 
         async function deleteShoppingListFromDash(listId) {
             if (!confirm("Usunąć tę listę zakupów?")) return;
+            // WERSJA 4.8.5 - RLS SECURITY: Token dla usuwania listy z dashboardu
             try {
                 const fId = (currentUserProfile && currentUserProfile.family_id) ? currentUserProfile.family_id : null;
+                const token = localStorage.getItem('supabaseToken');
                 
                 await fetch('/api/delete-shopping-list', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({ listId: listId, email: currentUserEmail, familyId: fId })
                 });
                 fetchShoppingLists(); 
@@ -1297,12 +1446,17 @@ function switchTab(tabName) {
             if (!confirm("Na pewno usunąć tę listę?")) return;
             const btn = document.getElementById('clearShoppingBtn');
             btn.innerText = "Usuwanie...";
+            // WERSJA 4.8.6 - RLS SECURITY: Token dla usuwania aktywnej listy
             try {
                 const fId = (currentUserProfile && currentUserProfile.family_id) ? currentUserProfile.family_id : null;
+                const token = localStorage.getItem('supabaseToken');
                 
                 await fetch('/api/delete-shopping-list', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({ listId: activeShoppingListId, email: currentUserEmail, familyId: fId })
                 });
                 btn.innerText = "Usuń tę listę";
@@ -1323,9 +1477,14 @@ function switchTab(tabName) {
                 try {
                     const fId = (currentUserProfile && currentUserProfile.family_id) ? currentUserProfile.family_id : null;
                     
+                    // WERSJA 4.8.2 - RLS SECURITY: Przekazanie tokenu do aktualizacji listy
+                    const token = localStorage.getItem('supabaseToken');
                     await fetch('/api/update-shopping-list', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
                         body: JSON.stringify({ 
                             listId: activeShoppingListId, 
                             email: currentUserEmail, 
@@ -1346,9 +1505,14 @@ function switchTab(tabName) {
             btn.disabled = true; lucide.createIcons();
             
             try {
+                // WERSJA 5.0.0 - RLS SECURITY: Przekazanie tokenu dla generowania masowej listy
+                const token = localStorage.getItem('supabaseToken');
                 const response = await fetch('/api/generate-shopping-list', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({
                         email: currentUserEmail,
                         familyId: (currentUserProfile && currentUserProfile.family_id) ? currentUserProfile.family_id : null,
@@ -1384,6 +1548,7 @@ function switchTab(tabName) {
             }
         }
 
+// WERSJA 4.5.1 - Poprawiona funkcja tworzenia listy
         async function generateCustomShoppingList() {
             const inputField = document.getElementById('customListInput');
             const rawText = inputField.value.trim();
@@ -1396,9 +1561,14 @@ function switchTab(tabName) {
 
             try {
                 const fId = (currentUserProfile && currentUserProfile.family_id) ? currentUserProfile.family_id : null;
+                // WERSJA 5.0.0 - RLS SECURITY: Przekazanie tokenu dla własnej listy
+                const token = localStorage.getItem('supabaseToken');
                 const response = await fetch('/api/generate-custom-shopping-list', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({
                         email: currentUserEmail,
                         familyId: fId,
@@ -1412,6 +1582,61 @@ function switchTab(tabName) {
                     inputField.value = "";
                     toggleCustomListInput();
                     fetchShoppingLists(); // Odśwież widok by pokazać nową listę
+                } else {
+                    alert("Błąd: " + res.message);
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Krytyczny błąd połączenia z serwerem.");
+            } finally {
+                btn.innerHTML = originalHtml; btn.disabled = false; lucide.createIcons();
+            }
+        }
+
+        // WERSJA 4.5.0 - Logika dodawania produktów do ISTNIEJĄCEJ listy
+        async function addItemsToExistingList() {
+            const inputField = document.getElementById('addMoreItemsInput');
+            const rawText = inputField.value.trim();
+            if (!rawText) return alert("Wpisz produkty, które chcesz dopisać!");
+
+            const btn = document.getElementById('addMoreItemsBtn');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Dodaję...`;
+            btn.disabled = true; lucide.createIcons();
+
+            try {
+                const fId = (currentUserProfile && currentUserProfile.family_id) ? currentUserProfile.family_id : null;
+                const token = localStorage.getItem('supabaseToken');
+                
+                // Używamy tego samego endpointu, ale podajemy 'listId'
+                const response = await fetch('/api/generate-custom-shopping-list', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        email: currentUserEmail,
+                        familyId: fId,
+                        rawItems: rawText,
+                        listId: activeShoppingListId // <-- KLUCZOWE: Mówi backendowi, że to Update
+                    })
+                });
+
+                const res = await response.json();
+
+                if (res.status === 'success') {
+                    inputField.value = "";
+                    
+                    // Odświeżamy listy z bazy w tle, aby pobrać "zmergowanego" JSONa
+                    await fetchShoppingLists(); 
+                    
+                    // Aktualizujemy aktualny widok nowymi danymi
+                    const updatedList = allShoppingLists.find(l => l.id === activeShoppingListId);
+                    if (updatedList) {
+                        activeShoppingListArray = updatedList.data;
+                        renderShoppingListUI();
+                    }
                 } else {
                     alert("Błąd: " + res.message);
                 }
@@ -1442,12 +1667,17 @@ function switchTab(tabName) {
             fab.innerHTML = `<div class="max-w-xs mx-auto bg-white px-6 py-4 rounded-full shadow-2xl font-bold flex justify-center gap-3 text-terracotta pointer-events-auto border-4 border-terracotta/20"><i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Usuwanie...</div>`;
             lucide.createIcons();
 
+            // WERSJA 4.9.8 - RLS SECURITY: Przekazanie tokenu dla masowego usuwania
             try {
+                const token = localStorage.getItem('supabaseToken');
                 const response = await fetch('/api/delete-recipe', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({ 
-                        recipeIds: selectedRecipesForShopping, // Wysyłamy tablicę do nowego endpointu
+                        recipeIds: selectedRecipesForShopping, 
                         email: currentUserEmail 
                     })
                 });
@@ -1505,10 +1735,15 @@ function switchTab(tabName) {
             btn.disabled = true; lucide.createIcons();
             
             // WERSJA 1.21.2 - Frontend: Dodanie familyId do payloadu dla atomowego zapisu i wysyłki
+            // WERSJA 4.9.6 - RLS SECURITY: Przekazanie tokenu do zapisu i wysyłki
             try {
+                const token = localStorage.getItem('supabaseToken');
                 const response = await fetch('/api/send-recipe', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({ 
                         email: currentUserEmail, 
                         familyId: (currentUserProfile && currentUserProfile.family_id) ? currentUserProfile.family_id : null,
@@ -1540,10 +1775,15 @@ function switchTab(tabName) {
             const btn = document.getElementById('sendShoppingEmailBtn'); const oHtml = btn.innerHTML;
             btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>`;
             
+            // WERSJA 4.8.4 - RLS SECURITY: Przekazanie tokenu do wysyłki maila
             try {
+                const token = localStorage.getItem('supabaseToken');
                 const response = await fetch('/api/send-shopping', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({ 
                         email: currentUserEmail, 
                         listTitle: activeShoppingTitle, 

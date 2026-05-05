@@ -7,8 +7,44 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ status: "error" });
 
     const { email, listTitle, listArray } = req.body;
+    let currentEmailCount; 
 
-    try { // <--- TEGO SŁOWA KLUCZOWEGO BRAKOWAŁO!
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ status: "error", message: "Brak dostępu." });
+
+    // WERSJA 5.2.0 - SECURITY: Blokada spamu mailowego i model Charge Upfront
+    try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+            global: { headers: { Authorization: authHeader } }
+        });
+
+        // --- START BLOKADY SPAMU ---
+        const { data: user } = await supabase.from('users').select('is_premium, daily_emails, last_email_date').eq('email', email).maybeSingle();
+
+        const isPremium = user?.is_premium || false;
+        const DAILY_FREE_EMAIL = parseInt(process.env.DAILY_FREE_EMAIL_LIMIT || '5', 10);
+        const DAILY_PREMIUM_EMAIL = parseInt(process.env.DAILY_PREMIUM_EMAIL_LIMIT || '30', 10);
+        
+        const todayStr = new Date().toISOString().split('T')[0];
+        const userLastEmail = user?.last_email_date ? new Date(user.last_email_date).toISOString().split('T')[0] : null;
+        
+        currentEmailCount = user?.daily_emails || 0;
+        if (userLastEmail !== todayStr) currentEmailCount = 0;
+
+        if (!isPremium && currentEmailCount >= DAILY_FREE_EMAIL) {
+            return res.status(429).json({ status: "error", message: `Wykorzystałeś darmowy limit maili (${DAILY_FREE_EMAIL}).` });
+        }
+        if (isPremium && currentEmailCount >= DAILY_PREMIUM_EMAIL) {
+            return res.status(429).json({ status: "error", message: `Osiągnąłeś limit maili Premium (${DAILY_PREMIUM_EMAIL}).` });
+        }
+
+        const { error: limitUpdateError } = await supabase.from('users')
+            .update({ daily_emails: currentEmailCount + 1, last_email_date: todayStr })
+            .eq('email', email);
+
+        if (limitUpdateError) throw new Error("Błąd weryfikacji limitów anty-spam.");
+        // --- KONIEC BLOKADY SPAMU ---
     
         // Zaktualizowany szablon HTML listy zakupów (Rebranding)
         // Generowanie grup zakupowych
@@ -52,6 +88,14 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error("🔥 RESEND SHOPPING ERROR:", error);
+        
+        // REFUND LIMITU
+        if (currentEmailCount !== undefined) {
+            const { createClient } = await import('@supabase/supabase-js');
+            const supAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+            await supAdmin.from('users').update({ daily_emails: currentEmailCount }).eq('email', email);
+        }
+
         return res.status(500).json({ status: "error", message: "Nie udało się wysłać listy." });
     }
 }

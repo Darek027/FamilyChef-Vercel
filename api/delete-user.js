@@ -5,9 +5,15 @@ export default async function handler(req, res) {
     const { email } = req.body;
     if (!email) return res.status(400).json({ status: "error", message: "Brak e-maila." });
 
+    // WERSJA 4.9.7 - RLS SECURITY: Ochrona twardego usuwania konta
     try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader) return res.status(401).json({ status: "error", message: "Brak uprawnień do usunięcia konta." });
+
         const { createClient } = await import('@supabase/supabase-js');
-        const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+        const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+            global: { headers: { Authorization: authHeader } }
+        });
 
         // Usuwamy użytkownika z głównej tabeli public.users
         // Dzięki 'ON DELETE CASCADE' w PostgreSQL, powiązane przepisy i listy zakupów znikną automatycznie.

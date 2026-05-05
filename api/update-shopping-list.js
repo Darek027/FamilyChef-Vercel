@@ -5,9 +5,15 @@ export default async function handler(req, res) {
     // Odbieramy nową zmienną z frontendu: familyId
     const { listId, email, familyId, listData } = req.body;
 
+    // WERSJA 4.5.2 - RLS SECURITY: Bezpieczny klient aktualizacji listy zakupów
     try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader) return res.status(401).json({ status: "error", message: "Brak dostępu." });
+
         const { createClient } = await import('@supabase/supabase-js');
-        const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+        const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+            global: { headers: { Authorization: authHeader } }
+        });
 
         // Zaczynamy budować zapytanie...
         let query = supabase

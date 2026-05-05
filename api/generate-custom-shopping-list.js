@@ -1,16 +1,29 @@
 // WERSJA 4.4.0 - API VERCEL: TWORZENIE RĘCZNEJ LISTY ZAKUPÓW Z WYKORZYSTANIEM AI
+// WERSJA 4.5.0 - [SaaS Update] Wsparcie dla dopisywania produktów do istniejącej listy (Merge)
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ status: "error" });
 
-    const { email, rawItems, familyId } = req.body;
+    // Dodano listId do destrukturyzacji (jeśli istnieje, robimy UPDATE)
+    const { email, rawItems, familyId, listId } = req.body;
+    let currentDailyCount; 
+
+    if (!rawItems || rawItems.trim() === '') {
+        return res.status(400).json({ status: "error", message: "Brak produktów." });
+    }
 
     if (!rawItems || rawItems.trim() === '') {
         return res.status(400).json({ status: "error", message: "Brak produktów." });
     }
 
     try {
+        // WERSJA 5.2.0 - SECURITY: RLS + Race Condition Fix (Charge Upfront)
+        const authHeader = req.headers.authorization;
+        if (!authHeader) return res.status(401).json({ status: "error", message: "Brak dostępu." });
+
         const { createClient } = await import('@supabase/supabase-js');
-        const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+        const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+            global: { headers: { Authorization: authHeader } }
+        });
 
         // 1. Weryfikacja limitów AI (współdzielona z generowaniem przepisów)
         const { data: user } = await supabase
@@ -38,7 +51,12 @@ export default async function handler(req, res) {
             return res.status(403).json({ status: "error", message: `Osiągnąłeś limit Premium (${DAILY_PREMIUM_LIMIT} akcji AI).` });
         }
 
-        const newDailyCount = currentDailyCount + 1;
+        // CHARGE UPFRONT: Zabezpieczenie przed Race Condition
+        const { error: limitError } = await supabase.from('users')
+            .update({ daily_generations: currentDailyCount + 1, last_generation_date: todayStr })
+            .eq('email', email);
+            
+        if (limitError) throw new Error("Błąd podczas rezerwacji limitu AI.");
 
         // 2. Prompt do Gemini - Autokategoryzacja wolnego tekstu
         const systemInstruction = `Jesteś asystentem kulinarnym. Użytkownik wpisał ciągłym tekstem rzeczy, które chce kupić w sklepie. Twoim zadaniem jest wyodrębnienie tych produktów i pogrupowanie ich w logiczne kategorie sklepowe (np. Pieczywo, Nabiał, Mięso, Zbożowe, Warzywa i owoce, Inne).
@@ -109,40 +127,84 @@ Zwróć wynik WYŁĄCZNIE jako czysty JSON według tego schematu:
             throw new Error("AI odmówiło wygenerowania listy (Filtry bezpieczeństwa lub pusty zwrot).");
         }
 
-        // 4. Parsowanie odpowiedzi z ochroną przed błędnym JSON
-        let listData;
+        // WERSJA 4.5.0 - BEZPIECZNE PARSOWANIE I ŁĄCZENIE (MERGE) LIST
+        // 4. Parsowanie nowo wygenerowanych produktów
+        let newItemsData;
         try {
-            listData = JSON.parse(data.candidates[0].content.parts[0].text);
+            newItemsData = JSON.parse(data.candidates[0].content.parts[0].text);
         } catch (parseError) {
             console.error("🔥 JSON PARSE ERROR:", data.candidates[0].content.parts[0].text);
             throw new Error("AI zwróciło dane w nieprawidłowym formacie.");
         }
 
-        // 5. Zapis w bazie (Generujemy ładny tytuł)
-        const dateString = new Date().toLocaleDateString('pl-PL', { day: 'numeric', month: 'long' });
-        const listTitle = `Szybkie zakupy (${dateString})`;
-        
-        const { error: insertError } = await supabase
-            .from('shopping_lists')
-            .insert([{
-                author_email: email,
-                family_id: familyId || null,
-                title: listTitle,
-                data: listData
-            }]);
+        // 5. Obsługa Update (Dopisywanie) vs Insert (Nowa lista)
+        if (listId) {
+            // A. Pobieramy obecny stan listy z bazy
+            let fetchQuery = supabase.from('shopping_lists').select('data').eq('id', listId);
+            if (familyId && familyId !== 'undefined') fetchQuery = fetchQuery.eq('family_id', familyId);
+            else fetchQuery = fetchQuery.eq('author_email', email);
 
-        if (insertError) throw insertError;
+            const { data: existingListDB, error: fetchError } = await fetchQuery.single();
+            
+            if (fetchError || !existingListDB) {
+                throw new Error("Nie znaleziono oryginalnej listy do aktualizacji.");
+            }
 
-        // 6. Aktualizacja zużycia limitów AI
-        await supabase.from('users').update({ 
-            daily_generations: newDailyCount, 
-            last_generation_date: new Date().toISOString() 
-        }).eq('email', email);
+            let mergedData = existingListDB.data;
 
-        return res.status(200).json({ status: "success", message: "Lista została utworzona!" });
+            // B. Inteligentny Merge JSONów
+            newItemsData.forEach(newCategoryObj => {
+                const existingCategoryIndex = mergedData.findIndex(
+                    c => c.category.toLowerCase() === newCategoryObj.category.toLowerCase()
+                );
 
-    } catch (error) {
+                if (existingCategoryIndex !== -1) {
+                    // Kategoria istnieje - wrzucamy nowe rzeczy na koniec
+                    mergedData[existingCategoryIndex].items.push(...newCategoryObj.items);
+                } else {
+                    // Kategoria nie istnieje - dodajemy jako nową
+                    mergedData.push(newCategoryObj);
+                }
+            });
+
+            // C. Aktualizacja w bazie
+            const { error: updateError } = await supabase
+                .from('shopping_lists')
+                .update({ data: mergedData })
+                .eq('id', listId);
+
+            if (updateError) throw updateError;
+
+        } else {
+            // D. Standardowe tworzenie nowej listy (Fallback do starej logiki)
+            const dateString = new Date().toLocaleDateString('pl-PL', { day: 'numeric', month: 'long' });
+            const listTitle = `Szybkie zakupy (${dateString})`;
+            
+            const { error: insertError } = await supabase
+                .from('shopping_lists')
+                .insert([{
+                    author_email: email,
+                    family_id: familyId || null,
+                    title: listTitle,
+                    data: newItemsData
+                }]);
+
+            if (insertError) throw insertError;
+        }
+
+        // WERSJA 4.5.2 - BUGFIX: Zwrócenie odpowiedzi HTTP po udanym zapisie/aktualizacji (Zamyka zapytanie Vercel)
+        return res.status(200).json({ status: "success" });
+
+     } catch (error) {
         console.error("🔥 CUSTOM SHOPPING LIST ERROR:", error.message);
+        
+        // REFUND: Jeśli AI zawiedzie, zwracamy akcję na konto
+        if (currentDailyCount !== undefined) {
+            const { createClient } = await import('@supabase/supabase-js');
+            const supAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+            await supAdmin.from('users').update({ daily_generations: currentDailyCount }).eq('email', email);
+        }
+
         return res.status(500).json({ status: "error", message: "Błąd serwera: " + error.message });
     }
 }

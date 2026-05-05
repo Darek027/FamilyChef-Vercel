@@ -7,9 +7,17 @@ export default async function handler(req, res) {
     const { email, familyId } = req.query;
     if (!email) return res.status(400).json({ status: "error", message: "Brak emaila." });
 
+    // WERSJA 4.7.1 - RLS SECURITY: Listy zakupów z Anon Key
     try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader) {
+            return res.status(401).json({ status: "error", message: "Brak dostępu. Zaloguj się ponownie." });
+        }
+
         const { createClient } = await import('@supabase/supabase-js');
-        const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+        const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+            global: { headers: { Authorization: authHeader } }
+        });
 
         let query = supabase.from('shopping_lists').select('*');
 
