@@ -3,8 +3,8 @@
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ status: "error" });
 
-    // Dodano listId do destrukturyzacji (jeśli istnieje, robimy UPDATE)
-    const { email, rawItems, familyId, listId } = req.body;
+    // WERSJA 5.3.0 - ZERO TRUST: Ignorujemy email i familyId z frontendu
+    const { rawItems, listId } = req.body;
     let currentDailyCount; 
 
     if (!rawItems || rawItems.trim() === '') {
@@ -16,7 +16,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        // WERSJA 5.2.0 - SECURITY: RLS + Race Condition Fix (Charge Upfront)
+        // WERSJA 5.3.0 - SECURITY: ZERO TRUST + RLS + Race Condition Fix
         const authHeader = req.headers.authorization;
         if (!authHeader) return res.status(401).json({ status: "error", message: "Brak dostępu." });
 
@@ -25,12 +25,19 @@ export default async function handler(req, res) {
             global: { headers: { Authorization: authHeader } }
         });
 
-        // 1. Weryfikacja limitów AI (współdzielona z generowaniem przepisów)
+        // KRYPTOGRAFICZNA WERYFIKACJA TOŻSAMOŚCI
+        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+        if (authError || !authUser) return res.status(401).json({ status: "error", message: "Nieważny token sesji." });
+        const email = authUser.email; // Zaufany email z JWT
+
+        // 1. Weryfikacja limitów AI i pobranie zaufanego Family ID (współdzielona tabela users)
         const { data: user } = await supabase
             .from('users')
-            .select('is_premium, daily_generations, last_generation_date')
+            .select('is_premium, daily_generations, last_generation_date, family_id')
             .eq('email', email)
             .maybeSingle();
+        
+        const familyId = user?.family_id; // Zaufane Family ID prosto z bazy
 
         const isPremium = user?.is_premium || false;
         const DAILY_FREE_LIMIT = parseInt(process.env.DAILY_FREE_LIMIT || '3', 10);   

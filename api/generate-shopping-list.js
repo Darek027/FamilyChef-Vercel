@@ -2,11 +2,11 @@
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ status: "error" });
 
-    // Dodajemy familyId do destrukturyzacji
-    const { email, recipeIds, familyId } = req.body;
+    // WERSJA 5.1.0 - ZERO TRUST
+    const { recipeIds } = req.body; // Ignorujemy email i familyId
 
     try {
-        // WERSJA 5.0.0 - RLS SECURITY: Zabezpieczony klient do masowych list zakupów
+        // WERSJA 5.1.0 - RLS SECURITY + ZERO TRUST: Zabezpieczony klient do masowych list zakupów
         const authHeader = req.headers.authorization;
         if (!authHeader) return res.status(401).json({ status: "error", message: "Brak dostępu." });
 
@@ -14,6 +14,15 @@ export default async function handler(req, res) {
         const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
             global: { headers: { Authorization: authHeader } }
         });
+
+        // KRYPTOGRAFICZNA WERYFIKACJA TOŻSAMOŚCI
+        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+        if (authError || !authUser) return res.status(401).json({ status: "error", message: "Nieważny token sesji." });
+        const email = authUser.email; // Zaufany email
+
+        // Pobranie prawdziwego Family ID z profilu użytkownika
+        const { data: profile } = await supabase.from('users').select('family_id').eq('email', email).single();
+        const familyId = profile?.family_id;
 
         // 1. Pobieramy składniki
         const { data: recipes, error: recipesError } = await supabase

@@ -1,11 +1,11 @@
 // WERSJA 4.5.1 - API VERCEL: AKTUALIZACJA CHECKBOXÓW Z FAMILY ID
+// WERSJA 4.5.3 - ZERO TRUST CHECKBOXY
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ status: "error" });
 
-    // Odbieramy nową zmienną z frontendu: familyId
-    const { listId, email, familyId, listData } = req.body;
+    // Ignorujemy email i familyId
+    const { listId, listData } = req.body;
 
-    // WERSJA 4.5.2 - RLS SECURITY: Bezpieczny klient aktualizacji listy zakupów
     try {
         const authHeader = req.headers.authorization;
         if (!authHeader) return res.status(401).json({ status: "error", message: "Brak dostępu." });
@@ -15,18 +15,32 @@ export default async function handler(req, res) {
             global: { headers: { Authorization: authHeader } }
         });
 
+        // 1. Weryfikacja kryptograficzna
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) {
+            return res.status(401).json({ status: "error", message: "Nieważny token sesji." });
+        }
+        const realEmail = user.email;
+
+        // 2. Pobranie zaufanego Family ID
+        const { data: profile } = await supabase
+            .from('users')
+            .select('family_id')
+            .eq('email', realEmail)
+            .single();
+        const realFamilyId = profile?.family_id;
+
         // Zaczynamy budować zapytanie...
         let query = supabase
             .from('shopping_lists')
             .update({ data: listData })
             .eq('id', listId);
 
-        // ...i sprawdzamy uprawnienia. Jeśli masz rodzinę, edytujesz w ramach rodziny.
-        if (familyId && familyId !== 'undefined' && familyId.trim() !== '') {
-            query = query.eq('family_id', familyId);
+        // Zabezpieczamy edycję twardymi danymi
+        if (realFamilyId && realFamilyId.trim() !== '') {
+            query = query.eq('family_id', realFamilyId);
         } else {
-            // Fallback (wsteczna kompatybilność) - jeśli nie masz rodziny, weryfikujemy tylko maila
-            query = query.eq('author_email', email);
+            query = query.eq('author_email', realEmail);
         }
 
         const { error } = await query;

@@ -1,11 +1,11 @@
 // WERSJA 4.8.0 - API VERCEL: AKTUALIZACJA PROFILU UŻYTKOWNIKA ORAZ PORCJI DOMYŚLNYCH
+// WERSJA 4.9.1 - ZERO TRUST PROFIL
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ status: "error" });
 
-    // WERSJA 4.9.0 - API VERCEL: ODBIÓR DANYCH PROMPT MATRIX
-    let { email, familyId, preferences, defaultServings, defaultChef, defaultSkill } = req.body;
+    // Ignorujemy email od klienta (familyId zostawiamy, bo to użytkownik je podaje podczas łączenia kont!)
+    let { familyId, preferences, defaultServings, defaultChef, defaultSkill } = req.body;
 
-    // WERSJA 4.8.1 - RLS SECURITY: Bezpieczny klient aktualizacji profilu
     try {
         const authHeader = req.headers.authorization;
         if (!authHeader) return res.status(401).json({ status: "error", message: "Brak dostępu." });
@@ -15,6 +15,13 @@ export default async function handler(req, res) {
         const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
             global: { headers: { Authorization: authHeader } }
         });
+
+        // 1. Weryfikacja tożsamości z JWT
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) {
+            return res.status(401).json({ status: "error", message: "Nieważny token sesji." });
+        }
+        const realEmail = user.email; // JEDYNE ZAUFANE ŹRÓDŁO TOŻSAMOŚCI
 
         if (!familyId || familyId.trim() === "") {
             let isUnique = false;
@@ -54,7 +61,7 @@ export default async function handler(req, res) {
         const { error: userError } = await supabase
             .from('users')
             .update(updatePayload)
-            .eq('email', email);
+            .eq('email', realEmail); // ZMIENIONO
 
         if (userError) throw userError;
 
@@ -62,7 +69,7 @@ export default async function handler(req, res) {
         const { error: recipesError } = await supabase
             .from('recipes')
             .update({ family_id: familyId })
-            .eq('author_email', email);
+            .eq('author_email', realEmail); // ZMIENIONO
 
         if (recipesError) throw recipesError;
 
@@ -70,7 +77,7 @@ export default async function handler(req, res) {
         const { error: shoppingError } = await supabase
             .from('shopping_lists')
             .update({ family_id: familyId })
-            .eq('author_email', email);
+            .eq('author_email', realEmail); // ZMIENIONO
 
         if (shoppingError) throw shoppingError;
 

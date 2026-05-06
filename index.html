@@ -396,11 +396,24 @@
                         <div><label class="block text-sm font-bold text-charcoal mb-2">Preferencje dietetyczne (dla AI)</label><textarea id="profilePreferences" rows="4" class="w-full px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-xl outline-none text-charcoal resize-none focus:ring-2 focus:ring-sage"></textarea></div>
                         <button onclick="saveUserProfile()" id="saveProfileBtn" class="w-full bg-charcoal text-white px-8 py-4 rounded-xl text-lg font-bold hover:bg-charcoal_light transition flex items-center justify-center gap-2"><i data-lucide="save" class="w-5 h-5"></i> Zapisz zmiany</button>
                         
-                        <div class="pt-6 mt-6 border-t border-charcoal/10">
-                            <button onclick="deleteUserAccount()" class="w-full bg-white text-terracotta border-2 border-terracotta/20 px-8 py-4 rounded-xl text-lg font-bold hover:bg-terracotta/5 transition flex items-center justify-center gap-2">
+                        <!-- WERSJA 4.9.10 - Danger Zone: Usuwanie konta (UI Github/Vercel Style) -->
+                        <div class="pt-6 mt-6 border-t border-charcoal/10" id="deleteAccountSection">
+                            <button onclick="initiateDeleteAccount()" class="w-full bg-white text-terracotta border-2 border-terracotta/20 px-8 py-4 rounded-xl text-lg font-bold hover:bg-terracotta/5 transition flex items-center justify-center gap-2">
                                 <i data-lucide="trash-2" class="w-5 h-5"></i> Usuń konto i moje dane
                             </button>
-                            <p class="text-xs text-center text-charcoal_light mt-3 font-medium">Ta operacja jest nieodwracalna. Usunie wszystkie Twoje przepisy i listy zakupów zgodnie z RODO.</p>
+                        </div>
+
+                        <!-- Ukryta sekcja potwierdzenia -->
+                        <div class="pt-6 mt-6 border-t border-terracotta/30 hidden bg-terracotta/5 p-5 rounded-2xl border" id="deleteAccountConfirmSection">
+                            <h4 class="font-bold text-terracotta mb-2 flex items-center gap-2"><i data-lucide="alert-triangle" class="w-5 h-5"></i> Strefa niebezpieczna</h4>
+                            <p class="text-sm text-charcoal mb-4 font-medium">Ta operacja jest <b>nieodwracalna</b>. Aby potwierdzić usunięcie konta, wpisz poniżej swój e-mail: <br><span id="deleteEmailHint" class="font-mono font-bold select-all text-terracotta mt-1 block"></span></p>
+                            
+                            <input type="email" id="deleteAccountInput" oninput="validateDeleteInput()" placeholder="Wpisz e-mail..." class="w-full px-4 py-3 bg-white border border-terracotta/30 rounded-xl outline-none text-charcoal focus:ring-2 focus:ring-terracotta mb-4 font-mono">
+                            
+                            <div class="flex gap-3">
+                                <button onclick="cancelDeleteAccount()" class="flex-1 bg-white text-charcoal border border-charcoal/10 px-4 py-3 rounded-xl font-bold hover:bg-cream transition">Anuluj</button>
+                                <button id="finalDeleteBtn" onclick="executeDeleteAccount()" disabled class="flex-1 bg-terracotta/40 text-white px-4 py-3 rounded-xl font-bold transition cursor-not-allowed flex justify-center items-center gap-2">Usuń bezpowrotnie</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -608,7 +621,7 @@
             document.getElementById('verifyErrorMsg').classList.add('hidden');
         }
 
-        // WERSJA 4.6.2 - Auto-login wymagający obecności tokenu RLS
+        // WERSJA 4.6.3 - FRONTEND: Bezpieczny auto-login z tokenem JWT (SaaS Security Fix)
         async function verifyUserInDatabase(email) {
             // KROK 1: Jeśli w pamięci nie ma tokenu JWT, twardo wylogowujemy.
             const storedToken = localStorage.getItem('supabaseToken');
@@ -618,9 +631,13 @@
             }
 
             try {
+                // Dodajemy nagłówek Authorization z tokenem JWT do zapytania!
                 const response = await fetch('/api/auth', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${storedToken}` 
+                    },
                     body: JSON.stringify({ email: email, step: 'get_profile' })
                 });
                 const res = await response.json();
@@ -1293,16 +1310,44 @@ function switchTab(tabName) {
             setTimeout(() => { btn.innerHTML = oHtml; btn.disabled = false; lucide.createIcons(); }, 2000);
         }
 
-        async function deleteUserAccount() {
-            if (!confirm("⚠️ UWAGA! Czy na pewno chcesz trwale usunąć swoje konto? Wszystkie Twoje przepisy i listy zakupów zostaną bezpowrotnie skasowane.")) return;
-            if (!confirm("Ostatnie ostrzeżenie. Tej operacji nie można cofnąć. Kontynuować?")) return;
+        // WERSJA 4.9.10 - Github-style Hard Delete Flow (SaaS UI)
+        function initiateDeleteAccount() {
+            document.getElementById('deleteAccountSection').classList.add('hidden');
+            document.getElementById('deleteAccountConfirmSection').classList.remove('hidden');
+            document.getElementById('deleteEmailHint').innerText = currentUserEmail;
+            document.getElementById('deleteAccountInput').value = '';
+            validateDeleteInput(); // Resetuje stan przycisku
+            lucide.createIcons();
+        }
 
-            const btn = document.querySelector('button[onclick="deleteUserAccount()"]');
+        function cancelDeleteAccount() {
+            document.getElementById('deleteAccountConfirmSection').classList.add('hidden');
+            document.getElementById('deleteAccountSection').classList.remove('hidden');
+        }
+
+        function validateDeleteInput() {
+            const input = document.getElementById('deleteAccountInput').value.trim().toLowerCase();
+            const emailToMatch = currentUserEmail.trim().toLowerCase();
+            const btn = document.getElementById('finalDeleteBtn');
+            
+            if (input === emailToMatch) {
+                btn.disabled = false;
+                btn.classList.remove('bg-terracotta/40', 'cursor-not-allowed');
+                btn.classList.add('bg-terracotta', 'hover:bg-terracotta/90', 'shadow-md');
+            } else {
+                btn.disabled = true;
+                btn.classList.add('bg-terracotta/40', 'cursor-not-allowed');
+                btn.classList.remove('bg-terracotta', 'hover:bg-terracotta/90', 'shadow-md');
+            }
+        }
+
+        async function executeDeleteAccount() {
+            const btn = document.getElementById('finalDeleteBtn');
             const oHtml = btn.innerHTML;
-            btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Trwa usuwanie danych...`;
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Usuwanie...`;
             btn.disabled = true; lucide.createIcons();
 
-            // WERSJA 4.9.9 - RLS SECURITY: Przekazanie tokenu dla procesu usuwania konta
+            // RLS SECURITY: Przekazanie tokenu JWT + Hard Delete Backend Call
             try {
                 const token = localStorage.getItem('supabaseToken');
                 const response = await fetch('/api/delete-user', {
@@ -1316,14 +1361,14 @@ function switchTab(tabName) {
                 const res = await response.json();
 
                 if (res.status === 'success') {
-                    alert("Twoje konto zostało trwale usunięte. Zostaniesz wylogowany.");
+                    alert("Twoje konto i wszystkie dane zostały trwale usunięte z naszych serwerów.\n\nZostaniesz wylogowany.");
                     logoutUser(); 
                 } else {
-                    alert("Błąd: " + res.message);
+                    alert("Błąd serwera: " + res.message);
                     btn.innerHTML = oHtml; btn.disabled = false; lucide.createIcons();
                 }
             } catch (error) {
-                alert("Błąd połączenia z serwerem.");
+                alert("Krytyczny błąd połączenia z serwerem.");
                 btn.innerHTML = oHtml; btn.disabled = false; lucide.createIcons();
             }
         }

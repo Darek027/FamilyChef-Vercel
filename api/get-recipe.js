@@ -15,6 +15,7 @@ export default async function handler(req, res) {
             global: { headers: { Authorization: authHeader } }
         });
 
+    
         const { data: recipe, error } = await supabase
             .from('recipes')
             .select('*')

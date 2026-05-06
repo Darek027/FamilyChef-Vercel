@@ -3,24 +3,30 @@ import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// WERSJA 5.3.0 - ZERO TRUST SHOPPING LIST SENDER
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ status: "error" });
 
-    const { email, listTitle, listArray } = req.body;
+    const { listTitle, listArray } = req.body; // Ignorujemy email
     let currentEmailCount; 
+    let verifiedEmail; // Deklaracja poza try do obsługi w catch
 
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ status: "error", message: "Brak dostępu." });
 
-    // WERSJA 5.2.0 - SECURITY: Blokada spamu mailowego i model Charge Upfront
     try {
         const { createClient } = await import('@supabase/supabase-js');
         const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
             global: { headers: { Authorization: authHeader } }
         });
 
+        // KRYPTOGRAFICZNA WERYFIKACJA TOŻSAMOŚCI
+        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+        if (authError || !authUser) return res.status(401).json({ status: "error", message: "Nieważny token sesji." });
+        verifiedEmail = authUser.email;
+
         // --- START BLOKADY SPAMU ---
-        const { data: user } = await supabase.from('users').select('is_premium, daily_emails, last_email_date').eq('email', email).maybeSingle();
+        const { data: user } = await supabase.from('users').select('is_premium, daily_emails, last_email_date').eq('email', verifiedEmail).maybeSingle();
 
         const isPremium = user?.is_premium || false;
         const DAILY_FREE_EMAIL = parseInt(process.env.DAILY_FREE_EMAIL_LIMIT || '5', 10);
@@ -41,7 +47,7 @@ export default async function handler(req, res) {
 
         const { error: limitUpdateError } = await supabase.from('users')
             .update({ daily_emails: currentEmailCount + 1, last_email_date: todayStr })
-            .eq('email', email);
+            .eq('email', verifiedEmail);
 
         if (limitUpdateError) throw new Error("Błąd weryfikacji limitów anty-spam.");
         // --- KONIEC BLOKADY SPAMU ---
@@ -77,7 +83,7 @@ export default async function handler(req, res) {
 
         const { data, error } = await resend.emails.send({
             from: 'Family Chef Zakupy <kuchnia@resend.dev>',
-            to: [email],
+            to: [verifiedEmail],
             subject: `🛒 Twoja Lista: ${listTitle}`,
             html: htmlTemplate,
         });
@@ -90,10 +96,10 @@ export default async function handler(req, res) {
         console.error("🔥 RESEND SHOPPING ERROR:", error);
         
         // REFUND LIMITU
-        if (currentEmailCount !== undefined) {
+        if (currentEmailCount !== undefined && verifiedEmail) {
             const { createClient } = await import('@supabase/supabase-js');
             const supAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-            await supAdmin.from('users').update({ daily_emails: currentEmailCount }).eq('email', email);
+            await supAdmin.from('users').update({ daily_emails: currentEmailCount }).eq('email', verifiedEmail);
         }
 
         return res.status(500).json({ status: "error", message: "Nie udało się wysłać listy." });

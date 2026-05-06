@@ -36,32 +36,58 @@ export default async function handler(req, res) {
             return res.status(200).json({ status: "success", message: "Kod OTP wysłany." });
         }
 
-        // KROK 2: WERYFIKACJA KODU OTP LUB AUTO-LOGOWANIE (get_profile)
+        // WERSJA 4.6.2 - BACKEND: Kuloodporne weryfikowanie tożsamości (Zabezpieczenie przed IDOR / Wyciekiem danych)
         if (step === 'verify' || step === 'get_profile') {
             
             let sessionData = null;
+            let verifiedEmail = null; // Przechowuje 100% zweryfikowany email kryptograficznie
 
-            // Uderzamy klientem Auth, który po weryfikacji zapamięta u siebie tę sesję
             if (step === 'verify') {
                 if (!token) return res.status(400).json({ status: "error", message: "Brak kodu." });
 
+                // Uderzamy klientem Auth. Walidacja kodu po stronie systemu Supabase.
                 const { data: authData, error: authError } = await supabaseAuth.auth.verifyOtp({
                     email,
                     token,
                     type: 'email'
                 });
 
-                if (authError) {
+                if (authError || !authData.user) {
                     return res.status(400).json({ status: "error", message: "Nieprawidłowy kod lub wygasł." });
                 }
                 sessionData = authData.session;
+                verifiedEmail = authData.user.email; // Zaufane źródło!
+            }
+
+            if (step === 'get_profile') {
+                const authHeader = req.headers.authorization;
+                if (!authHeader) {
+                    return res.status(401).json({ status: "error", message: "Brak tokenu sesji. Odmowa dostępu." });
+                }
+
+                const tokenToVerify = authHeader.replace('Bearer ', '');
+                
+                // Sprawdzamy tożsamość z użyciem dostarczonego JWT
+                const { data: authData, error: authError } = await supabaseAuth.auth.getUser(tokenToVerify);
+
+                if (authError || !authData.user) {
+                    return res.status(401).json({ status: "error", message: "Nieprawidłowy lub wygasły token sesji." });
+                }
+
+                // Cross-Account Protection: Czy token na pewno należy do osoby, o którą prosi frontend?
+                if (authData.user.email !== email) {
+                    return res.status(403).json({ status: "error", message: "Odmowa dostępu. Próba nieautoryzowanego odczytu." });
+                }
+
+                verifiedEmail = authData.user.email; // Zaufane źródło!
             }
 
             // GŁÓWNA LOGIKA SAAS: Uderzamy klientem ADMIN, aby obejść RLS (Provisioning z public.users)
+            // UŻYWAMY BEZWZGLĘDNIE ZMIENNEJ `verifiedEmail`, NIGDY SUROWEGO `email` Z REQUESTA!
             let { data: user, error: fetchError } = await supabaseAdmin
                 .from('users')
                 .select('*')
-                .eq('email', email)
+                .eq('email', verifiedEmail)
                 .maybeSingle();
 
             if (fetchError) throw fetchError;
@@ -93,7 +119,7 @@ export default async function handler(req, res) {
                 const { data: newUser, error: insertError } = await supabaseAdmin
                     .from('users')
                     .insert([{ 
-                        email: email, 
+                        email: verifiedEmail, // <-- Zabezpieczone!
                         is_premium: false,
                         default_chef: 'DEFAULT_CHEF',
                         default_skill: 'DEFAULT_SKILL',

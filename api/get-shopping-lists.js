@@ -2,12 +2,9 @@
 export default async function handler(req, res) {
     if (req.method !== 'GET') return res.status(405).json({ status: "error" });
 
-    // WERSJA 4.4.2 - API VERCEL: POBIERANIE LIST ZAKUPÓW Z FAMILY ID
-    // Odbieramy familyId z frontendu
-    const { email, familyId } = req.query;
-    if (!email) return res.status(400).json({ status: "error", message: "Brak emaila." });
+    // WERSJA 4.7.4 - ZERO TRUST LISTY ZAKUPÓW
+    // Nie odczytujemy req.query.email ani req.query.familyId!
 
-    // WERSJA 4.7.1 - RLS SECURITY: Listy zakupów z Anon Key
     try {
         const authHeader = req.headers.authorization;
         if (!authHeader) {
@@ -19,13 +16,28 @@ export default async function handler(req, res) {
             global: { headers: { Authorization: authHeader } }
         });
 
+        // 1. Weryfikacja kryptograficzna
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) {
+            return res.status(401).json({ status: "error", message: "Nieważny token sesji." });
+        }
+        const realEmail = user.email;
+
+        // 2. Pobranie zaufanego Family ID z bazy
+        const { data: profile } = await supabase
+            .from('users')
+            .select('family_id')
+            .eq('email', realEmail)
+            .single();
+        const realFamilyId = profile?.family_id;
+
         let query = supabase.from('shopping_lists').select('*');
 
-        // Dynamiczne filtrowanie (Tenant Isolation)
-        if (familyId && familyId !== 'undefined' && familyId.trim() !== '') {
-            query = query.eq('family_id', familyId);
+        // 3. Budujemy filtrowanie w oparciu o bezpieczne zmienne
+        if (realFamilyId && realFamilyId.trim() !== '') {
+            query = query.eq('family_id', realFamilyId);
         } else {
-            query = query.eq('author_email', email);
+            query = query.eq('author_email', realEmail);
         }
 
         const { data, error } = await query.order('created_at', { ascending: false });

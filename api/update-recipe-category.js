@@ -1,10 +1,11 @@
 // WERSJA 4.8.0 - API VERCEL: AKTUALIZACJA KATEGORII PRZEPISU
+// WERSJA 4.9.1 - ZERO TRUST KATEGORIE
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ status: "error" });
 
-    const { recipeId, category, email } = req.body;
+    // Ignorujemy email z frontendu
+    const { recipeId, category } = req.body;
 
-    // WERSJA 4.9.0 - RLS SECURITY: Zabezpieczony klient aktualizacji kategorii
     try {
         const authHeader = req.headers.authorization;
         if (!authHeader) return res.status(401).json({ status: "error", message: "Brak dostępu." });
@@ -14,11 +15,18 @@ export default async function handler(req, res) {
             global: { headers: { Authorization: authHeader } }
         });
 
+        // Weryfikacja kryptograficzna tożsamości
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) {
+            return res.status(401).json({ status: "error", message: "Nieważny token sesji." });
+        }
+        const realEmail = user.email;
+
         const { error } = await supabase
             .from('recipes')
             .update({ category: category })
             .eq('id', recipeId)
-            .eq('author_email', email);
+            .eq('author_email', realEmail); // Używamy zaufanego emaila!
 
         if (error) throw error;
 

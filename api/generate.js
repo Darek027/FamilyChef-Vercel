@@ -2,8 +2,8 @@
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ status: "error" });
 
-    // WERSJA 4.1.0 - PROMPT MATRIX: Odbiór parametrów Chef i Skill z frontendu
-    const { email, userMessage, isAdjustment, previousRecipe, servings, chefPersona, skillLevel } = req.body;
+    // WERSJA 5.2.0 - ZERO TRUST AI GENERATION: Ignorujemy email z frontendu
+    const { userMessage, isAdjustment, previousRecipe, servings, chefPersona, skillLevel } = req.body;
 
 // WERSJA 4.9.9 - PROMPT MATRIX: Aktualizacja Person i Nowy Kucharz PRO
     const CHEF_PROMPTS = {
@@ -36,7 +36,7 @@ export default async function handler(req, res) {
     };
 
     try {
-        // WERSJA 5.0.0 - RLS SECURITY: Walidacja tokenu i bezpieczny klient (zamiast klucza Boga)
+        // WERSJA 5.2.0 - RLS SECURITY: Walidacja tokenu i weryfikacja tożsamości
         const authHeader = req.headers.authorization;
         if (!authHeader) return res.status(401).json({ status: "error", message: "Brak dostępu. Zaloguj się ponownie." });
 
@@ -44,6 +44,13 @@ export default async function handler(req, res) {
         const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
             global: { headers: { Authorization: authHeader } }
         });
+
+        // KRYPTOGRAFICZNA WERYFIKACJA TOŻSAMOŚCI
+        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+        if (authError || !authUser) {
+            return res.status(401).json({ status: "error", message: "Nieważny token sesji." });
+        }
+        const email = authUser.email; // Od teraz reszta kodu używa w 100% zaufanego emaila!
 
         // 1. Pobranie pełnego profilu użytkownika
         const { data: user } = await supabase
@@ -53,10 +60,11 @@ export default async function handler(req, res) {
             .maybeSingle();
 
         // 2. Pobranie kategorii dla zachowania spójności biblioteki
+        // FIX SAAS: Zmieniono 'author' na poprawne 'author_email', zgodne ze schematem bazy
         const { data: userRecipes } = await supabase
             .from('recipes')
             .select('category')
-            .eq('author', email);
+            .eq('author_email', email);
         
         // WERSJA 4.9.0 - CENTRALIZACJA LIMITÓW BIZNESOWYCH (Zmienne .env)
         const isPremium = user?.is_premium || false;

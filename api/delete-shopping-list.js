@@ -2,10 +2,9 @@
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ status: "error" });
 
-    // Odbieramy nową zmienną z frontendu: familyId
-    const { listId, email, familyId } = req.body;
+    // WERSJA 4.5.3 - RLS SECURITY + ZERO TRUST (Zabezpieczenie przed IDOR)
+    const { listId } = req.body; // Ignorujemy email i familyId podane przez nieufnego klienta!
 
-    // WERSJA 4.5.2 - RLS SECURITY: Bezpieczny klient do usuwania list zakupów
     try {
         const authHeader = req.headers.authorization;
         if (!authHeader) return res.status(401).json({ status: "error", message: "Brak dostępu." });
@@ -15,18 +14,29 @@ export default async function handler(req, res) {
             global: { headers: { Authorization: authHeader } }
         });
 
-        // Zaczynamy budować zapytanie...
-        let query = supabase
-            .from('shopping_lists')
-            .delete()
-            .eq('id', listId);
+        // 1. Weryfikujemy tożsamość kryptograficznie
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) {
+            return res.status(401).json({ status: "error", message: "Nieważny token sesji." });
+        }
+        const realEmail = user.email;
 
-        // ...i sprawdzamy uprawnienia (Family ID = dostęp administratora dla domowników)
-        if (familyId && familyId !== 'undefined' && familyId.trim() !== '') {
-            query = query.eq('family_id', familyId);
+        // 2. Pobieramy prawdziwe Family ID użytkownika ze sprawdzonego źródła (Baza Danych)
+        const { data: profile } = await supabase
+            .from('users')
+            .select('family_id')
+            .eq('email', realEmail)
+            .single();
+            
+        const realFamilyId = profile?.family_id;
+
+        // 3. Budujemy zapytanie o usunięcie, bazując WYŁĄCZNIE na twardych danych
+        let query = supabase.from('shopping_lists').delete().eq('id', listId);
+
+        if (realFamilyId && realFamilyId.trim() !== '') {
+            query = query.eq('family_id', realFamilyId);
         } else {
-            // Fallback (wsteczna kompatybilność) - jeśli nie masz rodziny, weryfikujemy tylko maila
-            query = query.eq('author_email', email);
+            query = query.eq('author_email', realEmail);
         }
 
         const { error } = await query;

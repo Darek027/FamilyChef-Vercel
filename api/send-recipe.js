@@ -3,11 +3,13 @@ import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// WERSJA 5.3.0 - ZERO TRUST EMAIL SENDER
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ status: "error" });
 
-    const { email, recipe, familyId } = req.body;
-    let currentEmailCount; // Deklaracja na zewnątrz, by catch miał do niej dostęp
+    const { recipe } = req.body; // Ignorujemy email i familyId z frontendu
+    let currentEmailCount; 
+    let verifiedEmail; // Do użytku w catch i limicie
 
     try {
         const authHeader = req.headers.authorization;
@@ -18,12 +20,19 @@ export default async function handler(req, res) {
             global: { headers: { Authorization: authHeader } }
         });
 
-        // --- START BLOKADY SPAMU ---
+        // KRYPTOGRAFICZNA WERYFIKACJA TOŻSAMOŚCI
+        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+        if (authError || !authUser) return res.status(401).json({ status: "error", message: "Nieważny token sesji." });
+        verifiedEmail = authUser.email; // Jedyne zaufane źródło!
+
+        // --- START BLOKADY SPAMU ORAZ POBRANIA FAMILY_ID ---
         const { data: user } = await supabase
             .from('users')
-            .select('is_premium, daily_emails, last_email_date')
-            .eq('email', email)
+            .select('is_premium, daily_emails, last_email_date, family_id')
+            .eq('email', verifiedEmail)
             .maybeSingle();
+            
+        const familyId = user?.family_id;
 
         const isPremium = user?.is_premium || false;
         const DAILY_FREE_EMAIL = parseInt(process.env.DAILY_FREE_EMAIL_LIMIT || '5', 10);
@@ -46,12 +55,10 @@ export default async function handler(req, res) {
         const { error: limitUpdateError } = await supabase
             .from('users')
             .update({ daily_emails: currentEmailCount + 1, last_email_date: todayStr })
-            .eq('email', email);
+            .eq('email', verifiedEmail);
 
         if (limitUpdateError) throw new Error("Błąd weryfikacji limitów anty-spam.");
         // --- KONIEC BLOKADY SPAMU ---
-
-        // 1. ZAPIS DO BAZY (Jeśli przepis nie ma jeszcze ID, czyli jest świeżo wygenerowany)
 
         // 1. ZAPIS DO BAZY (Jeśli przepis nie ma jeszcze ID, czyli jest świeżo wygenerowany)
         let recipeId = recipe.id;
@@ -63,7 +70,7 @@ export default async function handler(req, res) {
             const { data: savedRecipe, error: dbError } = await supabase
                 .from('recipes')
                 .insert([{
-                    author_email: email,
+                    author_email: verifiedEmail,
                     family_id: familyId || null, 
                     title: recipe.title,
                     ingredients: ingredientsStr,
@@ -96,7 +103,7 @@ export default async function handler(req, res) {
 
         const { error: mailError } = await resend.emails.send({
             from: 'Family Chef <kuchnia@resend.dev>',
-            to: [email],
+            to: [verifiedEmail],
             subject: `👨‍🍳 Zapisany Przepis: ${recipe.title}`,
             html: htmlTemplate,
         });
@@ -112,11 +119,11 @@ export default async function handler(req, res) {
     } catch (error) {
         console.error("🔥 SEND & SAVE ERROR:", error.message);
         
-        // REFUND: Jeśli Resend rzuci błędem, zwracamy limit użytkownikowi
-        if (currentEmailCount !== undefined) {
+        // REFUND: Zwracamy limit na zaufane konto
+        if (currentEmailCount !== undefined && verifiedEmail) {
             const { createClient } = await import('@supabase/supabase-js');
             const supAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-            await supAdmin.from('users').update({ daily_emails: currentEmailCount }).eq('email', email);
+            await supAdmin.from('users').update({ daily_emails: currentEmailCount }).eq('email', verifiedEmail);
         }
 
         return res.status(500).json({ status: "error", message: error.message });

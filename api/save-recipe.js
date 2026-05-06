@@ -1,10 +1,11 @@
 // WERSJA 4.9.1 - API VERCEL: ZAPIS Z UWZGLĘDNIENIEM FAMILY ID ORAZ PORCJI
+// WERSJA 4.9.3 - ZERO TRUST ZAPIS
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ status: "error" });
 
-    const { email, recipe, familyId } = req.body;
+    // Ignorujemy parametry tożsamości z frontendu
+    const { recipe } = req.body;
 
-    // WERSJA 4.9.2 - RLS SECURITY: Zabezpieczony klient dla zapisu
     try {
         const authHeader = req.headers.authorization;
         if (!authHeader) return res.status(401).json({ status: "error", message: "Brak dostępu." });
@@ -14,17 +15,31 @@ export default async function handler(req, res) {
             global: { headers: { Authorization: authHeader } }
         });
 
-        // 1. Konwersja tablic na tekst z enterami (\n), aby dopasować się do frontendu i bazy TEXT
+        // 1. Weryfikacja kryptograficzna
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) {
+            return res.status(401).json({ status: "error", message: "Nieważny token sesji." });
+        }
+        const realEmail = user.email;
+
+        // 2. Pobranie zaufanego Family ID (żeby zapisać przepis w dobrej rodzinie)
+        const { data: profile } = await supabase
+            .from('users')
+            .select('family_id')
+            .eq('email', realEmail)
+            .single();
+        const realFamilyId = profile?.family_id;
+
+        // 3. Konwersja tablic na tekst z enterami
         const ingredientsStr = Array.isArray(recipe.ingredients) ? recipe.ingredients.join('\n') : recipe.ingredients;
         const instructionsStr = Array.isArray(recipe.instructions) ? recipe.instructions.join('\n') : recipe.instructions;
 
-        // WERSJA 4.9.9.1 - API VERCEL: Zapis metadanych Persony i Poziomu Trudności
-        // 2. Zapis do Supabase (zgodnie ze schematem: author_email)
+        // 4. Zapis do Supabase (zawsze jako zweryfikowany email)
         const { data: savedRecipe, error: dbError } = await supabase
                 .from('recipes')
                 .insert([{
-                    author_email: email,
-                    family_id: familyId || null, 
+                    author_email: realEmail, // Używamy zweryfikowanego emaila
+                    family_id: realFamilyId || null, // Używamy zweryfikowanego ID 
                     title: recipe.title,
                     ingredients: ingredientsStr,
                     instructions: instructionsStr,

@@ -2,10 +2,10 @@
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ status: "error" });
 
-    // Przyjmujemy stare recipeId (string) lub nowe recipeIds (tablica)
-    const { recipeId, recipeIds, email } = req.body;
+    // WERSJA 4.9.7 - RLS SECURITY + ZERO TRUST: Nie ufamy tożsamości z frontendu
+    // Usunęliśmy odbieranie 'email' z req.body, bierzemy tylko ID zasobów
+    const { recipeId, recipeIds } = req.body; 
 
-    // WERSJA 4.9.6 - RLS SECURITY: Bezpieczny klient do usuwania przepisów
     try {
         const authHeader = req.headers.authorization;
         if (!authHeader) return res.status(401).json({ status: "error", message: "Brak dostępu." });
@@ -15,8 +15,15 @@ export default async function handler(req, res) {
             global: { headers: { Authorization: authHeader } }
         });
 
-        // Query automatycznie podlega zasadom RLS ustanowionym w bazie Supabase
-        let query = supabase.from('recipes').delete().eq('author_email', email);
+        // 1. Weryfikujemy JWT kryptograficznie na backendzie i wyciągamy PRAWDZIWY email
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) {
+            return res.status(401).json({ status: "error", message: "Nieważny lub wygasły token sesji." });
+        }
+        const realEmail = user.email;
+
+        // 2. Query podlega RLS, a my dodatkowo wymuszamy Prawdziwy Email jako formę Defense in Depth
+        let query = supabase.from('recipes').delete().eq('author_email', realEmail);
 
         if (recipeIds && Array.isArray(recipeIds) && recipeIds.length > 0) {
             // Operacja MASOWA: uderzamy operatorem .in()
