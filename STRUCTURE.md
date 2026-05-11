@@ -1,28 +1,48 @@
-# Struktura Projektu: Family Chef (Vercel + Supabase)
+# Struktura Projektu: Family Chef (Vercel + Supabase + Tailwind)
 
+## 📂 Drzewo Katalogów
 /FamilyChef-Vercel
-├── .vercel/                      # Pliki konfiguracyjne i cache Vercel (generowane automatycznie)
-├── api/                          # Funkcje bezserwerowe (Serverless Functions) stanowiące backend
-│   ├── auth.js                   # Logowanie i autoryzacja (Działa)
-│   ├── delete-recipe.js          # Usuwanie przepisu z bazy
-│   ├── delete-shopping-list.js   # Usuwanie listy zakupów
-│   ├── delete-user.js            # Usuwanie konta użytkownika
-│   ├── generate-custom-shopping-list.js # Generowanie niestandardowej listy zakupów
-│   ├── generate-shopping-list.js # Generowanie listy zakupów z wybranych przepisów
-│   ├── generate.js               # Główny silnik AI (Działa)
-│   ├── get-dashboard.js          # Pobieranie danych i statystyk do panelu głównego
-│   ├── get-recipe.js             # Fetchowanie pojedynczego przepisu lub listy przepisów
-│   ├── get-shopping-lists.js     # Fetchowanie zapisanych list zakupów
-│   ├── save-recipe.js            # Zapisywanie nowego przepisu do bazy
-│   ├── send-recipe.js            # Wysyłanie i udostępnianie przepisu
-│   ├── send-shopping.js          # Wysyłanie i udostępnianie listy zakupów
-│   ├── update-recipe-category.js # Zmiana przypisanej kategorii przepisu
-│   ├── update-shopping-list.js   # Aktualizacja stanu/zawartości istniejącej listy zakupów
-│   └── update-user-profile.js    # Aktualizacja danych w profilu użytkownika
-├── node_modules/                 # Zainstalowane zależności Node.js (nie commitowane do repozytorium)
-├── .env                          # Zmienne środowiskowe (Klucze: URL, ANON, SERVICE_ROLE, GEMINI)
-├── .gitignore                    # Reguły wykluczeń dla systemu kontroli wersji Git
-├── index.html                    # Główny plik wejściowy interfejsu (Zaktualizowany pod Vercel)
-├── package-lock.json             # Zablokowane, dokładne drzewo wersji zależności
-├── package.json                  # Konfiguracja projektu, skrypty i lista zależności (m.in. @supabase/supabase-js)
-└── STRUCTURE.md                  # Dokumentacja struktury projektu (ten plik)
+├── .vercel/                    # Konfiguracja i cache Vercel (auto-gen)
+├── api/                        # BACKEND: Funkcje bezserwerowe (Node.js)
+│   ├── auth.js                 # Autoryzacja użytkowników (Supabase Auth)
+│   ├── delete-recipe.js        # Usuwanie przepisów
+│   ├── delete-shopping-list.js # Usuwanie list zakupów
+│   ├── delete-user.js          # Usuwanie konta
+│   ├── generate-custom-shopping-list.js
+│   ├── generate-shopping-list.js
+│   ├── generate.js             # Core AI (Integracja z Gemini/OpenAI)
+│   ├── get-dashboard.js        # Statystyki i dane profilu
+│   ├── get-recipe.js           # Pobieranie przepisów
+│   ├── get-shopping-lists.js   # Pobieranie list zakupów
+│   ├── save-recipe.js          # Zapisywanie do bazy Supabase
+│   ├── send-recipe.js          # Udostępnianie przepisu (e-mail/link)
+│   ├── send-shopping.js        # Udostępnianie listy zakupów
+│   ├── update-recipe-category.js
+│   ├── update-shopping-list.js
+│   └── update-user-profile.js
+├── node_modules/               # Zależności projektu
+├── .env                        # Zmienne środowiskowe (klucze API - niepubliczne)
+├── .gitignore                  # Pliki ignorowane przez Git
+├── index.html                  # FRONTEND: Główny szkielet aplikacji
+├── input.css                   # FRONTEND: Plik źródłowy Tailwind CSS (warstwy @tailwind)
+├── main.js                     # FRONTEND: Główna logika kliencka i obsługa DOM
+├── package.json                # Konfiguracja npm, skrypty i zależności
+├── package-lock.json           # Dokładna mapa wersji zależności
+├── STRUCTURE.md                # Dokumentacja struktury (ten plik)
+├── style.css                   # FRONTEND: Skompilowany plik CSS gotowy dla przeglądarki
+└── tailwind.config.js          # Konfiguracja Tailwind CSS (motywy, kolory, ścieżki)
+
+## 🛠️ Podział Funkcjonalny dla AI Agentów
+
+### 1. Warstwa Klienta (Frontend)
+- **Logika:** `main.js` obsługuje interakcje z użytkownikiem i wywołuje funkcje z folderu `api/`.
+- **Prezentacja:** `index.html` + `style.css` (generowany z Tailwind).
+- **Stylizacja:** `tailwind.config.js` oraz `input.css` definiują wygląd UI.
+
+### 2. Warstwa Serwerowa (Backend - Vercel Functions)
+- Wszystkie pliki w `api/` to endpointy HTTP wywoływane przez frontend.
+- Komunikują się bezpośrednio z **Supabase** (Baza danych/Auth) oraz zewnętrznymi API (AI).
+
+### 3. Konfiguracja i Środowisko
+- `package.json`: Zawiera skrypty budowania (np. dla Tailwind) oraz listę paczek takich jak `@supabase/supabase-js`.
+- `.env`: Zawiera krytyczne dane (SUPABASE_URL, GEMINI_API_KEY).

@@ -5,8 +5,9 @@ export default async function handler(req, res) {
         return res.status(405).json({ status: "error", message: "Metoda niedozwolona. Użyj POST." });
     }
 
-    const { email, step, token } = req.body;
-    if (!email) {
+    const { email, step, token, refresh_token } = req.body;
+    // ZMIANA: Email nie jest wymagany, jeśli tylko odświeżamy sesję
+    if (!email && step !== 'refresh') {
         return res.status(400).json({ status: "error", message: "Brak adresu email." });
     }
 
@@ -18,6 +19,14 @@ export default async function handler(req, res) {
         
         // KLIENT 2: Administrator. Zawsze omija RLS, nie przechowuje sesji zwykłych użytkowników.
         const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+        // NOWY KROK: ODŚWIEŻANIE SESJI
+        if (step === 'refresh') {
+            if (!refresh_token) return res.status(400).json({ status: "error", message: "Brak refresh_token." });
+            const { data, error } = await supabaseAuth.auth.refreshSession({ refresh_token });
+            if (error || !data.session) return res.status(401).json({ status: "error", message: "Sesja wygasła. Zaloguj się ponownie." });
+            return res.status(200).json({ status: "success", session: data.session });
+        }
 
         // KROK 1: WYSYŁKA KODU OTP NA E-MAIL
         if (step === 'send') {

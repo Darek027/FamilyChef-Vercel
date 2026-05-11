@@ -1,442 +1,52 @@
-<!DOCTYPE html>
-<html lang="pl" class="scroll-smooth">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <base target="_top">
-    <title>KiedyObiad.pl | Twój Asystent</title>
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="KiedyObiad.pl">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#FAF6F0">
-   
-    <link rel="apple-touch-icon" href="https://bnijuskmzcgnojefxhnk.supabase.co/storage/v1/object/public/assets/LOGO_transparent2.png">
-    
-    <link rel="icon" type="image/png" href="https://bnijuskmzcgnojefxhnk.supabase.co/storage/v1/object/public/assets/LOGO_transparent2.png">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
-                    colors: { 
-                        cream: '#FAF6F0',
-                        terracotta: '#C87E5C',
-                        sage: '#8BA08E',
-                        sage_dark: '#738A76',
-                        teal: '#5C8080',
-                        charcoal: '#4A4543',
-                        charcoal_light: '#8A8482'
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        /* WERSJA 4.5.0 - Preloader CSS (Natywny, chroni przed opóźnieniami Tailwind CDN) */
-        #initial-preloader { position: fixed; inset: 0; background-color: #FAF6F0; z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
-        .spinner { width: 40px; height: 40px; border: 4px solid rgba(139,160,142,0.2); border-left-color: #8BA08E; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 16px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .preloader-text { font-family: 'Plus Jakarta Sans', sans-serif; color: #4A4543; font-weight: 700; font-size: 14px; letter-spacing: 1px; }
-
-        /* Zmiana bloba na delikatny szałwiowy zamiast mocnego pomarańczu */
-        .app-blob { background: radial-gradient(circle, rgba(139,160,142,0.15) 0%, rgba(255,255,255,0) 70%); }
-        .select-hide-arrow { -webkit-appearance: none; -moz-appearance: none; appearance: none; text-align: center; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .item-checked { text-decoration: line-through; color: #8A8482; background-color: #FAF6F0; opacity: 0.6; }
-    </style>
-</head>
-<body class="font-sans text-charcoal antialiased bg-cream min-h-screen flex flex-col">
-
-    <!-- WERSJA 4.5.0 - Globalny Preloader startowy -->
-    <div id="initial-preloader">
-        <div class="spinner"></div>
-        <div class="preloader-text">GOTOWANIE INTERFEJSU...</div>
-    </div>
-
-    <div id="auth-overlay" class="fixed inset-0 bg-cream z-[100] flex items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-3xl shadow-xl border border-black/5 max-w-md w-full text-center relative overflow-hidden">
-            <div class="absolute inset-0 app-blob z-0 opacity-70"></div>
-            <div class="relative z-10 flex flex-col items-center">
-                <!-- NOWE LOGO + MIX-BLEND-MULTIPLY by usunąć białe tło z obrazka -->
-                <img src="https://bnijuskmzcgnojefxhnk.supabase.co/storage/v1/object/public/assets/LOGO_transparent2.png" alt="KiedyObiad.pl Logo" class="h-32 object-contain mb-8 mix-blend-multiply">
-                
-                <!-- WERSJA 4.6.0 - UI logowania OTP -->
-                <div class="space-y-4 w-full" id="authStep1">
-                    <input type="email" id="loginEmail" placeholder="twoj@email.com" class="w-full px-4 py-4 bg-cream/50 border border-charcoal/10 rounded-2xl focus:ring-2 focus:ring-sage outline-none transition text-charcoal text-center text-lg font-medium">
-                    <button onclick="processAuth()" id="authBtn" class="w-full bg-sage text-white px-8 py-4 rounded-2xl text-lg font-bold hover:bg-sage_dark transition shadow-lg shadow-sage/20 flex items-center justify-center gap-2">
-                        <i data-lucide="mail" class="w-5 h-5"></i> Wyślij kod
-                    </button>
-                    <p id="authErrorMsg" class="text-terracotta text-sm hidden mt-2 font-semibold"></p>
-                </div>
-
-                <div class="space-y-4 w-full hidden" id="authStep2">
-                    <!-- WERSJA 4.6.1 - Wymuszenie klawiatury numerycznej dla kodu OTP -->
-                    <p class="text-charcoal_light text-sm font-medium mb-2">Wpisz 6-cyfrowy kod wysłany na Twój e-mail.</p>
-                    <input type="text" inputmode="numeric" pattern="[0-9]*" id="loginCode" placeholder="000000" maxlength="6" class="w-full px-4 py-4 bg-cream/50 border border-charcoal/10 rounded-2xl focus:ring-2 focus:ring-sage outline-none transition text-charcoal text-center text-2xl font-bold tracking-[0.5em]">
-                    <button onclick="verifyAuthCode()" id="verifyBtn" class="w-full bg-charcoal text-white px-8 py-4 rounded-2xl text-lg font-bold hover:bg-charcoal_light transition shadow-lg flex items-center justify-center gap-2">
-                        <i data-lucide="check-circle" class="w-5 h-5"></i> Weryfikuj
-                    </button>
-                    <button onclick="resetAuth()" class="w-full text-charcoal_light text-sm font-bold mt-2 hover:text-terracotta transition">
-                        Cofnij
-                    </button>
-                    <p id="verifyErrorMsg" class="text-terracotta text-sm hidden mt-2 font-semibold"></p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-<div id="app-container" class="hidden flex-grow flex-col">
-
-<!-- WERSJA 4.3.1 - Zabezpieczenie responsywności menu głównego -->
-    <nav class="w-full z-50 bg-cream/90 backdrop-blur-lg border-b border-charcoal/5 sticky top-0 overflow-hidden">
-        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-20 gap-4">
-                
-                <!-- Kontener logo z twardymi blokadami rozpychania -->
-                <div class="flex items-center min-w-0 shrink">
-                    <img src="https://bnijuskmzcgnojefxhnk.supabase.co/storage/v1/object/public/assets/Header_transparent2.png" alt="KiedyObiad.pl" class="h-14 sm:h-16 md:h-20 max-w-[150px] sm:max-w-[220px] md:max-w-xs w-auto object-contain object-left mix-blend-multiply">
-                </div>
-
-                <!-- Kontener prawy z zabezpieczeniem przed ściskaniem (shrink-0) -->
-                <div class="flex items-center gap-2 sm:gap-4 shrink-0">
-                    <button id="premiumBadge" onclick="triggerUpgradeModal()" class="hidden">
-                        Wczytywanie...
-                    </button>
-                    <span class="hidden md:flex text-xs font-bold text-charcoal_light bg-black/5 px-3 py-1 rounded-full shrink-0">Wersja 1.21.0</span>
-                    <button onclick="logoutUser()" class="text-charcoal_light hover:text-terracotta transition-colors bg-white p-2 rounded-full shadow-sm shrink-0" title="Wyloguj">
-                         <i data-lucide="log-out" class="w-5 h-5"></i>
-                    </button>
-                </div>
-                
-            </div>
-        </div>
-    </nav>
-
-<div class="w-full bg-white border-b border-charcoal/5">
-        <div class="max-w-5xl mx-auto flex w-full justify-between sm:justify-center">
-            <button onclick="switchTab('generator')" id="tab-generator" class="flex-1 py-4 px-1 sm:px-4 font-bold text-terracotta border-b-2 border-terracotta flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-base transition-colors whitespace-nowrap"><i data-lucide="sparkles" class="w-4 h-4 sm:w-5 sm:h-5"></i> Kreator</button>
-            <button onclick="switchTab('dashboard')" id="tab-dashboard" class="flex-1 py-4 px-1 sm:px-4 font-semibold text-charcoal_light border-b-2 border-transparent hover:text-terracotta flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-base transition-colors whitespace-nowrap"><i data-lucide="book-open" class="w-4 h-4 sm:w-5 sm:h-5"></i> Przepisy</button>
-            <button onclick="switchTab('shopping')" id="tab-shopping" class="flex-1 py-4 px-1 sm:px-4 font-semibold text-charcoal_light border-b-2 border-transparent hover:text-terracotta flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-base transition-colors whitespace-nowrap"><i data-lucide="shopping-cart" class="w-4 h-4 sm:w-5 sm:h-5"></i> Zakupy</button>
-            <button onclick="switchTab('profile')" id="tab-profile" class="flex-1 py-4 px-1 sm:px-4 font-semibold text-charcoal_light border-b-2 border-transparent hover:text-terracotta flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-base transition-colors whitespace-nowrap"><i data-lucide="user" class="w-4 h-4 sm:w-5 sm:h-5"></i> Profil</button>
-        </div>
-    </div>
-
-    <main class="flex-grow relative pt-8 pb-20 overflow-hidden">
-        <div class="absolute inset-0 app-blob z-0"></div>
-        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-           
-            <!-- WERSJA 4.9.12 - Skondensowany nagłówek dla urządzeń mobilnych -->
-            <div id="view-generator" class="block max-w-3xl mx-auto">
-                <div class="text-center mb-6 md:mb-10">
-                    <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight text-charcoal mb-2 md:mb-4">
-                        Na co masz dzisiaj <span class="text-terracotta">ochotę?</span>
-                    </h1>
-                </div>
-
-                <!-- WERSJA 4.0.0 - Wdrożenie UI dla Prompt Matrix -->
-                <div class="bg-white p-6 rounded-3xl shadow-xl border border-black/5 mb-8">
-                    <div class="flex flex-col gap-3">
-                        <!-- Wyszukiwarka -->
-                        <div class="relative w-full">
-                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-charcoal_light">
-                                <i data-lucide="search" class="w-5 h-5"></i>
-                            </div>
-                            <input type="text" id="userInput" placeholder="Np. Szybki obiad z kurczakiem..." class="w-full pl-12 pr-4 py-4 bg-cream/50 border border-charcoal/10 rounded-2xl focus:ring-2 focus:ring-sage outline-none transition text-charcoal text-lg">
-                        </div>
-                        
-                        <!-- Opcje Persony i Poziomu (WERSJA 4.2.0 - Soft Paywall UI) -->
-                        <div class="flex flex-col sm:flex-row gap-3">
-                            <select id="generatorChef" onchange="enforcePremiumSelect(this, 'DEFAULT_CHEF')" class="flex-grow px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-2xl outline-none text-charcoal_light text-sm font-semibold hover:bg-cream focus:ring-2 focus:ring-sage transition cursor-pointer">
-                                <option value="DEFAULT_CHEF">👨‍🍳 Codzienny Kucharz</option>
-                                <option value="PREMIUM_CHEF">⭐ Kucharz PRO</option>
-                                <option value="PRO_CHEF">🎩 Chef Restauracji</option>
-                                <option value="BUSY_MOM">🏃‍♀️ Zabiegana Mama</option>
-                                <option value="KIDS_HERO">🦸‍♂️ Poskramiacz Dzieci</option>
-                                <option value="GRANDMA">👵 Wspomnienie Babci</option>
-                                <option value="ECO_PURE">🌱 Ekologiczny</option>
-                                <option value="VEGE_MASTER">🥦 Vege Master</option>
-                                <!-- WERSJA 4.9.7 -->
-                                <option value="POLISH_TRADITION">🥟 Polskie Tradycje</option>
-                                <option value="HUNTER">🌲 Kuchnia Myśliwska</option>
-                            </select>
-                            <!-- WERSJA 4.9.11 - Optymalizacja UX (Mobile Fix v2) -->
-                            <select id="generatorSkill" onchange="enforcePremiumSelect(this, 'DEFAULT_SKILL')" class="flex-grow px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-2xl outline-none text-charcoal_light text-sm font-semibold hover:bg-cream focus:ring-2 focus:ring-sage transition cursor-pointer">
-                                <option value="SKILL_NOOB">🟢 Poziom: Łatwy</option>
-                                <option value="DEFAULT_SKILL">🟡 Poziom: Średni</option>
-                                <option value="SKILL_EXPERT">🔴 Poziom: Ekspert</option>
-                            </select>
-                        </div>
-
-                        <!-- Przyciski i porcje -->
-                        <div class="flex flex-col sm:flex-row gap-3 mt-1">
-                            <div class="flex items-center justify-between bg-cream/50 border border-charcoal/10 rounded-2xl px-2 shrink-0 min-w-[120px] sm:w-auto w-full">
-                                <button onclick="changeServings(-1)" class="p-3 text-charcoal_light hover:text-terracotta transition"><i data-lucide="minus" class="w-5 h-5"></i></button>
-                                <div class="flex flex-col items-center justify-center">
-                                    <input type="number" id="recipeServings" value="2" min="1" max="20" class="w-8 text-center bg-transparent border-none outline-none text-charcoal font-bold text-lg p-0 pointer-events-none" readonly>
-                                    <span class="text-[10px] uppercase font-bold text-charcoal_light -mt-1">Porcje</span>
-                                </div>
-                                <button onclick="changeServings(1)" class="p-3 text-charcoal_light hover:text-sage transition"><i data-lucide="plus" class="w-5 h-5"></i></button>
-                            </div>
-
-                            <button id="submitBtn" onclick="askChef()" class="w-full sm:w-auto flex-grow bg-sage text-white px-8 py-4 rounded-2xl text-lg font-bold hover:bg-sage_dark transition shadow-lg shadow-sage/20 flex items-center justify-center gap-2">
-                                <i data-lucide="wand-2" class="w-5 h-5"></i> Gotujmy!
-                            </button>
-                        </div>
-                    </div>
-                    <div id="loadingMsg" class="hidden mt-6 text-center text-sage font-semibold animate-pulse flex items-center justify-center gap-2"></div>
-                </div>
-
-                <div id="recipeContainer" class="hidden bg-white rounded-3xl shadow-xl border border-black/5 overflow-hidden">
-                    <div class="bg-sage p-8 text-white relative">
-                        <div class="absolute top-4 right-8 z-20 flex items-center gap-1 group">
-                            <select id="recipeCategorySelect" onchange="changeCategoryHandler(this.value)" class="select-hide-arrow bg-white/20 text-white text-xs uppercase font-bold px-3 py-1 rounded-full backdrop-blur-sm border-none outline-none cursor-pointer hover:bg-white/30 transition shadow-sm">
-                                <option value="Inne" class="text-charcoal">Wczytywanie...</option>
-                            </select>
-                            <i data-lucide="pencil" class="w-3 h-3 text-white/50 group-hover:text-white transition"></i>
-                        </div>
-                        <h2 id="recipeTitle" class="text-3xl font-bold leading-tight mt-2"></h2>
-                        <!-- NOWE: Pojemnik na odznaki -->
-                        <div id="recipeBadges" class="flex flex-wrap gap-2 mt-4 hidden"></div>
-                    </div>
-                   
-                    <div class="p-8">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            <div class="md:col-span-1 bg-sage/5 p-6 rounded-2xl border border-sage/10 h-fit">
-                                <h3 class="font-bold text-lg text-charcoal mb-4"><i data-lucide="shopping-cart" class="w-5 h-5 inline text-sage mr-2"></i> Składniki</h3>
-                                <ul id="recipeIngredients" class="space-y-3 text-charcoal text-sm list-disc pl-5 marker:text-sage_dark"></ul>
-                            </div>
-                            <div class="md:col-span-2">
-                                <h3 class="font-bold text-lg text-charcoal mb-4"><i data-lucide="list-ordered" class="w-5 h-5 inline text-sage mr-2"></i> Instrukcje</h3>
-                                <ol id="recipeInstructions" class="space-y-4 text-charcoal text-sm list-decimal pl-5 marker:font-bold marker:text-charcoal_light"></ol>
-                            </div>
-                        </div>
-
-                        <div id="feedbackContainer" class="mt-10 p-6 bg-cream/50 border border-charcoal/10 rounded-2xl">
-                            <h4 class="font-bold text-charcoal mb-2">Coś zmienić?</h4>
-                            <div class="flex flex-col sm:flex-row gap-3">
-                                <input type="text" id="feedbackInput" placeholder="Np. Usuń czosnek..." class="flex-grow px-4 py-3 bg-white border border-charcoal/10 rounded-xl outline-none text-charcoal focus:ring-2 focus:ring-sage">
-                                <button onclick="sendFeedback()" class="bg-charcoal text-white px-6 py-3 rounded-xl font-semibold hover:bg-charcoal_light transition">Popraw</button>
-                            </div>
-                        </div>
-                       
-                        <!-- WERSJA 4.4.2 - Responsywne przyciski akcji (Poprawki mobilne) -->
-                        <div id="actionButtonsDraft" class="mt-6 pt-6 border-t border-charcoal/5 flex flex-col sm:flex-row gap-3 justify-center">
-                            <button id="saveOnlyBtn" onclick="saveOnlyAction()" class="flex-1 inline-flex items-center justify-center gap-2 bg-charcoal text-white border border-charcoal px-4 py-3 sm:px-8 sm:py-4 rounded-xl font-bold text-sm sm:text-lg hover:bg-charcoal_light transition">
-                                <i data-lucide="save" class="w-5 h-5 shrink-0"></i> Zapisz do bazy
-                            </button>
-                            <button id="saveEmailBtn" onclick="confirmAndSend()" class="flex-1 inline-flex items-center justify-center gap-2 bg-sage/10 text-sage_dark border border-sage/20 px-4 py-3 sm:px-8 sm:py-4 rounded-xl font-bold text-sm sm:text-lg hover:bg-sage/20 transition group">
-                                <i data-lucide="mail" class="w-5 h-5 text-sage shrink-0 group-hover:scale-110 transition-transform"></i> Zapisz i wyślij
-                            </button>
-                        </div>
-
-                        <div id="actionButtonsSaved" class="hidden mt-6 pt-6 border-t border-charcoal/5 text-center">
-                            <button onclick="confirmAndSend()" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-sage/10 text-sage_dark border border-sage/20 px-4 py-3 sm:px-8 sm:py-4 rounded-xl font-bold text-sm sm:text-lg hover:bg-sage/20 transition group mx-auto">
-                                <i data-lucide="mail" class="w-5 h-5 text-sage shrink-0 group-hover:scale-110 transition-transform"></i> Wyślij na e-mail
-                            </button>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-
-            <!-- WERSJA 1.24.0 - UI: Kompaktowy nagłówek Dashboardu, lepsze filtry i separatory -->
-            <div id="view-dashboard" class="hidden">
-                <div class="mb-6 flex flex-col gap-4 border-b border-charcoal/5 pb-4">
-                    <!-- Górny wiersz: Tytuł + Wyszukiwarka -->
-                    <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-                        <h2 class="text-2xl font-extrabold text-charcoal whitespace-nowrap"><i data-lucide="book-open" class="w-6 h-6 inline mr-2 text-sage"></i>Baza Przepisów</h2>
-                        
-                        <!-- WERSJA 1.24.2 - Fix dla iOS Safari auto-zoom (zmiana text-sm na text-base) -->
-                        <div class="relative w-full md:max-w-md flex-grow">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-charcoal_light">
-                                <i data-lucide="search" class="w-4 h-4"></i>
-                            </div>
-                            <input type="text" id="searchRecipe" oninput="applyFilters()" placeholder="Szukaj przepisu..." class="w-full pl-10 pr-4 py-2.5 bg-white border border-charcoal/10 rounded-xl focus:ring-2 focus:ring-sage outline-none transition text-charcoal text-base font-semibold shadow-sm">
-                        </div>
-                    </div>
-                    
-                    <!-- Dolny wiersz: Filtry, sortowanie i widok -->
-                    <div class="flex flex-wrap items-center gap-2 w-full bg-white p-2 rounded-2xl shadow-sm border border-charcoal/5">
-                        <select id="sortRecipe" onchange="applyFilters()" class="px-3 py-2 bg-cream/50 border-none rounded-xl outline-none text-charcoal cursor-pointer text-sm font-medium hover:bg-cream transition flex-grow md:flex-grow-0">
-                            <option value="newest">↓ Najnowsze</option>
-                            <option value="oldest">↑ Najstarsze</option>
-                            <option value="az">A-Z</option>
-                            <option value="za">Z-A</option>
-                        </select>
-                        
-                        <div class="hidden md:block w-px h-6 bg-charcoal/10 mx-1"></div> <!-- Separator -->
-                        
-                        <select id="filterUser" onchange="applyFilters()" class="px-3 py-2 bg-cream/50 border-none rounded-xl outline-none text-charcoal cursor-pointer text-sm font-medium hover:bg-cream transition flex-grow md:flex-grow-0">
-                            <option value="all">👨‍🍳 Wszyscy</option>
-                        </select>
-                        
-                        <div class="hidden md:block w-px h-6 bg-charcoal/10 mx-1"></div> <!-- Brakujący Separator! -->
-                        
-                        <select id="filterCategory" onchange="applyFilters()" class="px-3 py-2 bg-cream/50 border-none rounded-xl outline-none text-charcoal cursor-pointer text-sm font-medium hover:bg-cream transition flex-grow md:flex-grow-0">
-                            <option value="all">🍽️ Kategorie</option>
-                        </select>
-                        
-                        <!-- Przyciski akcji (rozciągnięte na mobile, z prawej na desktopie) -->
-                        <div class="flex items-center gap-2 ml-auto w-full md:w-auto justify-end mt-2 md:mt-0">
-                            <button onclick="toggleViewMode()" id="viewToggleBtn" class="text-charcoal flex-1 md:flex-none justify-center hover:text-terracotta p-2 bg-cream/50 hover:bg-cream rounded-xl transition flex items-center gap-2 text-sm font-semibold" title="Zmień widok">
-                                <i data-lucide="list" class="w-5 h-5"></i> <span class="md:hidden">Widok</span>
-                            </button>
-                            <button onclick="loadDashboard()" class="text-sage flex-1 md:flex-none justify-center hover:text-sage_dark p-2 bg-sage/10 rounded-xl transition flex items-center gap-2 text-sm font-semibold" title="Odśwież z bazy">
-                                <i data-lucide="refresh-cw" class="w-5 h-5"></i> <span class="md:hidden">Odśwież</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div id="dashboard-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-            </div>
-           
-            <div id="view-shopping" class="hidden w-full">
-               
-<!-- WERSJA 4.4.0 - UI Ręcznej Listy Zakupów (Ad-hoc) -->
-                <div id="shoppingDashView" class="block">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-3xl font-extrabold text-charcoal">Listy Zakupów</h2>
-                        <div class="flex items-center gap-2">
-                            <button onclick="toggleCustomListInput()" class="bg-terracotta text-white px-4 py-2 rounded-xl font-bold hover:bg-terracotta/90 transition shadow-sm flex items-center gap-2" title="Stwórz szybką listę"><i data-lucide="plus" class="w-5 h-5"></i><span class="hidden sm:inline">Nowa</span></button>
-                            <button onclick="fetchShoppingLists()" class="bg-sage/10 text-sage px-4 py-2 rounded-xl hover:bg-sage/20 transition shadow-sm"><i data-lucide="refresh-cw" class="w-5 h-5"></i></button>
-                        </div>
-                    </div>
-                    
-                    <div id="customListContainer" class="hidden mb-6 bg-white p-5 rounded-2xl border border-charcoal/5 shadow-sm">
-                        <label class="block text-sm font-bold text-charcoal mb-2">Szybkie zakupy (AI pogrupuje produkty)</label>
-                        <div class="flex flex-col sm:flex-row gap-3">
-                            <input type="text" id="customListInput" placeholder="Np. mleko, chleb, masło, 5 jajek..." class="flex-grow px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-xl outline-none text-charcoal focus:ring-2 focus:ring-sage font-medium">
-                            <button id="customListSubmitBtn" onclick="generateCustomShoppingList()" class="bg-sage text-white px-6 py-3 rounded-xl font-bold hover:bg-sage_dark transition flex justify-center items-center gap-2 whitespace-nowrap"><i data-lucide="wand-2" class="w-5 h-5"></i> Utwórz</button>
-                        </div>
-                    </div>
-                    <div id="shoppingListsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div class="col-span-full text-center py-10 text-charcoal_light"><i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2"></i> Ładowanie...</div>
-                    </div>
-                </div>
-
-                <!-- WERSJA 4.4.2 - Responsywny nagłówek Listy Zakupów -->
-                <div id="shoppingDetailView" class="hidden">
-                    <div class="flex justify-between items-center mb-6 gap-3">
-                        <button onclick="showShoppingDash()" class="bg-white border border-charcoal/10 text-charcoal_light p-3 rounded-xl font-bold flex items-center hover:bg-cream transition shrink-0"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
-                        <h2 id="activeShoppingTitle" class="text-lg sm:text-xl font-extrabold text-charcoal truncate flex-grow text-center">Zakupy</h2>
-                        <button id="sendShoppingEmailBtn" onclick="sendShoppingPDF()" class="bg-sage/10 text-sage_dark p-3 rounded-xl hover:bg-sage/20 transition shrink-0" title="Wyślij listę na e-mail"><i data-lucide="mail" class="w-5 h-5 text-sage"></i></button>
-                    </div>
-                   
-                    <div id="shoppingListContainer" class="bg-white p-6 rounded-3xl shadow-sm border border-charcoal/5 min-h-[200px]">
-                        <div id="shoppingContent" class="space-y-6"></div>
-                        
-                        <div id="addMoreItemsContainer" class="mt-8 pt-6 border-t border-charcoal/5">
-                            <label class="block text-sm font-bold text-charcoal mb-3">Zapomniałeś o czymś? Dodaj do listy:</label>
-                            <div class="flex flex-col sm:flex-row gap-3">
-                                <input type="text" id="addMoreItemsInput" placeholder="Np. jabłka, płyn do naczyń..." class="flex-grow px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-xl outline-none text-charcoal focus:ring-2 focus:ring-sage font-medium">
-                                <button id="addMoreItemsBtn" onclick="addItemsToExistingList()" class="bg-sage text-white px-6 py-3 rounded-xl font-bold hover:bg-sage_dark transition flex justify-center items-center gap-2 whitespace-nowrap"><i data-lucide="plus" class="w-5 h-5"></i> Dodaj</button>
-                            </div>
-                        </div>
-
-                        <button id="clearShoppingBtn" onclick="deleteActiveShoppingList()" class="w-full mt-6 bg-terracotta/5 text-terracotta font-bold py-3 rounded-xl border border-terracotta/20 hover:bg-terracotta/10 transition">Usuń tę listę</button>
-                    </div>
-                </div>
-
-            </div>
-
-            <div id="view-profile" class="hidden max-w-2xl mx-auto">
-                <div class="mb-8"><h2 class="text-3xl font-extrabold text-charcoal">Ustawienia Konta</h2></div>
-                <div class="bg-white p-8 rounded-3xl shadow-xl border border-charcoal/5">
-                    <div class="space-y-6">
-                        <div><label class="block text-sm font-bold text-charcoal mb-2">Zalogowano jako:</label><div class="flex items-center gap-3 px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-xl text-charcoal_light font-mono text-sm cursor-not-allowed"><i data-lucide="mail" class="w-4 h-4"></i><span id="profileEmailDisplay"></span></div></div>
-                        
-<div>
-    <label class="block text-sm font-bold text-charcoal mb-2">Twoje ID Rodziny (Klucz dostępu)</label>
-    <div class="flex flex-col sm:flex-row gap-3">
-        <input type="text" id="profileFamilyId" readonly class="flex-grow px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-xl outline-none text-charcoal_light font-mono font-bold tracking-widest cursor-not-allowed" placeholder="Brak przypisanej rodziny">
-        <button onclick="promptFamilyChange()" class="bg-charcoal/5 text-charcoal px-6 py-3 rounded-xl font-bold hover:bg-charcoal/10 transition flex items-center justify-center gap-2 shrink-0 border border-transparent">
-            <i data-lucide="key" class="w-4 h-4"></i> Zmień Kod
-        </button>
-    </div>
-    <p class="text-xs text-charcoal_light mt-2 font-medium"><i data-lucide="info" class="w-3 h-3 inline"></i> Udostępnij ten kod domownikom, lub wpisz kod partnera by połączyć konta.</p>
-</div>
-                        <!-- WERSJA 4.2.0 - Domyślna Persona i Poziom (Profil z Soft Paywallem UI) -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-bold text-charcoal mb-2">Domyślny Szef Kuchni</label>
-                                <select id="profileChef" onchange="enforcePremiumSelect(this, 'DEFAULT_CHEF')" class="w-full px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-xl outline-none text-charcoal focus:ring-2 focus:ring-sage font-semibold cursor-pointer">
-                                    <option value="DEFAULT_CHEF">👨‍🍳 Codzienny Kucharz (Free)</option>
-                                    <option value="PREMIUM_CHEF">⭐ Kucharz PRO (Premium)</option>
-                                    <option value="PRO_CHEF">🎩 Chef Restauracji (Premium)</option>
-                                    <option value="BUSY_MOM">🏃‍♀️ Zabiegana Mama (Premium)</option>
-                                    <option value="KIDS_HERO">🦸‍♂️ Poskramiacz Dzieci (Premium)</option>
-                                    <option value="GRANDMA">👵 Wspomnienie Babci (Premium)</option>
-                                    <option value="ECO_PURE">🌱 Ekologiczny (Premium)</option>
-                                    <option value="VEGE_MASTER">🥦 Vege Master (Premium)</option>
-                                    <!-- WERSJA 4.9.7 -->
-                                    <option value="POLISH_TRADITION">🥟 Polskie Tradycje (Premium)</option>
-                                    <option value="HUNTER">🌲 Kuchnia Myśliwska (Premium)</option>
-                                </select>
-                            </div>
-                            <!-- WERSJA 4.9.11 - Optymalizacja UX profilu (Mobile Fix v2) -->
-                            <div>
-                                <label class="block text-sm font-bold text-charcoal mb-2">Domyślny Poziom</label>
-                                <select id="profileSkill" onchange="enforcePremiumSelect(this, 'DEFAULT_SKILL')" class="w-full px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-xl outline-none text-charcoal focus:ring-2 focus:ring-sage font-semibold cursor-pointer">
-                                    <option value="SKILL_NOOB">🟢 Łatwy (PRO)</option>
-                                    <option value="DEFAULT_SKILL">🟡 Średni (Free)</option>
-                                    <option value="SKILL_EXPERT">🔴 Ekspert (PRO)</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-bold text-charcoal mb-2">Domyślna liczba porcji</label>
-                            <input type="number" id="profileServings" min="1" max="12" class="w-full px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-xl outline-none text-charcoal focus:ring-2 focus:ring-sage font-bold" placeholder="Np. 2">
-                        </div>
-                        <div><label class="block text-sm font-bold text-charcoal mb-2">Preferencje dietetyczne (dla AI)</label><textarea id="profilePreferences" rows="4" class="w-full px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-xl outline-none text-charcoal resize-none focus:ring-2 focus:ring-sage"></textarea></div>
-                        <button onclick="saveUserProfile()" id="saveProfileBtn" class="w-full bg-charcoal text-white px-8 py-4 rounded-xl text-lg font-bold hover:bg-charcoal_light transition flex items-center justify-center gap-2"><i data-lucide="save" class="w-5 h-5"></i> Zapisz zmiany</button>
-                        
-                        <!-- WERSJA 4.9.10 - Danger Zone: Usuwanie konta (UI Github/Vercel Style) -->
-                        <div class="pt-6 mt-6 border-t border-charcoal/10" id="deleteAccountSection">
-                            <button onclick="initiateDeleteAccount()" class="w-full bg-white text-terracotta border-2 border-terracotta/20 px-8 py-4 rounded-xl text-lg font-bold hover:bg-terracotta/5 transition flex items-center justify-center gap-2">
-                                <i data-lucide="trash-2" class="w-5 h-5"></i> Usuń konto i moje dane
-                            </button>
-                        </div>
-
-                        <!-- Ukryta sekcja potwierdzenia -->
-                        <div class="pt-6 mt-6 border-t border-terracotta/30 hidden bg-terracotta/5 p-5 rounded-2xl border" id="deleteAccountConfirmSection">
-                            <h4 class="font-bold text-terracotta mb-2 flex items-center gap-2"><i data-lucide="alert-triangle" class="w-5 h-5"></i> Strefa niebezpieczna</h4>
-                            <p class="text-sm text-charcoal mb-4 font-medium">Ta operacja jest <b>nieodwracalna</b>. Aby potwierdzić usunięcie konta, wpisz poniżej swój e-mail: <br><span id="deleteEmailHint" class="font-mono font-bold select-all text-terracotta mt-1 block"></span></p>
-                            
-                            <input type="email" id="deleteAccountInput" oninput="validateDeleteInput()" placeholder="Wpisz e-mail..." class="w-full px-4 py-3 bg-white border border-terracotta/30 rounded-xl outline-none text-charcoal focus:ring-2 focus:ring-terracotta mb-4 font-mono">
-                            
-                            <div class="flex gap-3">
-                                <button onclick="cancelDeleteAccount()" class="flex-1 bg-white text-charcoal border border-charcoal/10 px-4 py-3 rounded-xl font-bold hover:bg-cream transition">Anuluj</button>
-                                <button id="finalDeleteBtn" onclick="executeDeleteAccount()" disabled class="flex-1 bg-terracotta/40 text-white px-4 py-3 rounded-xl font-bold transition cursor-not-allowed flex justify-center items-center gap-2">Usuń bezpowrotnie</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-        <div id="shoppingListFab" class="fixed bottom-6 left-0 right-0 px-4 z-50 hidden pointer-events-none">
-            <div class="max-w-md mx-auto flex justify-center gap-2">
-                <button onclick="generateShoppingListAction()" class="flex-grow bg-sage text-white px-6 py-4 rounded-full shadow-2xl font-bold flex justify-center items-center gap-2 pointer-events-auto border-4 border-sage_dark hover:bg-sage_dark transition hover:scale-105">
-                    <i data-lucide="shopping-bag" class="w-5 h-5 shrink-0"></i>
-                    <span class="whitespace-nowrap">Stwórz Listę (<span id="shoppingListCount">0</span>)</span>
-                </button>
-                <button onclick="bulkDeleteRecipesAction()" class="bg-white text-terracotta px-6 py-4 rounded-full shadow-2xl font-bold flex justify-center items-center gap-2 pointer-events-auto border-4 border-terracotta/20 hover:bg-terracotta/10 hover:border-terracotta/40 transition hover:scale-105 shrink-0" title="Usuń zaznaczone przepisy">
-                    <i data-lucide="trash-2" class="w-5 h-5 shrink-0"></i>
-                </button>
-            </div>
-        </div>
-    </main>
-</div>
-
-<script>
         lucide.createIcons();
         // WERSJA 1.23.0 - Dodanie stanu widoku (Kafelki vs Lista)
+        // ==========================================
+        // JWT REFRESH INTERCEPTOR (Surgical Fix)
+        // ==========================================
+        const originalFetch = window.fetch;
+        let isRefreshing = false;
+        let refreshSubscribers = [];
+
+        window.fetch = async (...args) => {
+            let [resource, config] = args;
+            let response = await originalFetch(resource, config);
+
+            if (response.status === 401 && resource.toString().includes('/api/')) {
+                const refreshToken = localStorage.getItem('supabaseRefreshToken');
+                if (!refreshToken) { logoutUser(); return response; }
+
+                if (isRefreshing) {
+                    return new Promise(resolve => {
+                        refreshSubscribers.push((newToken) => {
+                            config.headers['Authorization'] = `Bearer ${newToken}`;
+                            resolve(originalFetch(resource, config));
+                        });
+                    });
+                }
+
+                isRefreshing = true;
+                try {
+                    const res = await originalFetch('/api/auth', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ step: 'refresh', refresh_token: refreshToken })
+                    });
+                    const data = await res.json();
+                    if (data.status === 'success' && data.session) {
+                        localStorage.setItem('supabaseToken', data.session.access_token);
+                        localStorage.setItem('supabaseRefreshToken', data.session.refresh_token);
+                        isRefreshing = false;
+                        refreshSubscribers.forEach(cb => cb(data.session.access_token));
+                        refreshSubscribers = [];
+                        config.headers['Authorization'] = `Bearer ${data.session.access_token}`;
+                        return await originalFetch(resource, config);
+                    }
+                } catch (e) { logoutUser(); }
+                isRefreshing = false;
+            }
+            return response;
+        };
+
         let currentRecipeData = null;
         let allSavedRecipes = [];
         let filteredRecipes = [];
@@ -598,6 +208,7 @@
                     // SaaS Foundation: Zachowujemy JWT Token pod późniejszy mechanizm RLS
                     if(res.session && res.session.access_token) {
                         localStorage.setItem('supabaseToken', res.session.access_token);
+localStorage.setItem('supabaseRefreshToken', res.session.refresh_token); // Zapisujemy token odświeżania
                     }
                     finalizeLogin(res.data);
                 } else {
@@ -673,7 +284,8 @@
        
         function logoutUser() { 
             localStorage.removeItem('familyChefEmail'); 
-            localStorage.removeItem('supabaseToken'); // Czyścimy token RLS przy wylogowaniu
+            localStorage.removeItem('supabaseToken');
+            localStorage.removeItem('supabaseRefreshToken'); // Czyścimy oba tokeny
             location.reload(); 
         }
 
@@ -795,70 +407,77 @@ function switchTab(tabName) {
             renderGrid(filteredRecipes);
         }
 
-// WERSJA 1.23.3 - Rozbudowany renderGrid wspierający układ Listy i Kafelków
-        function renderGrid(recipesToRender) {
-            var grid = document.getElementById("dashboard-grid");
-            grid.innerHTML = "";
+// WERSJA 5.3.0 - [OPTYMALIZACJA DOM: DocumentFragment dla renderGrid]
+function renderGrid(recipesToRender) {
+    var grid = document.getElementById("dashboard-grid");
+    grid.innerHTML = "";
+    
+    // Jeśli lista jest pusta
+    if (recipesToRender.length === 0) {
+         grid.innerHTML = `<p class="col-span-full text-center text-charcoal_light py-8 font-medium">Brak przepisów spełniających kryteria.</p>`;
+         return;
+    }
+
+    // Dopasowanie kontenera: widok listy to kolumna z odstępami, widok siatki to grid
+    grid.className = isListView 
+        ? "flex flex-col gap-3" 
+        : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6";
+
+    // Inicjalizacja wirtualnego kontenera pamięciowego
+    const fragment = document.createDocumentFragment();
+
+    recipesToRender.forEach(recipe => {
+        let authorEmail = recipe.author_email || recipe.author; 
+        let isMe = String(authorEmail).trim().toLowerCase() === currentUserEmail;
+        let isChecked = selectedRecipesForShopping.includes(recipe.id) ? 'checked' : '';
+        
+        var card = document.createElement('div');
+        let borderClass = isChecked ? 'border-sage ring-2 ring-sage/20 shadow-md' : 'border-black/5 shadow-sm';
+        
+        if (isListView) {
+            // --- STRUKTURA DLA WIDOKU LISTY (Mobilna & Kompaktowa) ---
+            card.className = `bg-white p-4 rounded-2xl ${borderClass} border hover:border-sage/30 hover:shadow-md transition cursor-pointer flex items-center gap-3 md:gap-4`;
+            card.onclick = function() { openRecipe(recipe.id); };
             
-            // Jeśli lista jest pusta
-            if (recipesToRender.length === 0) {
-                 grid.innerHTML = `<p class="col-span-full text-center text-charcoal_light py-8 font-medium">Brak przepisów spełniających kryteria.</p>`;
-                 return;
-            }
+            let deleteBtnListHtml = isMe ? `<button onclick="event.stopPropagation(); deleteRecipeAction('${recipe.id}')" class="text-charcoal_light hover:text-terracotta p-2 rounded-full hover:bg-terracotta/10 transition z-30 shrink-0" title="Usuń ten przepis"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : '';
 
-            // Dopasowanie kontenera: widok listy to kolumna z odstępami, widok siatki to grid
-            grid.className = isListView 
-                ? "flex flex-col gap-3" 
-                : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6";
-
-            recipesToRender.forEach(recipe => {
-                let authorEmail = recipe.author_email || recipe.author; 
-                let isMe = String(authorEmail).trim().toLowerCase() === currentUserEmail;
-                let isChecked = selectedRecipesForShopping.includes(recipe.id) ? 'checked' : '';
-                
-                var card = document.createElement('div');
-                let borderClass = isChecked ? 'border-sage ring-2 ring-sage/20 shadow-md' : 'border-black/5 shadow-sm';
-                
-                if (isListView) {
-                    // --- STRUKTURA DLA WIDOKU LISTY (Mobilna & Kompaktowa) ---
-                    card.className = `bg-white p-4 rounded-2xl ${borderClass} border hover:border-sage/30 hover:shadow-md transition cursor-pointer flex items-center gap-3 md:gap-4`;
-                    card.onclick = function() { openRecipe(recipe.id); };
-                    
-                    let deleteBtnListHtml = isMe ? `<button onclick="event.stopPropagation(); deleteRecipeAction('${recipe.id}')" class="text-charcoal_light hover:text-terracotta p-2 rounded-full hover:bg-terracotta/10 transition z-30 shrink-0" title="Usuń ten przepis"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : '';
-
-                    card.innerHTML = `
-                        <input type="checkbox" ${isChecked} onclick="event.stopPropagation(); toggleCart('${recipe.id}')" class="w-5 h-5 accent-sage rounded cursor-pointer shrink-0">
-                        <div class="flex-grow min-w-0 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-                            <h3 class="font-bold text-base text-charcoal truncate">${recipe.title || 'Bez tytułu'}</h3>
-                            <span class="bg-terracotta/10 text-terracotta border border-terracotta/20 text-[10px] uppercase font-bold px-2 py-0.5 rounded-md tracking-wider w-max">${recipe.category || 'Inne'}</span>
-                        </div>
-                        <div class="hidden sm:flex text-xs text-charcoal_light font-mono shrink-0 items-center gap-1">
-                            <i data-lucide="user" class="w-3 h-3"></i> ${String(authorEmail || currentUserEmail).split('@')[0]}
-                        </div>
-                        ${deleteBtnListHtml}
-                    `;
-                } else {
-                    // --- STRUKTURA DLA WIDOKU KAFELEK (Klasyczna) ---
-                    card.className = `bg-white p-6 rounded-3xl ${borderClass} border hover:border-sage/30 hover:shadow-md transition cursor-pointer group relative flex flex-col`;
-                    card.onclick = function() { openRecipe(recipe.id); };
-                    
-                    let deleteBtnGridHtml = isMe ? `<button onclick="event.stopPropagation(); deleteRecipeAction('${recipe.id}')" class="absolute top-4 right-4 text-charcoal_light bg-cream/50 p-2 rounded-full hover:text-terracotta hover:bg-terracotta/10 transition z-30" title="Usuń ten przepis"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : '';
-                    
-                    card.innerHTML = `
-                        ${deleteBtnGridHtml}
-                        <div class="flex items-center gap-2 mb-3 relative z-20 pr-12">
-                            <input type="checkbox" ${isChecked} onclick="event.stopPropagation(); toggleCart('${recipe.id}')" class="w-5 h-5 accent-sage rounded cursor-pointer shrink-0">
-                            <span class="bg-terracotta/10 text-terracotta border border-terracotta/20 text-[10px] uppercase font-bold px-2 py-1 rounded-md tracking-wider overflow-hidden text-ellipsis whitespace-nowrap">${recipe.category || 'Inne'}</span>
-                        </div>
-                        <h3 class="font-bold text-lg text-charcoal leading-tight mb-2 pr-2">${recipe.title || 'Bez tytułu'}</h3>
-                        <p class="text-xs text-charcoal_light font-mono mb-4 flex items-center gap-1"><i data-lucide="user" class="w-3 h-3"></i> ${String(authorEmail || currentUserEmail).split('@')[0]} &bull; ${recipe.created_at ? new Date(recipe.created_at).toLocaleDateString() : ''}</p>
-                        <div class="mt-auto pt-4 border-t border-charcoal/5 relative"><p class="text-sm text-charcoal_light">Kliknij, aby ugotować...</p></div>
-                    `;
-                }
-                grid.appendChild(card);
-            });
-            lucide.createIcons();
+            card.innerHTML = `
+                <input type="checkbox" ${isChecked} onclick="event.stopPropagation(); toggleCart('${recipe.id}')" class="w-5 h-5 accent-sage rounded cursor-pointer shrink-0">
+                <div class="flex-grow min-w-0 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                    <h3 class="font-bold text-base text-charcoal truncate">${recipe.title || 'Bez tytułu'}</h3>
+                    <span class="bg-terracotta/10 text-terracotta border border-terracotta/20 text-[10px] uppercase font-bold px-2 py-0.5 rounded-md tracking-wider w-max">${recipe.category || 'Inne'}</span>
+                </div>
+                <div class="hidden sm:flex text-xs text-charcoal_light font-mono shrink-0 items-center gap-1">
+                    <i data-lucide="user" class="w-3 h-3"></i> ${String(authorEmail || currentUserEmail).split('@')[0]}
+                </div>
+                ${deleteBtnListHtml}
+            `;
+        } else {
+            // --- STRUKTURA DLA WIDOKU KAFELEK (Klasyczna) ---
+            card.className = `bg-white p-6 rounded-3xl ${borderClass} border hover:border-sage/30 hover:shadow-md transition cursor-pointer group relative flex flex-col`;
+            card.onclick = function() { openRecipe(recipe.id); };
+            
+            let deleteBtnGridHtml = isMe ? `<button onclick="event.stopPropagation(); deleteRecipeAction('${recipe.id}')" class="absolute top-4 right-4 text-charcoal_light bg-cream/50 p-2 rounded-full hover:text-terracotta hover:bg-terracotta/10 transition z-30" title="Usuń ten przepis"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : '';
+            
+            card.innerHTML = `
+                ${deleteBtnGridHtml}
+                <div class="flex items-center gap-2 mb-3 relative z-20 pr-12">
+                    <input type="checkbox" ${isChecked} onclick="event.stopPropagation(); toggleCart('${recipe.id}')" class="w-5 h-5 accent-sage rounded cursor-pointer shrink-0">
+                    <span class="bg-terracotta/10 text-terracotta border border-terracotta/20 text-[10px] uppercase font-bold px-2 py-1 rounded-md tracking-wider overflow-hidden text-ellipsis whitespace-nowrap">${recipe.category || 'Inne'}</span>
+                </div>
+                <h3 class="font-bold text-lg text-charcoal leading-tight mb-2 pr-2">${recipe.title || 'Bez tytułu'}</h3>
+                <p class="text-xs text-charcoal_light font-mono mb-4 flex items-center gap-1"><i data-lucide="user" class="w-3 h-3"></i> ${String(authorEmail || currentUserEmail).split('@')[0]} &bull; ${recipe.created_at ? new Date(recipe.created_at).toLocaleDateString() : ''}</p>
+                <div class="mt-auto pt-4 border-t border-charcoal/5 relative"><p class="text-sm text-charcoal_light">Kliknij, aby ugotować...</p></div>
+            `;
         }
+        // Wrzucamy do bufora pamięciowego, NIE do widoku
+        fragment.appendChild(card);
+    });
+    
+    // Na koniec wstrzykujemy cały bufor za jednym zamachem do DOM
+    grid.appendChild(fragment);
+    lucide.createIcons();
+}
 
         function toggleCart(id) {
             const idx = selectedRecipesForShopping.indexOf(id);
@@ -1440,40 +1059,45 @@ function switchTab(tabName) {
             }
         }
 
-        function renderShoppingListsDash() {
-            const grid = document.getElementById('shoppingListsGrid');
-            grid.innerHTML = '';
+// WERSJA 5.3.0 - [OPTYMALIZACJA DOM: DocumentFragment dla renderShoppingListsDash]
+function renderShoppingListsDash() {
+    const grid = document.getElementById('shoppingListsGrid');
+    grid.innerHTML = '';
+   
+    if (allShoppingLists.length === 0) {
+        grid.innerHTML = `<div class="col-span-full text-center py-10 text-charcoal_light bg-white rounded-3xl border border-charcoal/5 shadow-sm">Nie masz żadnych list zakupów. Zaznacz przepisy w Bazie i kliknij 'Stwórz Listę'.</div>`;
+        return;
+    }
+
+    const fragment = document.createDocumentFragment();
+
+    allShoppingLists.forEach(list => {
+        let totalItems = 0; let checkedItems = 0;
+        list.data.forEach(g => g.items.forEach(i => { totalItems++; if(i.checked) checkedItems++; }));
+        const progress = totalItems === 0 ? 0 : Math.round((checkedItems/totalItems)*100);
+
+        const card = document.createElement('div');
+        card.className = "bg-white p-5 rounded-2xl border border-charcoal/5 shadow-sm hover:border-sage/30 hover:shadow-md transition cursor-pointer relative flex flex-col";
+        card.onclick = () => openShoppingListDetail(list.id);
+
+        card.innerHTML = `
+            <div class="flex justify-between items-start mb-3 pr-8">
+                <h3 class="font-bold text-charcoal leading-tight">${list.title}</h3>
+            </div>
+            <button onclick="event.stopPropagation(); deleteShoppingListFromDash('${list.id}')" class="absolute top-4 right-4 p-2 text-charcoal_light hover:text-terracotta hover:bg-terracotta/10 rounded-full transition z-20"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+            <p class="text-xs text-charcoal_light mb-4 font-mono"><i data-lucide="calendar" class="w-3 h-3 inline mr-1"></i>${new Date(list.date).toLocaleDateString()} • ${String(list.author).split('@')[0]}</p>
            
-            if (allShoppingLists.length === 0) {
-                grid.innerHTML = `<div class="col-span-full text-center py-10 text-charcoal_light bg-white rounded-3xl border border-charcoal/5 shadow-sm">Nie masz żadnych list zakupów. Zaznacz przepisy w Bazie i kliknij 'Stwórz Listę'.</div>`;
-                return;
-            }
-
-            allShoppingLists.forEach(list => {
-                let totalItems = 0; let checkedItems = 0;
-                list.data.forEach(g => g.items.forEach(i => { totalItems++; if(i.checked) checkedItems++; }));
-                const progress = totalItems === 0 ? 0 : Math.round((checkedItems/totalItems)*100);
-
-                const card = document.createElement('div');
-                card.className = "bg-white p-5 rounded-2xl border border-charcoal/5 shadow-sm hover:border-sage/30 hover:shadow-md transition cursor-pointer relative flex flex-col";
-                card.onclick = () => openShoppingListDetail(list.id);
-
-                card.innerHTML = `
-                    <div class="flex justify-between items-start mb-3 pr-8">
-                        <h3 class="font-bold text-charcoal leading-tight">${list.title}</h3>
-                    </div>
-                    <button onclick="event.stopPropagation(); deleteShoppingListFromDash('${list.id}')" class="absolute top-4 right-4 p-2 text-charcoal_light hover:text-terracotta hover:bg-terracotta/10 rounded-full transition z-20"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                    <p class="text-xs text-charcoal_light mb-4 font-mono"><i data-lucide="calendar" class="w-3 h-3 inline mr-1"></i>${new Date(list.date).toLocaleDateString()} • ${String(list.author).split('@')[0]}</p>
-                   
-                    <div class="mt-auto w-full bg-charcoal/5 rounded-full h-2.5 mb-1 overflow-hidden">
-                        <div class="bg-sage h-2.5 rounded-full transition-all" style="width: ${progress}%"></div>
-                    </div>
-                    <div class="text-xs text-right text-charcoal_light font-bold">${checkedItems}/${totalItems} produktów</div>
-                `;
-                grid.appendChild(card);
-            });
-            lucide.createIcons();
-        }
+            <div class="mt-auto w-full bg-charcoal/5 rounded-full h-2.5 mb-1 overflow-hidden">
+                <div class="bg-sage h-2.5 rounded-full transition-all" style="width: ${progress}%"></div>
+            </div>
+            <div class="text-xs text-right text-charcoal_light font-bold">${checkedItems}/${totalItems} produktów</div>
+        `;
+        fragment.appendChild(card);
+    });
+    
+    grid.appendChild(fragment);
+    lucide.createIcons();
+}
 
         function showShoppingDash() {
             document.getElementById('shoppingDashView').style.display = 'block';
@@ -1775,26 +1399,38 @@ function switchTab(tabName) {
             }
         }
 
+        // WERSJA 5.3.0 - [OPTYMALIZACJA DOM: DocumentFragment dla renderShoppingListUI]
         function renderShoppingListUI() {
-            const content = document.getElementById('shoppingContent'); content.innerHTML = "";
+            const content = document.getElementById('shoppingContent'); 
+            content.innerHTML = "";
+            
+            const fragment = document.createDocumentFragment();
+            
             activeShoppingListArray.forEach((group, gIndex) => {
                 const grpDiv = document.createElement('div');
                 grpDiv.innerHTML = `<h3 class="font-bold text-sage_dark mb-2 border-b border-charcoal/5 pb-1">${group.category}</h3>`;
-               
-                const ul = document.createElement('div'); ul.className = "space-y-2";
+            
+                const ul = document.createElement('div'); 
+                ul.className = "space-y-2";
+                
+                // Tutaj również zamiast kilkukrotnego innerHTML zrobimy bufor stringów
+                let itemsHtml = "";
                 group.items.forEach((item, iIndex) => {
                     const checkedClass = item.checked ? 'item-checked' : 'bg-white border-charcoal/5 shadow-sm hover:border-sage/30';
                     const icon = item.checked ? `<i data-lucide="check-square" class="text-sage w-5 h-5"></i>` : `<i data-lucide="square" class="text-charcoal/20 w-5 h-5"></i>`;
-                    ul.innerHTML += `
+                    itemsHtml += `
                         <div onclick="toggleShoppingItem(${gIndex}, ${iIndex})" class="flex items-start gap-3 p-3 rounded-xl border transition cursor-pointer ${checkedClass}">
                             <div class="mt-0.5 shrink-0">${icon}</div>
                             <span class="text-sm font-semibold">${item.name}</span>
                         </div>
                     `;
                 });
+                ul.innerHTML = itemsHtml;
                 grpDiv.appendChild(ul);
-                content.appendChild(grpDiv);
+                fragment.appendChild(grpDiv);
             });
+            
+            content.appendChild(fragment);
             lucide.createIcons();
         }
 
@@ -1879,7 +1515,3 @@ function switchTab(tabName) {
             let val = parseInt(el.value) + delta;
             if(val >= 1 && val <= 20) el.value = val;
         }
-
-</script>
-</body>
-</html>
