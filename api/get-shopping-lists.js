@@ -21,23 +21,23 @@ export default async function handler(req, res) {
         if (authError || !user) {
             return res.status(401).json({ status: "error", message: "Nieważny token sesji." });
         }
-        const realEmail = user.email;
+        const authUserId = user.id; // MIGRACJA NA UUID
 
-        // 2. Pobranie zaufanego Family ID z bazy
+        // 2. Pobranie zaufanego Family ID z bazy (po UUID)
         const { data: profile } = await supabase
             .from('users')
             .select('family_id')
-            .eq('email', realEmail)
+            .eq('id', authUserId)
             .single();
         const realFamilyId = profile?.family_id;
 
         let query = supabase.from('shopping_lists').select('*');
 
-        // 3. Budujemy filtrowanie w oparciu o bezpieczne zmienne
+        // 3. Budujemy filtrowanie w oparciu o bezpieczne UUID
         if (realFamilyId && realFamilyId.trim() !== '') {
             query = query.eq('family_id', realFamilyId);
         } else {
-            query = query.eq('author_email', realEmail);
+            query = query.eq('author_id', authUserId); // MIGRACJA
         }
 
         const { data, error } = await query.order('created_at', { ascending: false });

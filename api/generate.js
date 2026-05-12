@@ -41,45 +41,54 @@ export default async function handler(req, res) {
         if (!authHeader) return res.status(401).json({ status: "error", message: "Brak dostępu. Zaloguj się ponownie." });
 
         const { createClient } = await import('@supabase/supabase-js');
+        
+        // KLIENT 1: Do weryfikacji tożsamości
         const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
             global: { headers: { Authorization: authHeader } }
         });
+
+        // KLIENT 2: Admin do omijania RLS w tabeli billingowej (MIGRACJA 2.1)
+        const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
         // KRYPTOGRAFICZNA WERYFIKACJA TOŻSAMOŚCI
         const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
         if (authError || !authUser) {
             return res.status(401).json({ status: "error", message: "Nieważny token sesji." });
         }
-        const email = authUser.email; // Od teraz reszta kodu używa w 100% zaufanego emaila!
+        
+        const email = authUser.email; 
+        const authUserId = authUser.id; // Stały UUID użytkownika
 
-        // 1. Pobranie pełnego profilu użytkownika
+        // 1. Pobranie profilu (publiczny) i danych billingowych (Admin bypass - KROK 3.1)
         const { data: user } = await supabase
             .from('users')
-            .select('*')
-            .eq('email', email)
+            .select('preferences, default_servings, default_chef, default_skill')
+            .eq('id', authUserId)
             .maybeSingle();
 
-        // 2. Pobranie kategorii dla zachowania spójności biblioteki
-        // FIX SAAS: Zmieniono 'author' na poprawne 'author_email', zgodne ze schematem bazy
+        const { data: billing } = await supabaseAdmin
+            .from('users_billing')
+            .select('*')
+            .eq('id', authUserId)
+            .maybeSingle();
+
+        // 2. Pobranie kategorii przy użyciu stałego UUID (MIGRACJA 1.1)
         const { data: userRecipes } = await supabase
             .from('recipes')
             .select('category')
-            .eq('author_email', email);
+            .eq('author_id', authUserId);
         
-        // WERSJA 4.9.0 - CENTRALIZACJA LIMITÓW BIZNESOWYCH (Zmienne .env)
-        const isPremium = user?.is_premium || false;
+        // WERSJA 5.4.0 - NOWY SCHEMAT: Odczyt z wyizolowanej tabeli users_billing
+        const isPremium = billing?.is_premium || false;
         
-        // Pobieramy limity globalne. Jeśli ich nie ma w .env, stosujemy bezpieczny fallback.
-        // parseInt() zapewnia, że tekst z .env zostanie poprawnie potraktowany jako liczba.
         const DAILY_FREE_LIMIT = parseInt(process.env.DAILY_FREE_LIMIT || '3', 10);   
         const DAILY_PREMIUM_LIMIT = parseInt(process.env.DAILY_PREMIUM_LIMIT || '50', 10);
         
-        // Pobieramy dzisiejszą datę w formacie YYYY-MM-DD
         const todayStr = new Date().toISOString().split('T')[0];
-        const userLastDate = user?.last_generation_date ? new Date(user.last_generation_date).toISOString().split('T')[0] : null;
+        const userLastDate = billing?.last_generation_date ? new Date(billing.last_generation_date).toISOString().split('T')[0] : null;
         
         // Logika Leniwego Resetu (Lazy Reset)
-        let currentDailyCount = user?.daily_generations || 0;
+        let currentDailyCount = billing?.daily_generations || 0;
         if (userLastDate !== todayStr) {
             // Jeśli ostatnie generowanie było innego dnia, traktujemy licznik jako 0
             currentDailyCount = 0;
@@ -103,14 +112,14 @@ export default async function handler(req, res) {
         
         const newDailyCount = currentDailyCount + 1;
 
-        // WERSJA 5.1.0 - SECURITY FIX: Zapis limitu PRZED wywołaniem AI (Ochrona przed Race Condition)
-        const { error: limitUpdateError } = await supabase
-            .from('users')
+        // WERSJA 5.4.1 - SECURITY FIX: Zapis limitu do USERS_BILLING przez Admina (Bypass RLS)
+        const { error: limitUpdateError } = await supabaseAdmin
+            .from('users_billing')
             .update({ 
                 daily_generations: newDailyCount, 
                 last_generation_date: todayStr 
             })
-            .eq('email', email);
+            .eq('id', authUserId);
 
         if (limitUpdateError) {
             throw new Error("Błąd autoryzacji limitów przed wywołaniem AI.");
@@ -292,9 +301,12 @@ WYNIK MUSI BYĆ CZYSTYM JSONEM (bez znaczników markdown):
     } catch (error) {
         console.error("🔥 AI ERROR DETAILED:", error);
         
-        // WERSJA 5.1.0 - REFUND KREDYTU (Jeśli AI wyrzuci błąd po pobraniu opłaty)
+        // WERSJA 5.4.2 - REFUND KREDYTU: Zwrot do tabeli bilingowej przez klienta Admin
         if (typeof currentDailyCount !== 'undefined') {
-            await supabase.from('users').update({ daily_generations: currentDailyCount }).eq('email', email);
+            await supabaseAdmin
+                .from('users_billing')
+                .update({ daily_generations: currentDailyCount })
+                .eq('id', authUserId);
         }
 
         return res.status(500).json({ 

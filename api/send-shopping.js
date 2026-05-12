@@ -10,6 +10,7 @@ export default async function handler(req, res) {
     const { listTitle, listArray } = req.body; // Ignorujemy email
     let currentEmailCount; 
     let verifiedEmail; // Deklaracja poza try do obsługi w catch
+    let authUserId; // Zmienna dla UUID limitów
 
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ status: "error", message: "Brak dostępu." });
@@ -19,23 +20,26 @@ export default async function handler(req, res) {
         const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
             global: { headers: { Authorization: authHeader } }
         });
+        const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
         // KRYPTOGRAFICZNA WERYFIKACJA TOŻSAMOŚCI
         const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
         if (authError || !authUser) return res.status(401).json({ status: "error", message: "Nieważny token sesji." });
+        
         verifiedEmail = authUser.email;
+        authUserId = authUser.id;
 
         // --- START BLOKADY SPAMU ---
-        const { data: user } = await supabase.from('users').select('is_premium, daily_emails, last_email_date').eq('email', verifiedEmail).maybeSingle();
+        const { data: billing } = await supabaseAdmin.from('users_billing').select('*').eq('id', authUserId).maybeSingle();
 
-        const isPremium = user?.is_premium || false;
+        const isPremium = billing?.is_premium || false;
         const DAILY_FREE_EMAIL = parseInt(process.env.DAILY_FREE_EMAIL_LIMIT || '5', 10);
         const DAILY_PREMIUM_EMAIL = parseInt(process.env.DAILY_PREMIUM_EMAIL_LIMIT || '30', 10);
         
         const todayStr = new Date().toISOString().split('T')[0];
-        const userLastEmail = user?.last_email_date ? new Date(user.last_email_date).toISOString().split('T')[0] : null;
+        const userLastEmail = billing?.last_email_date ? new Date(billing.last_email_date).toISOString().split('T')[0] : null;
         
-        currentEmailCount = user?.daily_emails || 0;
+        currentEmailCount = billing?.daily_emails || 0;
         if (userLastEmail !== todayStr) currentEmailCount = 0;
 
         if (!isPremium && currentEmailCount >= DAILY_FREE_EMAIL) {
@@ -45,9 +49,9 @@ export default async function handler(req, res) {
             return res.status(429).json({ status: "error", message: `Osiągnąłeś limit maili Premium (${DAILY_PREMIUM_EMAIL}).` });
         }
 
-        const { error: limitUpdateError } = await supabase.from('users')
+        const { error: limitUpdateError } = await supabaseAdmin.from('users_billing')
             .update({ daily_emails: currentEmailCount + 1, last_email_date: todayStr })
-            .eq('email', verifiedEmail);
+            .eq('id', authUserId);
 
         if (limitUpdateError) throw new Error("Błąd weryfikacji limitów anty-spam.");
         // --- KONIEC BLOKADY SPAMU ---
@@ -95,11 +99,11 @@ export default async function handler(req, res) {
     } catch (error) {
         console.error("🔥 RESEND SHOPPING ERROR:", error);
         
-        // REFUND LIMITU
-        if (currentEmailCount !== undefined && verifiedEmail) {
+        // REFUND LIMITU w tabeli bilingowej
+        if (currentEmailCount !== undefined && authUserId) {
             const { createClient } = await import('@supabase/supabase-js');
             const supAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-            await supAdmin.from('users').update({ daily_emails: currentEmailCount }).eq('email', verifiedEmail);
+            await supAdmin.from('users_billing').update({ daily_emails: currentEmailCount }).eq('id', authUserId);
         }
 
         return res.status(500).json({ status: "error", message: "Nie udało się wysłać listy." });

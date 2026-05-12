@@ -21,32 +21,41 @@ export default async function handler(req, res) {
         if (!authHeader) return res.status(401).json({ status: "error", message: "Brak dostępu." });
 
         const { createClient } = await import('@supabase/supabase-js');
+        
         const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
             global: { headers: { Authorization: authHeader } }
         });
+        const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
         // KRYPTOGRAFICZNA WERYFIKACJA TOŻSAMOŚCI
         const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
         if (authError || !authUser) return res.status(401).json({ status: "error", message: "Nieważny token sesji." });
+        
         const email = authUser.email; // Zaufany email z JWT
+        const authUserId = authUser.id; // Migracja na UUID
 
-        // 1. Weryfikacja limitów AI i pobranie zaufanego Family ID (współdzielona tabela users)
+        // 1. Pobranie Family ID (z public.users) i limitów AI (z users_billing przez Admina)
         const { data: user } = await supabase
             .from('users')
-            .select('is_premium, daily_generations, last_generation_date, family_id')
-            .eq('email', email)
+            .select('family_id')
+            .eq('id', authUserId)
             .maybeSingle();
-        
-        const familyId = user?.family_id; // Zaufane Family ID prosto z bazy
+        const familyId = user?.family_id;
 
-        const isPremium = user?.is_premium || false;
+        const { data: billing } = await supabaseAdmin
+            .from('users_billing')
+            .select('*')
+            .eq('id', authUserId)
+            .maybeSingle();
+
+        const isPremium = billing?.is_premium || false;
         const DAILY_FREE_LIMIT = parseInt(process.env.DAILY_FREE_LIMIT || '3', 10);   
         const DAILY_PREMIUM_LIMIT = parseInt(process.env.DAILY_PREMIUM_LIMIT || '50', 10); 
         
         const todayStr = new Date().toISOString().split('T')[0];
-        const userLastDate = user?.last_generation_date ? new Date(user.last_generation_date).toISOString().split('T')[0] : null;
+        const userLastDate = billing?.last_generation_date ? new Date(billing.last_generation_date).toISOString().split('T')[0] : null;
         
-        let currentDailyCount = user?.daily_generations || 0;
+        currentDailyCount = billing?.daily_generations || 0;
         if (userLastDate !== todayStr) {
             currentDailyCount = 0;
         }
@@ -58,10 +67,10 @@ export default async function handler(req, res) {
             return res.status(403).json({ status: "error", message: `Osiągnąłeś limit Premium (${DAILY_PREMIUM_LIMIT} akcji AI).` });
         }
 
-        // CHARGE UPFRONT: Zabezpieczenie przed Race Condition
-        const { error: limitError } = await supabase.from('users')
+        // CHARGE UPFRONT: Zabezpieczenie przed Race Condition przez supabaseAdmin
+        const { error: limitError } = await supabaseAdmin.from('users_billing')
             .update({ daily_generations: currentDailyCount + 1, last_generation_date: todayStr })
-            .eq('email', email);
+            .eq('id', authUserId);
             
         if (limitError) throw new Error("Błąd podczas rezerwacji limitu AI.");
 
@@ -190,6 +199,7 @@ Zwróć wynik WYŁĄCZNIE jako czysty JSON według tego schematu:
             const { error: insertError } = await supabase
                 .from('shopping_lists')
                 .insert([{
+                    author_id: authUserId, // NOWE: UUID jako relacja
                     author_email: email,
                     family_id: familyId || null,
                     title: listTitle,
@@ -205,11 +215,11 @@ Zwróć wynik WYŁĄCZNIE jako czysty JSON według tego schematu:
      } catch (error) {
         console.error("🔥 CUSTOM SHOPPING LIST ERROR:", error.message);
         
-        // REFUND: Jeśli AI zawiedzie, zwracamy akcję na konto
+        // REFUND: Zwracamy do tabeli bilingowej przez Admina
         if (currentDailyCount !== undefined) {
             const { createClient } = await import('@supabase/supabase-js');
             const supAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-            await supAdmin.from('users').update({ daily_generations: currentDailyCount }).eq('email', email);
+            await supAdmin.from('users_billing').update({ daily_generations: currentDailyCount }).eq('id', authUser.id);
         }
 
         return res.status(500).json({ status: "error", message: "Błąd serwera: " + error.message });

@@ -21,12 +21,13 @@ export default async function handler(req, res) {
             return res.status(401).json({ status: "error", message: "Nieważny token sesji." });
         }
         const realEmail = user.email;
+        const authUserId = user.id; // Migracja na stałe UUID
 
-        // 2. Pobranie zaufanego Family ID (żeby zapisać przepis w dobrej rodzinie)
+        // 2. Pobranie zaufanego Family ID (odpytujemy używając UUID)
         const { data: profile } = await supabase
             .from('users')
             .select('family_id')
-            .eq('email', realEmail)
+            .eq('id', authUserId)
             .single();
         const realFamilyId = profile?.family_id;
 
@@ -34,11 +35,12 @@ export default async function handler(req, res) {
         const ingredientsStr = Array.isArray(recipe.ingredients) ? recipe.ingredients.join('\n') : recipe.ingredients;
         const instructionsStr = Array.isArray(recipe.instructions) ? recipe.instructions.join('\n') : recipe.instructions;
 
-        // 4. Zapis do Supabase (zawsze jako zweryfikowany email)
+        // 4. Zapis do Supabase (wstrzykujemy nowe UUID jako relację)
         const { data: savedRecipe, error: dbError } = await supabase
                 .from('recipes')
                 .insert([{
-                    author_email: realEmail, // Używamy zweryfikowanego emaila
+                    author_id: authUserId, // NOWE: Twarda relacja UUID do tabeli public.users
+                    author_email: realEmail, // Fallback informacyjny
                     family_id: realFamilyId || null, // Używamy zweryfikowanego ID 
                     title: recipe.title,
                     ingredients: ingredientsStr,

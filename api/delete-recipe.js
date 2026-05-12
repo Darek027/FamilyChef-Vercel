@@ -15,15 +15,29 @@ export default async function handler(req, res) {
             global: { headers: { Authorization: authHeader } }
         });
 
-        // 1. Weryfikujemy JWT kryptograficznie na backendzie i wyciągamy PRAWDZIWY email
+        // 1. Weryfikujemy JWT kryptograficznie na backendzie i wyciągamy UUID
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) {
             return res.status(401).json({ status: "error", message: "Nieważny lub wygasły token sesji." });
         }
-        const realEmail = user.email;
+        const authUserId = user.id; // MIGRACJA na UUID
 
-        // 2. Query podlega RLS, a my dodatkowo wymuszamy Prawdziwy Email jako formę Defense in Depth
-        let query = supabase.from('recipes').delete().eq('author_email', realEmail);
+        // 2. Pobieramy prawdziwe Family ID użytkownika (po UUID) - Wdrożenie Kroku 3.4 z Planu
+        const { data: profile } = await supabase
+            .from('users')
+            .select('family_id')
+            .eq('id', authUserId)
+            .single();
+        const realFamilyId = profile?.family_id;
+
+        // 3. Query podlega RLS, a my dodatkowo wymuszamy twarde powiązanie po UUID lub Rodzinie
+        let query = supabase.from('recipes').delete();
+        
+        if (realFamilyId && realFamilyId.trim() !== '') {
+            query = query.eq('family_id', realFamilyId);
+        } else {
+            query = query.eq('author_id', authUserId); // Zabezpieczenie usuwania po UUID
+        }
 
         if (recipeIds && Array.isArray(recipeIds) && recipeIds.length > 0) {
             // Operacja MASOWA: uderzamy operatorem .in()

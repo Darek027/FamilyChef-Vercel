@@ -21,12 +21,13 @@ export default async function handler(req, res) {
             return res.status(401).json({ status: "error", message: "Nieważny token sesji." });
         }
         const realEmail = user.email;
+        const authUserId = user.id; // Migracja na UUID
 
-        // 2. Pobranie zaufanego Family ID
+        // 2. Pobranie zaufanego Family ID (odpytujemy po UUID)
         const { data: profile } = await supabase
             .from('users')
             .select('family_id')
-            .eq('email', realEmail)
+            .eq('id', authUserId)
             .single();
         const realFamilyId = profile?.family_id;
 
@@ -36,11 +37,11 @@ export default async function handler(req, res) {
             .update({ data: listData })
             .eq('id', listId);
 
-        // Zabezpieczamy edycję twardymi danymi
+        // Zabezpieczamy edycję twardymi danymi (Teraz po UUID)
         if (realFamilyId && realFamilyId.trim() !== '') {
             query = query.eq('family_id', realFamilyId);
         } else {
-            query = query.eq('author_email', realEmail);
+            query = query.eq('author_id', authUserId); // Zabezpieczenie po stałym UUID
         }
 
         const { error } = await query;

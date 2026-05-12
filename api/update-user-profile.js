@@ -22,6 +22,7 @@ export default async function handler(req, res) {
             return res.status(401).json({ status: "error", message: "Nieważny token sesji." });
         }
         const realEmail = user.email; // JEDYNE ZAUFANE ŹRÓDŁO TOŻSAMOŚCI
+        const authUserId = user.id; // Migracja na UUID
 
         if (!familyId || familyId.trim() === "") {
             let isUnique = false;
@@ -61,7 +62,7 @@ export default async function handler(req, res) {
         const { error: userError } = await supabase
             .from('users')
             .update(updatePayload)
-            .eq('email', realEmail); // ZMIENIONO
+            .eq('id', authUserId); // MIGRACJA: Aktualizacja po stałym ID
 
         if (userError) throw userError;
 
@@ -69,7 +70,7 @@ export default async function handler(req, res) {
         const { error: recipesError } = await supabase
             .from('recipes')
             .update({ family_id: familyId })
-            .eq('author_email', realEmail); // ZMIENIONO
+            .eq('author_id', authUserId); // MIGRACJA: Szukamy po stałym ID
 
         if (recipesError) throw recipesError;
 
@@ -77,7 +78,7 @@ export default async function handler(req, res) {
         const { error: shoppingError } = await supabase
             .from('shopping_lists')
             .update({ family_id: familyId })
-            .eq('author_email', realEmail); // ZMIENIONO
+            .eq('author_id', authUserId); // MIGRACJA: Szukamy po stałym ID
 
         if (shoppingError) throw shoppingError;
 

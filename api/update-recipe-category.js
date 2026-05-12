@@ -21,12 +21,13 @@ export default async function handler(req, res) {
             return res.status(401).json({ status: "error", message: "Nieważny token sesji." });
         }
         const realEmail = user.email;
+        const authUserId = user.id; // Migracja na UUID
 
         const { error } = await supabase
             .from('recipes')
             .update({ category: category })
             .eq('id', recipeId)
-            .eq('author_email', realEmail); // Używamy zaufanego emaila!
+            .eq('author_id', authUserId); // MIGRACJA: Zabezpieczenie modyfikacji po UUID!
 
         if (error) throw error;
 

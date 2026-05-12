@@ -19,13 +19,13 @@ export default async function handler(req, res) {
         if (authError || !user) {
             return res.status(401).json({ status: "error", message: "Nieważny token sesji." });
         }
-        const realEmail = user.email;
+        const authUserId = user.id; // MIGRACJA na UUID
 
-        // 2. Pobieramy prawdziwe Family ID użytkownika ze sprawdzonego źródła (Baza Danych)
+        // 2. Pobieramy prawdziwe Family ID użytkownika ze sprawdzonego źródła (po UUID)
         const { data: profile } = await supabase
             .from('users')
             .select('family_id')
-            .eq('email', realEmail)
+            .eq('id', authUserId)
             .single();
             
         const realFamilyId = profile?.family_id;
@@ -36,7 +36,7 @@ export default async function handler(req, res) {
         if (realFamilyId && realFamilyId.trim() !== '') {
             query = query.eq('family_id', realFamilyId);
         } else {
-            query = query.eq('author_email', realEmail);
+            query = query.eq('author_id', authUserId); // Zabezpieczenie usuwania po UUID
         }
 
         const { error } = await query;

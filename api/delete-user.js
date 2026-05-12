@@ -33,11 +33,11 @@ export default async function handler(req, res) {
         const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
         // KROK 3: Usunięcie profilu z `public.users`.
-        // Dzięki kaskadzie w bazie (ON DELETE CASCADE), PostgreSQL zdejmie w tym momencie wszystkie przepisy i listy zakupów tego e-maila.
+        // Dzięki kaskadzie w bazie (ON DELETE CASCADE), PostgreSQL zdejmie w tym momencie wszystkie przepisy i listy zakupów przypisane do tego UUID.
         const { error: dbError } = await supabaseAdmin
             .from('users')
             .delete()
-            .eq('email', email);
+            .eq('id', user.id); // MIGRACJA: Twarde usunięcie klucza głównego (UUID)
 
         if (dbError) throw dbError;
 

@@ -11,17 +11,21 @@ export default async function handler(req, res) {
         if (!authHeader) return res.status(401).json({ status: "error", message: "Brak dostępu." });
 
         const { createClient } = await import('@supabase/supabase-js');
+        
         const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
             global: { headers: { Authorization: authHeader } }
         });
+        const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
         // KRYPTOGRAFICZNA WERYFIKACJA TOŻSAMOŚCI
         const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
         if (authError || !authUser) return res.status(401).json({ status: "error", message: "Nieważny token sesji." });
+        
         const email = authUser.email; // Zaufany email
+        const authUserId = authUser.id; // Stały UUID użytkownika
 
-        // Pobranie prawdziwego Family ID z profilu użytkownika
-        const { data: profile } = await supabase.from('users').select('family_id').eq('email', email).single();
+        // Pobranie prawdziwego Family ID z profilu użytkownika (z użyciem stałego UUID)
+        const { data: profile } = await supabase.from('users').select('family_id').eq('id', authUserId).single();
         const familyId = profile?.family_id;
 
         // 1. Pobieramy składniki
@@ -33,23 +37,22 @@ export default async function handler(req, res) {
         if (recipesError) throw recipesError;
         if (!recipes || recipes.length === 0) throw new Error("Nie znaleziono przepisów w bazie.");
 
-        // WERSJA 4.3.6 - ZABEZPIECZENIE LIMITÓW AI DLA LIST ZAKUPÓW (Współdzielona pula z przepisami)
-        // 1b. Pobranie profilu użytkownika do weryfikacji limitów
-        const { data: user } = await supabase
-            .from('users')
+        // WERSJA 5.4.0 - Odczyt limitów i statusu z nowej tabeli billingowej przez Admina
+        const { data: billing } = await supabaseAdmin
+            .from('users_billing')
             .select('is_premium, daily_generations, last_generation_date')
-            .eq('email', email)
+            .eq('id', authUserId)
             .maybeSingle();
 
         // WERSJA 4.9.0 - CENTRALIZACJA LIMITÓW BIZNESOWYCH (Zmienne .env)
-        const isPremium = user?.is_premium || false;
+        const isPremium = billing?.is_premium || false;
         const DAILY_FREE_LIMIT = parseInt(process.env.DAILY_FREE_LIMIT || '3', 10);   
         const DAILY_PREMIUM_LIMIT = parseInt(process.env.DAILY_PREMIUM_LIMIT || '50', 10); 
         
         const todayStr = new Date().toISOString().split('T')[0];
-        const userLastDate = user?.last_generation_date ? new Date(user.last_generation_date).toISOString().split('T')[0] : null;
+        const userLastDate = billing?.last_generation_date ? new Date(billing.last_generation_date).toISOString().split('T')[0] : null;
         
-        let currentDailyCount = user?.daily_generations || 0;
+        let currentDailyCount = billing?.daily_generations || 0;
         if (userLastDate !== todayStr) {
             currentDailyCount = 0;
         }
@@ -168,6 +171,7 @@ Zwróć wynik WYŁĄCZNIE jako czysty JSON według tego schematu:
         const { error: insertError } = await supabase
             .from('shopping_lists')
             .insert([{
+                author_id: authUserId, // NOWE: Wstrzykujemy UUID
                 author_email: email,
                 family_id: familyId || null, // Zapisujemy ID rodziny
                 title: listTitle,
@@ -176,14 +180,14 @@ Zwróć wynik WYŁĄCZNIE jako czysty JSON według tego schematu:
 
         if (insertError) throw insertError;
 
-        // WERSJA 4.3.6 - KONSUMPCJA LIMITU (Aktualizacja w bazie po udanym generowaniu listy)
-        const { error: updateError } = await supabase
-            .from('users')
+        // WERSJA 5.4.1 - KONSUMPCJA LIMITU (Aktualizacja w nowej tabeli billingowej przez Admina)
+        const { error: updateError } = await supabaseAdmin
+            .from('users_billing')
             .update({ 
                 daily_generations: newDailyCount, 
-                last_generation_date: new Date().toISOString() 
+                last_generation_date: todayStr 
             })
-            .eq('email', email);
+            .eq('id', authUserId);
 
         if (updateError) console.error("🔥 Błąd zapisu limitu dziennego (Shopping List):", updateError);
 

@@ -17,36 +17,37 @@ export default async function handler(req, res) {
             global: { headers: { Authorization: authHeader } }
         });
 
-        // 1. KRYPTOGRAFICZNA WERYFIKACJA (Wyciągamy prawdziwy e-mail z tokena)
+        // 1. KRYPTOGRAFICZNA WERYFIKACJA (Wyciągamy UUID z tokena)
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) {
             return res.status(401).json({ status: "error", message: "Nieważny token sesji." });
         }
-        const realEmail = user.email;
+        const authUserId = user.id; // MIGRACJA NA UUID
 
-        // 2. BEZPIECZNE POBRANIE FAMILY_ID Z BAZY (a nie z paska URL)
+        // 2. BEZPIECZNE POBRANIE FAMILY_ID Z BAZY (po UUID)
         const { data: profile } = await supabase
             .from('users')
             .select('family_id')
-            .eq('email', realEmail)
+            .eq('id', authUserId)
             .single();
         const realFamilyId = profile?.family_id;
 
         // 3. Dynamiczne budowanie zapytania dla przepisów
         let recipeQuery = supabase
             .from('recipes')
-            .select('id, title, category, author_email, created_at');
+            // Wyciągamy też author_id, a author_email zostawiamy dla wstecznej kompatybilności na frontendzie
+            .select('id, title, category, author_id, author_email, created_at');
 
         if (realFamilyId && realFamilyId.trim() !== '') {
             recipeQuery = recipeQuery.eq('family_id', realFamilyId);
         } else {
-            recipeQuery = recipeQuery.eq('author_email', realEmail);
+            recipeQuery = recipeQuery.eq('author_id', authUserId); // MIGRACJA
         }
 
         const { data: recipes, error: recipesError } = await recipeQuery.order('created_at', { ascending: false });
         if (recipesError) throw recipesError;
 
-        // 4. Pobieranie list zakupów (Zaktualizowano: uwzględnia również Family ID, wcześniej było tylko email)
+        // 4. Pobieranie list zakupów (Zaktualizowano: uwzględnia również Family ID, po UUID)
         let shoppingQuery = supabase
             .from('shopping_lists')
             .select('*');
@@ -54,7 +55,7 @@ export default async function handler(req, res) {
         if (realFamilyId && realFamilyId.trim() !== '') {
             shoppingQuery = shoppingQuery.eq('family_id', realFamilyId);
         } else {
-            shoppingQuery = shoppingQuery.eq('author_email', realEmail);
+            shoppingQuery = shoppingQuery.eq('author_id', authUserId); // MIGRACJA
         }
 
         const { data: shoppingLists, error: shoppingError } = await shoppingQuery.order('created_at', { ascending: false });
