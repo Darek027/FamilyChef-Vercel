@@ -21,14 +21,8 @@ export default async function handler(req, res) {
         }
         const authUserId = user.id; // MIGRACJA na UUID
 
-        // 2. Pobieramy prawdziwe Family ID użytkownika ze sprawdzonego źródła (po UUID)
-        const { data: profile } = await supabase
-            .from('users')
-            .select('family_id')
-            .eq('id', authUserId)
-            .single();
-            
-        const realFamilyId = profile?.family_id;
+        // WERSJA 4.5.4 - AUTH HOOK: Odczyt Kodu Rodziny z payloadu JWT (Bypass DB)
+        const realFamilyId = user.app_metadata?.family_id || null;
 
         // 3. Budujemy zapytanie o usunięcie, bazując WYŁĄCZNIE na twardych danych
         let query = supabase.from('shopping_lists').delete().eq('id', listId);

@@ -289,22 +289,51 @@ localStorage.setItem('supabaseRefreshToken', res.session.refresh_token); // Zapi
             location.reload(); 
         }
 
-function switchTab(tabName) {
-            ['generator', 'dashboard', 'shopping', 'profile'].forEach(tab => {
-                // Nowe klasy CSS dla nieaktywnych przycisków
-                document.getElementById('tab-' + tab).className = "flex-1 py-4 px-1 sm:px-4 font-semibold text-charcoal_light border-b-2 border-transparent hover:text-terracotta flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-base transition-colors whitespace-nowrap";
-                document.getElementById('view-' + tab).classList.add('hidden');
-            });
-            // Nowe klasy CSS dla Aktywnego przycisku
-            document.getElementById('tab-' + tabName).className = "flex-1 py-4 px-1 sm:px-4 font-bold text-terracotta border-b-2 border-terracotta flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-base transition-colors whitespace-nowrap";
-            document.getElementById('view-' + tabName).classList.remove('hidden');
+// --- FUNKCJE OBSŁUGI DROPDOWNU (Dodaj to nad switchTab) ---
+function toggleUserMenu(event) {
+    event.stopPropagation();
+    const dropdown = document.getElementById('userDropdown');
+    dropdown.classList.toggle('hidden');
+    lucide.createIcons();
+}
 
-            if(tabName === 'dashboard') { loadDashboard(); document.getElementById('shoppingListFab').style.display = selectedRecipesForShopping.length > 0 ? 'block' : 'none'; }
-            else { document.getElementById('shoppingListFab').style.display = 'none'; }
-           
-            if(tabName === 'shopping') showShoppingDash();
-            if(tabName === 'profile') loadProfileData();
+window.addEventListener('click', function(e) {
+    const dropdown = document.getElementById('userDropdown');
+    if (dropdown && !dropdown.classList.contains('hidden')) {
+        dropdown.classList.add('hidden');
+    }
+});
+
+// --- ZAKTUALIZOWANY switchTab ---
+function switchTab(tabName) {
+    ['generator', 'dashboard', 'shopping', 'profile'].forEach(tab => {
+        const btn = document.getElementById('tab-' + tab);
+        if (btn) {
+            btn.className = "flex-1 py-4 px-1 sm:px-4 font-semibold text-charcoal_light border-b-2 border-transparent hover:text-terracotta flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-base transition-colors whitespace-nowrap";
         }
+        document.getElementById('view-' + tab).classList.add('hidden');
+    });
+
+    const activeBtn = document.getElementById('tab-' + tabName);
+    if (activeBtn) {
+        activeBtn.className = "flex-1 py-4 px-1 sm:px-4 font-bold text-terracotta border-b-2 border-terracotta flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-base transition-colors whitespace-nowrap";
+    }
+
+    document.getElementById('view-' + tabName).classList.remove('hidden');
+
+    if(tabName === 'dashboard') { 
+        loadDashboard(); 
+        document.getElementById('shoppingListFab').style.display = selectedRecipesForShopping.length > 0 ? 'block' : 'none'; 
+    } else { 
+        document.getElementById('shoppingListFab').style.display = 'none'; 
+    }
+   
+    if(tabName === 'shopping') showShoppingDash();
+    if(tabName === 'profile') {
+        loadProfileData();
+        document.getElementById('userDropdown').classList.add('hidden'); // Zamyka menu po wejściu w profil
+    }
+}
 
         async function loadDashboard() {
             var grid = document.getElementById("dashboard-grid");
@@ -689,6 +718,7 @@ function renderGrid(recipesToRender) {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
+                    // WERSJA 5.5.1 - [SAAS UX: Obsługa Timeoutów AI - Krok 4.2]
                     body: JSON.stringify({
                         email: currentUserEmail,
                         userMessage: feedbackInput.value,
@@ -699,6 +729,10 @@ function renderGrid(recipesToRender) {
                         skillLevel: document.getElementById("generatorSkill").value
                     })
                 });
+
+                if (response.status === 504 || response.status === 502) {
+                    return onFailure({ message: "Nasz Szef Kuchni dostał zadyszki przy poprawkach. Odczekaj chwilę i spróbuj ponownie." });
+                }
                 
                 // WERSJA 4.9.9.2 - [POPRAWKA] Przekazywanie tagów po użyciu Feedbacku
                 const res = await response.json();
@@ -918,6 +952,23 @@ function renderGrid(recipesToRender) {
                     document.getElementById('recipeServings').value = serv;
                     document.getElementById('generatorChef').value = chef;
                     document.getElementById('generatorSkill').value = skill;
+
+                    // WERSJA 5.4.0 - PROACTIVE JWT REFRESH (Krok 4.1 Planu)
+                    // Odświeżamy token, by Auth Hook natychmiast zassał z bazy nowe family_id
+                    const rToken = localStorage.getItem('supabaseRefreshToken');
+                    if (rToken) {
+                        fetch('/api/auth', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ step: 'refresh', refresh_token: rToken })
+                        }).then(r => r.json()).then(data => {
+                            if (data.status === 'success' && data.session) {
+                                localStorage.setItem('supabaseToken', data.session.access_token);
+                                localStorage.setItem('supabaseRefreshToken', data.session.refresh_token);
+                                console.log("🔒 Sesja zsynchronizowana z nowym Family ID.");
+                            }
+                        }).catch(e => console.error("Błąd odświeżania tokena po zapisie profilu", e));
+                    }
                 } else {
                     alert(res.message);
                     btn.innerHTML = oHtml;

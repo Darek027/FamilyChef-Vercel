@@ -23,13 +23,8 @@ export default async function handler(req, res) {
         const realEmail = user.email;
         const authUserId = user.id; // Migracja na UUID
 
-        // 2. Pobranie zaufanego Family ID (odpytujemy po UUID)
-        const { data: profile } = await supabase
-            .from('users')
-            .select('family_id')
-            .eq('id', authUserId)
-            .single();
-        const realFamilyId = profile?.family_id;
+        // WERSJA 4.5.4 - AUTH HOOK: Odczyt Kodu Rodziny z payloadu JWT (Bypass DB)
+        const realFamilyId = user.app_metadata?.family_id || null;
 
         // Zaczynamy budować zapytanie...
         let query = supabase

@@ -23,13 +23,8 @@ export default async function handler(req, res) {
         const realEmail = user.email;
         const authUserId = user.id; // Migracja na stałe UUID
 
-        // 2. Pobranie zaufanego Family ID (odpytujemy używając UUID)
-        const { data: profile } = await supabase
-            .from('users')
-            .select('family_id')
-            .eq('id', authUserId)
-            .single();
-        const realFamilyId = profile?.family_id;
+        // WERSJA 4.9.4 - AUTH HOOK: Odczyt Kodu Rodziny z payloadu JWT (Bypass DB)
+        const realFamilyId = user.app_metadata?.family_id || null;
 
         // 3. Konwersja tablic na tekst z enterami
         const ingredientsStr = Array.isArray(recipe.ingredients) ? recipe.ingredients.join('\n') : recipe.ingredients;

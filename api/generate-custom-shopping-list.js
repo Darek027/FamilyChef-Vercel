@@ -34,13 +34,9 @@ export default async function handler(req, res) {
         const email = authUser.email; // Zaufany email z JWT
         const authUserId = authUser.id; // Migracja na UUID
 
-        // 1. Pobranie Family ID (z public.users) i limitów AI (z users_billing przez Admina)
-        const { data: user } = await supabase
-            .from('users')
-            .select('family_id')
-            .eq('id', authUserId)
-            .maybeSingle();
-        const familyId = user?.family_id;
+        // 1. Odczyt Family ID z JWT (Auth Hook) i limitów AI (z users_billing przez Admina)
+        // WERSJA 5.3.1 - AUTH HOOK Bypass DB
+        const familyId = authUser.app_metadata?.family_id || null;
 
         const { data: billing } = await supabaseAdmin
             .from('users_billing')

@@ -16,20 +16,15 @@ export default async function handler(req, res) {
             global: { headers: { Authorization: authHeader } }
         });
 
-        // 1. Weryfikacja kryptograficzna
+        // WERSJA 4.9.0 - AUTH HOOK: ODCZYT TOŻSAMOŚCI I KODU RODZINY PROSTO Z JWT
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) {
             return res.status(401).json({ status: "error", message: "Nieważny token sesji." });
         }
-        const authUserId = user.id; // MIGRACJA NA UUID
+        const authUserId = user.id; 
 
-        // 2. Pobranie zaufanego Family ID z bazy (po UUID)
-        const { data: profile } = await supabase
-            .from('users')
-            .select('family_id')
-            .eq('id', authUserId)
-            .single();
-        const realFamilyId = profile?.family_id;
+        // Koniec z zapytaniami N+1 - czytamy bezpośrednio z tokena!
+        const realFamilyId = user.app_metadata?.family_id || null;
 
         let query = supabase.from('shopping_lists').select('*');
 

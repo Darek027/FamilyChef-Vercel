@@ -17,20 +17,15 @@ export default async function handler(req, res) {
             global: { headers: { Authorization: authHeader } }
         });
 
-        // 1. KRYPTOGRAFICZNA WERYFIKACJA (Wyciągamy UUID z tokena)
+        // WERSJA 4.9.0 - AUTH HOOK: ODCZYT TOŻSAMOŚCI I KODU RODZINY PROSTO Z JWT
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) {
             return res.status(401).json({ status: "error", message: "Nieważny token sesji." });
         }
-        const authUserId = user.id; // MIGRACJA NA UUID
-
-        // 2. BEZPIECZNE POBRANIE FAMILY_ID Z BAZY (po UUID)
-        const { data: profile } = await supabase
-            .from('users')
-            .select('family_id')
-            .eq('id', authUserId)
-            .single();
-        const realFamilyId = profile?.family_id;
+        const authUserId = user.id; 
+        
+        // Zamiast uderzać do bazy, wyciągamy zaufane family_id z payloadu JWT
+        const realFamilyId = user.app_metadata?.family_id || null;
 
         // 3. Dynamiczne budowanie zapytania dla przepisów
         let recipeQuery = supabase

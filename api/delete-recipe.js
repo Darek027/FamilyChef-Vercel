@@ -22,13 +22,8 @@ export default async function handler(req, res) {
         }
         const authUserId = user.id; // MIGRACJA na UUID
 
-        // 2. Pobieramy prawdziwe Family ID użytkownika (po UUID) - Wdrożenie Kroku 3.4 z Planu
-        const { data: profile } = await supabase
-            .from('users')
-            .select('family_id')
-            .eq('id', authUserId)
-            .single();
-        const realFamilyId = profile?.family_id;
+        // WERSJA 4.9.8 - AUTH HOOK: Odczyt Kodu Rodziny z payloadu JWT (Bypass DB)
+        const realFamilyId = user.app_metadata?.family_id || null;
 
         // 3. Query podlega RLS, a my dodatkowo wymuszamy twarde powiązanie po UUID lub Rodzinie
         let query = supabase.from('recipes').delete();

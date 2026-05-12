@@ -30,13 +30,8 @@ export default async function handler(req, res) {
         authUserId = authUser.id; // Migracja UUID
 
         // --- START BLOKADY SPAMU ORAZ POBRANIA FAMILY_ID ---
-        const { data: user } = await supabase
-            .from('users')
-            .select('family_id')
-            .eq('id', authUserId)
-            .maybeSingle();
-            
-        const familyId = user?.family_id;
+        // WERSJA 5.3.1 - AUTH HOOK: Odczyt Kodu Rodziny z payloadu JWT
+        const familyId = authUser.app_metadata?.family_id || null;
 
         const { data: billing } = await supabaseAdmin
             .from('users_billing')
