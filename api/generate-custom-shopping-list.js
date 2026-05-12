@@ -35,8 +35,17 @@ export default async function handler(req, res) {
         const authUserId = authUser.id; // Migracja na UUID
 
         // 1. Odczyt Family ID z JWT (Auth Hook) i limitów AI (z users_billing przez Admina)
-        // WERSJA 5.3.1 - AUTH HOOK Bypass DB
-        const familyId = authUser.app_metadata?.family_id || null;
+        // WERSJA 5.3.2 - BUGFIX SAAS: Odczyt Kodu Rodziny bezpośrednio z Base64 JWT
+        let familyId = null;
+        try {
+            const tokenStr = authHeader.replace('Bearer ', '');
+            const payloadBase64 = tokenStr.split('.')[1];
+            const base64 = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
+            const jwtPayload = JSON.parse(Buffer.from(base64, 'base64').toString('utf-8'));
+            familyId = jwtPayload.app_metadata?.family_id || null;
+        } catch (e) {
+            console.error("🔥 Błąd dekodowania JWT w Custom Shopping List:", e);
+        }
 
         const { data: billing } = await supabaseAdmin
             .from('users_billing')

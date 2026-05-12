@@ -24,8 +24,17 @@ export default async function handler(req, res) {
         const email = authUser.email; // Zaufany email
         const authUserId = authUser.id; // Stały UUID użytkownika
 
-        // WERSJA 5.1.1 - AUTH HOOK: Odczyt Kodu Rodziny z payloadu JWT (Bypass DB)
-        const familyId = authUser.app_metadata?.family_id || null;
+        // WERSJA 5.1.2 - BUGFIX SAAS: Odczyt Kodu Rodziny bezpośrednio z Base64 JWT
+        let familyId = null;
+        try {
+            const tokenStr = authHeader.replace('Bearer ', '');
+            const payloadBase64 = tokenStr.split('.')[1];
+            const base64 = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
+            const jwtPayload = JSON.parse(Buffer.from(base64, 'base64').toString('utf-8'));
+            familyId = jwtPayload.app_metadata?.family_id || null;
+        } catch (e) {
+            console.error("🔥 Błąd dekodowania JWT w Shopping List:", e);
+        }
 
         // 1. Pobieramy składniki
         const { data: recipes, error: recipesError } = await supabase

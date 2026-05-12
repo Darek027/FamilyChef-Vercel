@@ -673,19 +673,25 @@ function renderGrid(recipesToRender) {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({
-                        email: currentUserEmail,
-                        userMessage: inputField.value,
-                        isAdjustment: false,
-                        previousRecipe: null,
-                        servings: parseInt(document.getElementById("recipeServings").value),
-                        chefPersona: document.getElementById("generatorChef").value,
-                        skillLevel: document.getElementById("generatorSkill").value
-                    })
-                });
-                
-                // WERSJA 4.9.9.2 - [POPRAWKA] Przekazywanie tagów z API do UI
-                const res = await response.json();
+body: JSON.stringify({
+                    email: currentUserEmail,
+                    userMessage: inputField.value,
+                    isAdjustment: false,
+                    previousRecipe: null,
+                    servings: parseInt(document.getElementById("recipeServings").value),
+                    chefPersona: document.getElementById("generatorChef").value,
+                    skillLevel: document.getElementById("generatorSkill").value
+                })
+            });
+
+            // WERSJA 5.5.2 - [SAAS UX: Obsługa Timeoutów AI dla nowego przepisu]
+            // Zabezpieczenie przed błędem parsowania JSON w przypadku awarii bramki Vercel/Gemini
+            if (response.status === 504 || response.status === 502) {
+                return onFailure({ message: "Nasz Szef Kuchni dostał zadyszki od nadmiaru zamówień. Odczekaj chwilę i spróbuj ponownie (Twój limit jest bezpieczny)." });
+            }
+            
+            // WERSJA 4.9.9.2 - [POPRAWKA] Przekazywanie tagów z API do UI
+            const res = await response.json();
                 
                 if (res.status === 'success') {
                     onSuccess({ 
@@ -1058,7 +1064,10 @@ function renderGrid(recipesToRender) {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({ recipeId: recipeId, email: currentUserEmail })
+                    body: JSON.stringify({ 
+                        recipeId: recipeId 
+                        // ZERO TRUST: Usunięto email
+                    })
                 });
                 loadDashboard(); 
             } catch (error) {
@@ -1183,7 +1192,10 @@ function renderShoppingListsDash() {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({ listId: listId, email: currentUserEmail, familyId: fId })
+                        body: JSON.stringify({ 
+                        listId: listId 
+                        // ZERO TRUST: Usunięto email i familyId
+                    })
                 });
                 fetchShoppingLists(); 
             } catch (error) {
@@ -1206,7 +1218,11 @@ function renderShoppingListsDash() {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({ listId: activeShoppingListId, email: currentUserEmail, familyId: fId })
+  
+                    body: JSON.stringify({ 
+                        listId: activeShoppingListId 
+                        // ZERO TRUST: Usunięto email i familyId
+                    })
                 });
                 btn.innerText = "Usuń tę listę";
                 showShoppingDash(); 
@@ -1424,10 +1440,10 @@ function renderShoppingListsDash() {
                     headers: { 
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
-                    },
+},
                     body: JSON.stringify({ 
-                        recipeIds: selectedRecipesForShopping, 
-                        email: currentUserEmail 
+                        recipeIds: selectedRecipesForShopping
+                        // ZERO TRUST: Usunięto email
                     })
                 });
                 

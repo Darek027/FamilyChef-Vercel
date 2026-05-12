@@ -30,8 +30,17 @@ export default async function handler(req, res) {
         authUserId = authUser.id; // Migracja UUID
 
         // --- START BLOKADY SPAMU ORAZ POBRANIA FAMILY_ID ---
-        // WERSJA 5.3.1 - AUTH HOOK: Odczyt Kodu Rodziny z payloadu JWT
-        const familyId = authUser.app_metadata?.family_id || null;
+        // WERSJA 5.3.2 - BUGFIX SAAS: Odczyt Kodu Rodziny bezpośrednio z Base64 JWT
+        let familyId = null;
+        try {
+            const tokenStr = authHeader.replace('Bearer ', '');
+            const payloadBase64 = tokenStr.split('.')[1];
+            const base64 = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
+            const jwtPayload = JSON.parse(Buffer.from(base64, 'base64').toString('utf-8'));
+            familyId = jwtPayload.app_metadata?.family_id || null;
+        } catch (e) {
+            console.error("🔥 Błąd dekodowania JWT w send-recipe:", e);
+        }
 
         const { data: billing } = await supabaseAdmin
             .from('users_billing')

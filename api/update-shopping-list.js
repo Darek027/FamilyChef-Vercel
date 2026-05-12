@@ -23,8 +23,17 @@ export default async function handler(req, res) {
         const realEmail = user.email;
         const authUserId = user.id; // Migracja na UUID
 
-        // WERSJA 4.5.4 - AUTH HOOK: Odczyt Kodu Rodziny z payloadu JWT (Bypass DB)
-        const realFamilyId = user.app_metadata?.family_id || null;
+        // WERSJA 4.5.5 - BUGFIX SAAS: Odczyt Kodu Rodziny bezpośrednio z Base64 JWT
+        let realFamilyId = null;
+        try {
+            const tokenStr = authHeader.replace('Bearer ', '');
+            const payloadBase64 = tokenStr.split('.')[1];
+            const base64 = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
+            const jwtPayload = JSON.parse(Buffer.from(base64, 'base64').toString('utf-8'));
+            realFamilyId = jwtPayload.app_metadata?.family_id || null;
+        } catch (e) {
+            console.error("🔥 Błąd dekodowania JWT:", e);
+        }
 
         // Zaczynamy budować zapytanie...
         let query = supabase
