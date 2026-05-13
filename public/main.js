@@ -1484,7 +1484,7 @@ function renderShoppingListsDash() {
             }
         }
 
-// WERSJA 5.4.0 - [UX: Podział na aktywne/kupione i usuwanie pojedynczych produktów]
+// WERSJA 5.4.0.1 - [UX MOBILE FIX: Stała widoczność ikon usuwania z bezpiecznym hitboxem]
         function renderShoppingListUI() {
             const content = document.getElementById('shoppingContent'); 
             content.innerHTML = "";
@@ -1494,7 +1494,7 @@ function renderShoppingListsDash() {
             let checkedItemsHtml = "";
             
             activeShoppingListArray.forEach((group, gIndex) => {
-                // 1. Wyciągamy tylko NIEKUPIONE produkty (zachowując ich oryginalny index dla API)
+                // 1. Wyciągamy tylko NIEKUPIONE produkty
                 const uncheckedItems = group.items.map((item, iIndex) => ({item, iIndex})).filter(x => !x.item.checked);
                 
                 if (uncheckedItems.length > 0) {
@@ -1507,12 +1507,12 @@ function renderShoppingListsDash() {
                     let itemsHtml = "";
                     uncheckedItems.forEach(({item, iIndex}) => {
                         itemsHtml += `
-                            <div class="flex items-center gap-3 p-3 rounded-xl border bg-white border-charcoal/5 shadow-sm hover:border-sage/30 transition group">
-                                <div onclick="toggleShoppingItem(${gIndex}, ${iIndex})" class="mt-0.5 shrink-0 cursor-pointer">
+                            <div class="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-xl border bg-white border-charcoal/5 shadow-sm hover:border-sage/30 transition">
+                                <div onclick="toggleShoppingItem(${gIndex}, ${iIndex})" class="mt-0.5 shrink-0 cursor-pointer p-1">
                                     <i data-lucide="square" class="text-charcoal/20 w-5 h-5 hover:text-sage transition"></i>
                                 </div>
                                 <span onclick="toggleShoppingItem(${gIndex}, ${iIndex})" class="text-sm font-semibold flex-grow cursor-pointer">${item.name}</span>
-                                <button onclick="deleteShoppingItem(${gIndex}, ${iIndex})" class="text-charcoal/20 hover:text-terracotta transition p-1 opacity-0 group-hover:opacity-100 sm:opacity-100" title="Usuń produkt">
+                                <button onclick="deleteShoppingItem(${gIndex}, ${iIndex})" class="text-charcoal/20 hover:text-terracotta transition p-3 -mr-2 shrink-0 flex items-center justify-center" title="Usuń produkt">
                                     <i data-lucide="x" class="w-4 h-4"></i>
                                 </button>
                             </div>
@@ -1523,18 +1523,18 @@ function renderShoppingListsDash() {
                     fragment.appendChild(grpDiv);
                 }
 
-                // 2. Zbieramy KUPIONE produkty do oddzielnego stringa
+                // 2. Zbieramy KUPIONE produkty
                 const checkedItems = group.items.map((item, iIndex) => ({item, iIndex})).filter(x => x.item.checked);
                 if (checkedItems.length > 0) {
                     hasCheckedItems = true;
                     checkedItems.forEach(({item, iIndex}) => {
                         checkedItemsHtml += `
-                            <div class="flex items-center gap-3 p-3 rounded-xl border item-checked transition group">
-                                <div onclick="toggleShoppingItem(${gIndex}, ${iIndex})" class="mt-0.5 shrink-0 cursor-pointer">
+                            <div class="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-xl border item-checked transition">
+                                <div onclick="toggleShoppingItem(${gIndex}, ${iIndex})" class="mt-0.5 shrink-0 cursor-pointer p-1">
                                     <i data-lucide="check-square" class="text-sage w-5 h-5"></i>
                                 </div>
                                 <span onclick="toggleShoppingItem(${gIndex}, ${iIndex})" class="text-sm font-semibold flex-grow cursor-pointer line-through">${item.name}</span>
-                                <button onclick="deleteShoppingItem(${gIndex}, ${iIndex})" class="text-charcoal/40 hover:text-terracotta transition p-1 opacity-0 group-hover:opacity-100 sm:opacity-100" title="Usuń produkt">
+                                <button onclick="deleteShoppingItem(${gIndex}, ${iIndex})" class="text-charcoal/30 hover:text-terracotta transition p-3 -mr-2 shrink-0 flex items-center justify-center" title="Usuń produkt">
                                     <i data-lucide="x" class="w-4 h-4"></i>
                                 </button>
                             </div>
@@ -1545,7 +1545,7 @@ function renderShoppingListsDash() {
             
             content.appendChild(fragment);
 
-            // 3. Renderujemy osobną sekcję na dole z zebranymi kupionymi produktami
+            // 3. Renderujemy sekcję KUPIONE
             if (hasCheckedItems) {
                 const boughtDiv = document.createElement('div');
                 boughtDiv.className = "mt-8 pt-4 border-t-2 border-dashed border-charcoal/10";

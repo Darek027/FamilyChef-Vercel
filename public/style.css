@@ -783,6 +783,10 @@ video {
   margin-top: auto;
 }
 
+.-mr-2 {
+  margin-right: -0.5rem;
+}
+
 .block {
   display: block;
 }
@@ -1624,6 +1628,10 @@ video {
   color: rgb(255 255 255 / 0.8);
 }
 
+.text-charcoal\/30 {
+  color: rgb(74 69 67 / 0.3);
+}
+
 .line-through {
   text-decoration-line: line-through;
 }
@@ -1965,6 +1973,10 @@ video {
 
   .sm\:gap-4 {
     gap: 1rem;
+  }
+
+  .sm\:p-3 {
+    padding: 0.75rem;
   }
 
   .sm\:px-4 {
