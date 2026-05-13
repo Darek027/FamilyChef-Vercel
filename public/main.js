@@ -1049,8 +1049,14 @@ body: JSON.stringify({
             }
         }
 
+        // WERSJA 4.9.20 - [UX: Podwójne potwierdzenie dla pojedynczego usunięcia przepisu (Idiot-proof Check)]
         async function deleteRecipeAction(recipeId) {
-            if (!confirm("Trwale usunąć ten przepis?")) return;
+            // Etap 1: Standardowe ostrzeżenie
+            if (!confirm("⚠️ UWAGA! Zamierzasz usunąć ten przepis. Kontynuować?")) return;
+            
+            // Etap 2: Twarda blokada psychologiczna
+            if (!confirm("Ostatnie ostrzeżenie. Usunięcie tego przepisu jest absolutnie nieodwracalne. Na pewno usunąć?")) return;
+
             var grid = document.getElementById("dashboard-grid"); 
             grid.innerHTML = `<div class="col-span-full text-center py-12"><i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto mb-3 text-terracotta"></i> Usuwanie...</div>`; 
             lucide.createIcons();
@@ -1414,9 +1420,21 @@ function renderShoppingListsDash() {
         }
 
 // WERSJA 4.9.5 - MASOWE USUWANIE PRZEPISÓW (Bulk Delete z 2-stopniowym RODO-safe potwierdzeniem)
+        // WERSJA 4.9.13 - [ZABEZPIECZENIE: Blokada usuwania cudzych przepisów z poziomu koszyka]
         async function bulkDeleteRecipesAction() {
             if (selectedRecipesForShopping.length === 0) return;
             
+            // Zabezpieczenie: Sprawdzamy czy w koszyku są przepisy, których autorem NIE JEST obecny użytkownik
+            const foreignRecipes = allSavedRecipes.filter(r => 
+                selectedRecipesForShopping.includes(r.id) && 
+                String(r.author_email || r.author).trim().toLowerCase() !== currentUserEmail
+            );
+
+            if (foreignRecipes.length > 0) {
+                alert(`Zaraz, zaraz! Próbujesz usunąć ${foreignRecipes.length} przepis(ów) należących do kogoś z Twojej rodziny.\n\nZe względów bezpieczeństwa możesz usuwać wyłącznie własne przepisy. Odznacz je z koszyka, aby kontynuować.`);
+                return; // Blokada wykonania akcji
+            }
+
             const count = selectedRecipesForShopping.length;
             
             // Etap 1: Standardowe ostrzeżenie
@@ -1466,39 +1484,121 @@ function renderShoppingListsDash() {
             }
         }
 
-        // WERSJA 5.3.0 - [OPTYMALIZACJA DOM: DocumentFragment dla renderShoppingListUI]
+// WERSJA 5.4.0 - [UX: Podział na aktywne/kupione i usuwanie pojedynczych produktów]
         function renderShoppingListUI() {
             const content = document.getElementById('shoppingContent'); 
             content.innerHTML = "";
-            
             const fragment = document.createDocumentFragment();
             
-            activeShoppingListArray.forEach((group, gIndex) => {
-                const grpDiv = document.createElement('div');
-                grpDiv.innerHTML = `<h3 class="font-bold text-sage_dark mb-2 border-b border-charcoal/5 pb-1">${group.category}</h3>`;
+            let hasCheckedItems = false;
+            let checkedItemsHtml = "";
             
-                const ul = document.createElement('div'); 
-                ul.className = "space-y-2";
+            activeShoppingListArray.forEach((group, gIndex) => {
+                // 1. Wyciągamy tylko NIEKUPIONE produkty (zachowując ich oryginalny index dla API)
+                const uncheckedItems = group.items.map((item, iIndex) => ({item, iIndex})).filter(x => !x.item.checked);
                 
-                // Tutaj również zamiast kilkukrotnego innerHTML zrobimy bufor stringów
-                let itemsHtml = "";
-                group.items.forEach((item, iIndex) => {
-                    const checkedClass = item.checked ? 'item-checked' : 'bg-white border-charcoal/5 shadow-sm hover:border-sage/30';
-                    const icon = item.checked ? `<i data-lucide="check-square" class="text-sage w-5 h-5"></i>` : `<i data-lucide="square" class="text-charcoal/20 w-5 h-5"></i>`;
-                    itemsHtml += `
-                        <div onclick="toggleShoppingItem(${gIndex}, ${iIndex})" class="flex items-start gap-3 p-3 rounded-xl border transition cursor-pointer ${checkedClass}">
-                            <div class="mt-0.5 shrink-0">${icon}</div>
-                            <span class="text-sm font-semibold">${item.name}</span>
-                        </div>
-                    `;
-                });
-                ul.innerHTML = itemsHtml;
-                grpDiv.appendChild(ul);
-                fragment.appendChild(grpDiv);
+                if (uncheckedItems.length > 0) {
+                    const grpDiv = document.createElement('div');
+                    grpDiv.innerHTML = `<h3 class="font-bold text-sage_dark mb-2 border-b border-charcoal/5 pb-1">${group.category}</h3>`;
+                
+                    const ul = document.createElement('div'); 
+                    ul.className = "space-y-2 mb-4";
+                    
+                    let itemsHtml = "";
+                    uncheckedItems.forEach(({item, iIndex}) => {
+                        itemsHtml += `
+                            <div class="flex items-center gap-3 p-3 rounded-xl border bg-white border-charcoal/5 shadow-sm hover:border-sage/30 transition group">
+                                <div onclick="toggleShoppingItem(${gIndex}, ${iIndex})" class="mt-0.5 shrink-0 cursor-pointer">
+                                    <i data-lucide="square" class="text-charcoal/20 w-5 h-5 hover:text-sage transition"></i>
+                                </div>
+                                <span onclick="toggleShoppingItem(${gIndex}, ${iIndex})" class="text-sm font-semibold flex-grow cursor-pointer">${item.name}</span>
+                                <button onclick="deleteShoppingItem(${gIndex}, ${iIndex})" class="text-charcoal/20 hover:text-terracotta transition p-1 opacity-0 group-hover:opacity-100 sm:opacity-100" title="Usuń produkt">
+                                    <i data-lucide="x" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        `;
+                    });
+                    ul.innerHTML = itemsHtml;
+                    grpDiv.appendChild(ul);
+                    fragment.appendChild(grpDiv);
+                }
+
+                // 2. Zbieramy KUPIONE produkty do oddzielnego stringa
+                const checkedItems = group.items.map((item, iIndex) => ({item, iIndex})).filter(x => x.item.checked);
+                if (checkedItems.length > 0) {
+                    hasCheckedItems = true;
+                    checkedItems.forEach(({item, iIndex}) => {
+                        checkedItemsHtml += `
+                            <div class="flex items-center gap-3 p-3 rounded-xl border item-checked transition group">
+                                <div onclick="toggleShoppingItem(${gIndex}, ${iIndex})" class="mt-0.5 shrink-0 cursor-pointer">
+                                    <i data-lucide="check-square" class="text-sage w-5 h-5"></i>
+                                </div>
+                                <span onclick="toggleShoppingItem(${gIndex}, ${iIndex})" class="text-sm font-semibold flex-grow cursor-pointer line-through">${item.name}</span>
+                                <button onclick="deleteShoppingItem(${gIndex}, ${iIndex})" class="text-charcoal/40 hover:text-terracotta transition p-1 opacity-0 group-hover:opacity-100 sm:opacity-100" title="Usuń produkt">
+                                    <i data-lucide="x" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        `;
+                    });
+                }
             });
             
             content.appendChild(fragment);
+
+            // 3. Renderujemy osobną sekcję na dole z zebranymi kupionymi produktami
+            if (hasCheckedItems) {
+                const boughtDiv = document.createElement('div');
+                boughtDiv.className = "mt-8 pt-4 border-t-2 border-dashed border-charcoal/10";
+                boughtDiv.innerHTML = `
+                    <h3 class="font-bold text-charcoal_light mb-3 flex items-center gap-2">
+                        <i data-lucide="check-circle-2" class="w-5 h-5"></i> Kupione
+                    </h3>
+                    <div class="space-y-2 opacity-70">
+                        ${checkedItemsHtml}
+                    </div>
+                `;
+                content.appendChild(boughtDiv);
+            }
+            
             lucide.createIcons();
+        }
+
+        // WERSJA 5.4.1 - [LOGIKA: Usuwanie pojedynczych produktów z listy zakupów (Manual Clean)]
+        function deleteShoppingItem(gIdx, iIdx) {
+            // 1. Usuwamy produkt z odpowiedniej kategorii w tablicy
+            activeShoppingListArray[gIdx].items.splice(iIdx, 1);
+
+            // 2. Jeśli po usunięciu kategoria jest pusta, całkowicie ją usuwamy
+            if (activeShoppingListArray[gIdx].items.length === 0) {
+                activeShoppingListArray.splice(gIdx, 1);
+            }
+
+            // 3. Natychmiastowe przerenderowanie UI frontendu
+            renderShoppingListUI();
+
+            // 4. Zapis w tle do Supabase (wykorzystujemy ten sam debouncer co przy checkboksach)
+            clearTimeout(syncTimeout);
+            syncTimeout = setTimeout(async () => {
+                try {
+                    const fId = (currentUserProfile && currentUserProfile.family_id) ? currentUserProfile.family_id : null;
+                    const token = localStorage.getItem('supabaseToken');
+                    await fetch('/api/update-shopping-list', {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ 
+                            listId: activeShoppingListId, 
+                            familyId: fId,
+                            listData: activeShoppingListArray 
+                            // Zero trust: bez przesyłania e-maila
+                        })
+                    });
+                } catch (error) {
+                    console.error("Błąd zapisu po usunięciu z listy:", error);
+                }
+            }, 1000);
         }
 
         async function confirmAndSend() {
@@ -1581,4 +1681,80 @@ function renderShoppingListsDash() {
             const el = document.getElementById('recipeServings');
             let val = parseInt(el.value) + delta;
             if(val >= 1 && val <= 20) el.value = val;
+        }
+
+// WERSJA 4.9.19 - [LOGIKA: Edycja tytułów i klonowanie - UŻYCIE ZOPTYMALIZOWANYCH ENDPOINTÓW]
+        async function editRecipeTitle() {
+            if (!currentRecipeData) return;
+
+            const newTitle = prompt("Wpisz nową nazwę przepisu:", currentRecipeData.title);
+            // Ignorujemy puste, anulowane lub niezmienione próby
+            if (!newTitle || newTitle.trim() === "" || newTitle.trim() === currentRecipeData.title) return;
+
+            currentRecipeData.title = newTitle.trim();
+            document.getElementById("recipeTitle").innerText = currentRecipeData.title;
+
+            let authorEmail = currentRecipeData.author || currentRecipeData.author_email;
+            let isMe = String(authorEmail).trim().toLowerCase() === currentUserEmail;
+
+            if (isMe && currentRecipeData.id && currentRecipeData.id !== "temporary_saved") {
+                // To JEST Twój przepis. Uderzamy w nasz zoptymalizowany endpoint od kategorii
+                try {
+                    const token = localStorage.getItem('supabaseToken');
+                    await fetch('/api/update-recipe-category', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            recipeId: currentRecipeData.id,
+                            newTitle: currentRecipeData.title
+                        })
+                    });
+                    loadDashboard(); // Odświeża kafelki w tle
+                } catch (error) {
+                    console.error("Błąd aktualizacji tytułu:", error);
+                }
+            } else if (!isMe) {
+                // To NIE JEST Twój przepis. Przechodzimy w tryb klonowania!
+                alert("Zmieniłeś nazwę przepisu innego domownika.\n\nAby zapisać tę wersję jako TWOJĄ nową pozycję w książce kucharskiej, kliknij 'Zapisz do bazy' na dole ekranu.");
+                
+                // Odpinamy ID, aby system myślał, że to nowy draft wygenerowany przez AI
+                delete currentRecipeData.id; 
+                currentRecipeData.author_email = currentUserEmail;
+                currentRecipeData.author = currentUserEmail;
+                
+                // Zamienia widok guzików na "Draft" (pokazuje Zapisz do bazy)
+                setActionButtonsMode(false); 
+            }
+        }
+
+        async function editShoppingListTitle() {
+            if (!activeShoppingListId) return;
+
+            const newTitle = prompt("Wpisz nową nazwę listy zakupów:", activeShoppingTitle);
+            if (!newTitle || newTitle.trim() === "" || newTitle.trim() === activeShoppingTitle) return;
+
+            activeShoppingTitle = newTitle.trim();
+            document.getElementById("activeShoppingTitle").innerText = activeShoppingTitle;
+
+            // Listy zakupów są współdzielone, nadpisujemy w bazie (Update) za pomocą głównego endpointa list
+            try {
+                const token = localStorage.getItem('supabaseToken');
+                await fetch('/api/update-shopping-list', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        listId: activeShoppingListId,
+                        newTitle: activeShoppingTitle
+                    })
+                });
+                fetchShoppingLists(); // Odświeża siatkę list w tle
+            } catch (error) {
+                console.error("Błąd zmiany nazwy listy:", error);
+            }
         }

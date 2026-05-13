@@ -188,7 +188,12 @@
                             </select>
                             <i data-lucide="pencil" class="w-3 h-3 text-white/50 group-hover:text-white transition"></i>
                         </div>
-                        <h2 id="recipeTitle" class="text-3xl font-bold leading-tight mt-2"></h2>
+                        <div class="flex items-center gap-3 mt-2">
+                            <h2 id="recipeTitle" class="text-3xl font-bold leading-tight"></h2>
+                            <button onclick="editRecipeTitle()" class="text-white/60 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition shrink-0" title="Edytuj nazwę">
+                                <i data-lucide="pencil" class="w-5 h-5"></i>
+                            </button>
+                        </div>
                         <!-- NOWE: Pojemnik na odznaki -->
                         <div id="recipeBadges" class="flex flex-wrap gap-2 mt-4 hidden"></div>
                     </div>
@@ -312,7 +317,12 @@
                 <div id="shoppingDetailView" class="hidden">
                     <div class="flex justify-between items-center mb-6 gap-3">
                         <button onclick="showShoppingDash()" class="bg-white border border-charcoal/10 text-charcoal_light p-3 rounded-xl font-bold flex items-center hover:bg-cream transition shrink-0"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
-                        <h2 id="activeShoppingTitle" class="text-lg sm:text-xl font-extrabold text-charcoal truncate flex-grow text-center">Zakupy</h2>
+                        <div class="flex-grow flex items-center justify-center gap-2 group cursor-pointer" onclick="editShoppingListTitle()">
+                            <h2 id="activeShoppingTitle" class="text-lg sm:text-xl font-extrabold text-charcoal truncate text-center">Zakupy</h2>
+                            <button class="text-charcoal/40 group-hover:text-terracotta transition" title="Zmień nazwę listy">
+                                <i data-lucide="pencil" class="w-5 h-5 sm:w-4 sm:h-4"></i>
+                            </button>
+                        </div>
                         <button id="sendShoppingEmailBtn" onclick="sendShoppingPDF()" class="bg-sage/10 text-sage_dark p-3 rounded-xl hover:bg-sage/20 transition shrink-0" title="Wyślij listę na e-mail"><i data-lucide="mail" class="w-5 h-5 text-sage"></i></button>
                     </div>
                    

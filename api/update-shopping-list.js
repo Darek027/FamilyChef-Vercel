@@ -1,10 +1,9 @@
-// WERSJA 4.5.1 - API VERCEL: AKTUALIZACJA CHECKBOXÓW Z FAMILY ID
-// WERSJA 4.5.3 - ZERO TRUST CHECKBOXY
+// WERSJA 4.9.18 - DYNAMICZNY UPDATE LISTY ZAKUPÓW
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ status: "error" });
 
-    // Ignorujemy email i familyId
-    const { listId, listData } = req.body;
+    // Ignorujemy email i familyId z frontendu, pobieramy dane
+    const { listId, listData, newTitle } = req.body;
 
     try {
         const authHeader = req.headers.authorization;
@@ -20,10 +19,9 @@ export default async function handler(req, res) {
         if (authError || !user) {
             return res.status(401).json({ status: "error", message: "Nieważny token sesji." });
         }
-        const realEmail = user.email;
         const authUserId = user.id; // Migracja na UUID
 
-        // WERSJA 4.5.5 - BUGFIX SAAS: Odczyt Kodu Rodziny bezpośrednio z Base64 JWT
+        // Odczyt Kodu Rodziny bezpośrednio z Base64 JWT
         let realFamilyId = null;
         try {
             const tokenStr = authHeader.replace('Bearer ', '');
@@ -35,10 +33,19 @@ export default async function handler(req, res) {
             console.error("🔥 Błąd dekodowania JWT:", e);
         }
 
+        // BUDOWA DYNAMICZNEGO PAYLOADU
+        let updatePayload = {};
+        if (listData !== undefined) updatePayload.data = listData;
+        if (newTitle !== undefined) updatePayload.title = newTitle;
+
+        if (Object.keys(updatePayload).length === 0) {
+            return res.status(400).json({ status: "error", message: "Brak danych." });
+        }
+
         // Zaczynamy budować zapytanie...
         let query = supabase
             .from('shopping_lists')
-            .update({ data: listData })
+            .update(updatePayload)
             .eq('id', listId);
 
         // Zabezpieczamy edycję twardymi danymi (Teraz po UUID)

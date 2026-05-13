@@ -1,10 +1,9 @@
-// WERSJA 4.8.0 - API VERCEL: AKTUALIZACJA KATEGORII PRZEPISU
-// WERSJA 4.9.1 - ZERO TRUST KATEGORIE
+// WERSJA 4.9.17 - DYNAMICZNY UPDATE (Kategoria + Tytuł w jednym pliku)
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ status: "error" });
 
-    // Ignorujemy email z frontendu
-    const { recipeId, category } = req.body;
+    // Odbieramy opcjonalne pola
+    const { recipeId, category, newTitle } = req.body;
 
     try {
         const authHeader = req.headers.authorization;
@@ -20,20 +19,29 @@ export default async function handler(req, res) {
         if (authError || !user) {
             return res.status(401).json({ status: "error", message: "Nieważny token sesji." });
         }
-        const realEmail = user.email;
-        const authUserId = user.id; // Migracja na UUID
+        const authUserId = user.id;
 
+        // 1. BUDOWA DYNAMICZNEGO OBIEKTU AKTUALIZACJI
+        let updatePayload = {};
+        if (category !== undefined) updatePayload.category = category;
+        if (newTitle !== undefined) updatePayload.title = newTitle;
+
+        if (Object.keys(updatePayload).length === 0) {
+            return res.status(400).json({ status: "error", message: "Brak danych do aktualizacji." });
+        }
+
+        // 2. BEZPIECZNA AKTUALIZACJA W BAZIE
         const { error } = await supabase
             .from('recipes')
-            .update({ category: category })
+            .update(updatePayload)
             .eq('id', recipeId)
-            .eq('author_id', authUserId); // MIGRACJA: Zabezpieczenie modyfikacji po UUID!
+            .eq('author_id', authUserId); // Zabezpieczenie modyfikacji po UUID!
 
         if (error) throw error;
 
-        return res.status(200).json({ status: "success", message: "Kategoria zaktualizowana!" });
+        return res.status(200).json({ status: "success", message: "Zaktualizowano pomyślnie!" });
     } catch (error) {
-        console.error("🔥 UPDATE CATEGORY ERROR:", error);
+        console.error("🔥 UPDATE RECIPE ERROR:", error);
         return res.status(500).json({ status: "error", message: "Błąd bazy danych." });
     }
 }
