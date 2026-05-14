@@ -21,6 +21,7 @@ export default async function handler(req, res) {
         if (authError || !user) {
             return res.status(401).json({ status: "error", message: "Nieważny token sesji." });
         }
+// WERSJA 4.9.2 - [SAAS SECURITY: Backendowa walidacja wejściowa Family ID]
         const realEmail = user.email; // JEDYNE ZAUFANE ŹRÓDŁO TOŻSAMOŚCI
         const authUserId = user.id; // Migracja na UUID
 
@@ -46,6 +47,16 @@ export default async function handler(req, res) {
                 }
             }
             familyId = generatedId;
+        } else {
+            // TWARDA WALIDACJA: Użytkownik podał własny kod. Weryfikujemy go.
+            familyId = familyId.trim().toUpperCase();
+            
+            if (familyId.length < 8) {
+                return res.status(400).json({ status: "error", message: "Ze względów bezpieczeństwa kod rodziny musi posiadać co najmniej 8 znaków." });
+            }
+            if (!/^[A-Z0-9-]+$/.test(familyId)) {
+                return res.status(400).json({ status: "error", message: "Kod rodziny zawiera niedozwolone znaki." });
+            }
         }
 
         // 1. Zapisanie danych w głównej tabeli użytkownika (Wersja 4.9.0 - Dynamiczny Payload)

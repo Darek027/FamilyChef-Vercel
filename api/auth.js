@@ -169,6 +169,16 @@ export default async function handler(req, res) {
                 user.is_premium = billing?.is_premium || false; // Doklejamy dla frontendu
             }
 
+            // WERSJA 4.7.3 - SAAS TRANSPARENCY: Odczyt członków rodziny
+            if (user.family_id) {
+                const { data: familyData } = await supabaseAdmin
+                    .from('users')
+                    .select('email')
+                    .eq('family_id', user.family_id);
+                
+                user.family_members = familyData ? familyData.map(m => m.email) : [];
+            }
+
             return res.status(200).json({
                 status: "success",
                 message: step === 'verify' ? "Zalogowano pomyślnie OTP" : "Profil pobrany",

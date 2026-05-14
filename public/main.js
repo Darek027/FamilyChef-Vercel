@@ -865,6 +865,7 @@ body: JSON.stringify({
             }
         }
 
+// WERSJA 4.9.21 - [SAAS SECURITY: Twarda walidacja Kodu Rodziny (Ochrona przed kolizją ID)]
         function promptFamilyChange() {
             const currentCode = document.getElementById('profileFamilyId').value;
             const msg = currentCode 
@@ -875,6 +876,18 @@ body: JSON.stringify({
             
             if (newCode !== null) {
                 const finalCode = newCode.trim().toUpperCase();
+                
+                // --- FRONTEND WALIDACJA BEZPIECZEŃSTWA ---
+                if (finalCode !== "" && finalCode.length < 8) {
+                    alert("⚠️ Zbyt krótki kod!\n\nAby zapobiec przypadkowemu połączeniu kont z obcymi ludźmi, kod rodziny musi mieć minimum 8 znaków.\n\nZostaw pole puste, a serwer sam wygeneruje bezpieczny klucz.");
+                    return;
+                }
+                if (finalCode !== "" && !/^[A-Z0-9-]+$/.test(finalCode)) {
+                    alert("⚠️ Niedozwolone znaki!\n\nKod rodziny może zawierać wyłącznie litery (bez polskich znaków), cyfry oraz myślniki.");
+                    return;
+                }
+                // -----------------------------------------
+
                 const inputEl = document.getElementById('profileFamilyId');
                 
                 if (finalCode === "") {
@@ -900,7 +913,29 @@ body: JSON.stringify({
                 // WERSJA 4.0.0 - Ładowanie Persony do widoku ustawień profilu
                 document.getElementById('profileChef').value = currentUserProfile.default_chef || 'DEFAULT_CHEF';
                 document.getElementById('profileSkill').value = currentUserProfile.default_skill || 'DEFAULT_SKILL';
+
+                // WERSJA 4.9.23 - [SAAS TRANSPARENCY FIX: Zawsze widoczny licznik dla spokoju ducha użytkownika]
+                const membersBtn = document.getElementById('familyMembersBtn');
+                const membersCount = document.getElementById('familyMembersCount');
+                
+                // Pokazujemy przycisk ZAWSZE, gdy jesteśmy w jakiejś rodzinie (nawet jeśli jesteśmy w niej sami)
+                if (currentUserProfile.family_members && currentUserProfile.family_members.length > 0) {
+                    membersCount.innerText = currentUserProfile.family_members.length;
+                    membersBtn.classList.remove('hidden');
+                } else {
+                    membersBtn.classList.add('hidden');
+                }
             }
+        }
+
+        // WERSJA 4.9.22 - Pop-up pokazujący domowników
+        function showFamilyMembers() {
+            if (!currentUserProfile || !currentUserProfile.family_members) return;
+            const membersList = currentUserProfile.family_members.map(email => 
+                email === currentUserEmail ? `- ${email} (To Ty)` : `- ${email}`
+            ).join("\n");
+            
+            alert("Osoby przypisane do tego Kodu Rodziny:\n\n" + membersList + "\n\nJeśli widzisz tu kogoś niepożądanego, kliknij 'Zmień Kod' powyżej.");
         }
 
         async function saveUserProfile() {
