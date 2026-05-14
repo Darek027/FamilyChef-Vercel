@@ -357,10 +357,9 @@
             <i data-lucide="key" class="w-4 h-4"></i> Zmień Kod
         </button>
     </div>
-    <p class="text-xs text-charcoal_light mt-2 font-medium flex items-center justify-between">
-        <span><i data-lucide="info" class="w-3 h-3 inline"></i> Kod do połączenia kont.</span>
-        <button onclick="showFamilyMembers()" id="familyMembersBtn" class="hidden text-sage hover:text-sage_dark font-bold transition flex items-center gap-1"><i data-lucide="users" class="w-3 h-3"></i> Zobacz kto ma dostęp (<span id="familyMembersCount">1</span>)</button>
-    </p>
+    <div class="mt-2 flex justify-start">
+        <button onclick="showFamilyMembers()" id="familyMembersBtn" class="hidden text-sage hover:text-sage_dark font-bold transition flex items-center gap-1.5 text-sm py-1"><i data-lucide="users" class="w-4 h-4"></i> Zobacz kto ma dostęp (<span id="familyMembersCount">1</span>)</button>
+    </div>
 </div>
                         <!-- WERSJA 4.2.0 - Domyślna Persona i Poziom (Profil z Soft Paywallem UI) -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
