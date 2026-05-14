@@ -1631,7 +1631,10 @@ function renderShoppingListsDash() {
                 
                 if (res.status === 'success') {
                     alert(res.message);
-                    btn.innerHTML = `<i data-lucide="check-circle" class="w-5 h-5"></i> Wysłano i Zapisano!`;
+                    // DYNAMICZNY TEKST PRZYCISKU
+                    btn.innerHTML = isSavedMode 
+                        ? `<i data-lucide="check-circle" class="w-5 h-5"></i> Wysłano!` 
+                        : `<i data-lucide="check-circle" class="w-5 h-5"></i> Wysłano i Zapisano!`;
                     lucide.createIcons();
                     setTimeout(() => {
                         currentRecipeData.id = res.recipeId; 

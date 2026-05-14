@@ -11,6 +11,16 @@ export default async function handler(req, res) {
     let currentEmailCount; 
     let verifiedEmail; // Do użytku w catch i limicie
     let authUserId; // Zmienna dla UUID
+    let newlyCreatedRecipeId = null; // Flaga dla usuwania osieroconych duplikatów
+
+    // FUNKCJA SANITIZUJĄCA - Twarda ochrona przed atakiem XSS w mailu
+    const escapeHTML = (str) => {
+        if (!str) return '';
+        return String(str).replace(/[&<>"']/g, (match) => {
+            const escapeMap = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+            return escapeMap[match];
+        });
+    };
 
     try {
         const authHeader = req.headers.authorization;
@@ -100,45 +110,65 @@ export default async function handler(req, res) {
 
             if (dbError) throw new Error("Błąd zapisu w bazie: " + dbError.message);
             recipeId = savedRecipe.id;
+            newlyCreatedRecipeId = savedRecipe.id; // Zapisujemy ID do ewentualnego Rollbacku!
         }
+
+        // SANITIZACJA DANYCH (Oczyszcza dane z frontendowych ataków XSS)
+        const safeTitle = escapeHTML(recipe.title);
+        const safeIngredients = recipe.ingredients.map(i => escapeHTML(i));
+        const safeInstructions = recipe.instructions.map(i => escapeHTML(i));
+        const safeMessage = escapeHTML(recipe.message || 'Smacznego życzy Twój KiedyObiad.pl!');
 
         const htmlTemplate = `
         <div style="font-family: 'Plus Jakarta Sans', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #4A4543; padding: 20px; background-color: #ffffff;">
-            <h1 style="color: #C87E5C; border-bottom: 2px solid #FAF6F0; padding-bottom: 10px; font-weight: 800;">${recipe.title}</h1>
+            <h1 style="color: #C87E5C; border-bottom: 2px solid #FAF6F0; padding-bottom: 10px; font-weight: 800;">${safeTitle}</h1>
             <h3 style="color: #8BA08E;">🛒 Składniki</h3>
             <ul style="background: #FAF6F0; padding: 20px; border-radius: 12px; list-style-type: disc; margin-left: 0; padding-left: 40px; border: 1px solid #E5E0D8;">
-                ${recipe.ingredients.map(i => `<li style="margin-bottom: 8px; color: #4A4543;">${i}</li>`).join('')}
+                ${safeIngredients.map(i => `<li style="margin-bottom: 8px; color: #4A4543;">${i}</li>`).join('')}
             </ul>
             <h3 style="color: #8BA08E;">📋 Instrukcje</h3>
-            <ol style="padding-left: 20px; color: #4A4543;">${recipe.instructions.map(i => `<li style="margin-bottom: 12px; line-height: 1.5;">${i}</li>`).join('')}</ol>
+            <ol style="padding-left: 20px; color: #4A4543;">${safeInstructions.map(i => `<li style="margin-bottom: 12px; line-height: 1.5;">${i}</li>`).join('')}</ol>
             <p style="margin-top: 30px; border-top: 1px dashed #8A8482; padding-top: 15px; font-style: italic; color: #8A8482; text-align: center; font-size: 14px;">
-                ${recipe.message || 'Smacznego życzy Twój KiedyObiad.pl!'}
+                ${safeMessage}
             </p>
         </div>`;
 
         const { error: mailError } = await resend.emails.send({
             from: 'Family Chef <kuchnia@resend.dev>',
             to: [verifiedEmail],
-            subject: `👨‍🍳 Zapisany Przepis: ${recipe.title}`,
+            subject: `👨‍🍳 Zapisany Przepis: ${safeTitle}`,
             html: htmlTemplate,
         });
 
-        if (mailError) throw new Error("Przepis zapisany, ale błąd wysyłki maila: " + mailError.message);
+        if (mailError) throw new Error("Błąd serwera pocztowego: " + mailError.message);
+
+        // DYNAMICZNY KOMUNIKAT
+        const successMessage = newlyCreatedRecipeId 
+            ? "Przepis zapisany w bazie i wysłany na Twój e-mail!" 
+            : "Przepis został pomyślnie wysłany na Twój e-mail!";
 
         return res.status(200).json({ 
             status: "success", 
-            message: "Przepis zapisany w bazie i wysłany!", 
+            message: successMessage, 
             recipeId: recipeId 
         });
 
     } catch (error) {
         console.error("🔥 SEND & SAVE ERROR:", error.message);
         
-        // REFUND: Zwracamy limit przez admina do nowej tabeli
+        // REFUND & ROLLBACK: Zwracamy limit i usuwamy "osierocony" rekord z bazy
         if (currentEmailCount !== undefined && authUserId) {
             const { createClient } = await import('@supabase/supabase-js');
             const supAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+            
+            // 1. Zwracamy potrącony limit email
             await supAdmin.from('users_billing').update({ daily_emails: currentEmailCount }).eq('id', authUserId);
+            
+            // 2. Jeśli serwer Resend padł, a my dodaliśmy wpis przed sekundą - usuwamy go z powrotem.
+            if (newlyCreatedRecipeId) {
+                console.log(`🧹 ROLLBACK: Czyszczę osierocony przepis ${newlyCreatedRecipeId} po awarii maila.`);
+                await supAdmin.from('recipes').delete().eq('id', newlyCreatedRecipeId);
+            }
         }
 
         return res.status(500).json({ status: "error", message: error.message });

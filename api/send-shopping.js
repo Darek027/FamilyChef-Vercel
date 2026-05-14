@@ -12,6 +12,15 @@ export default async function handler(req, res) {
     let verifiedEmail; // Deklaracja poza try do obsługi w catch
     let authUserId; // Zmienna dla UUID limitów
 
+    // FUNKCJA SANITIZUJĄCA - Twarda ochrona przed atakiem XSS
+    const escapeHTML = (str) => {
+        if (!str) return '';
+        return String(str).replace(/[&<>"']/g, (match) => {
+            const escapeMap = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+            return escapeMap[match];
+        });
+    };
+
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ status: "error", message: "Brak dostępu." });
 
@@ -56,23 +65,27 @@ export default async function handler(req, res) {
         if (limitUpdateError) throw new Error("Błąd weryfikacji limitów anty-spam.");
         // --- KONIEC BLOKADY SPAMU ---
     
-        // Zaktualizowany szablon HTML listy zakupów (Rebranding)
-        // Generowanie grup zakupowych
+        // SANITIZACJA TYTUŁU
+        const safeListTitle = escapeHTML(listTitle);
+
+        // Zaktualizowany szablon HTML listy zakupów (Rebranding) + SANITIZACJA DANYCH
         let htmlContent = "";
         listArray.forEach(group => {
-            htmlContent += `<h3 style="color:#8BA08E; margin-top:25px; border-bottom:2px solid #FAF6F0; padding-bottom:5px;">${group.category}</h3>`;
+            const safeCategory = escapeHTML(group.category);
+            htmlContent += `<h3 style="color:#8BA08E; margin-top:25px; border-bottom:2px solid #FAF6F0; padding-bottom:5px;">${safeCategory}</h3>`;
             htmlContent += `<ul style="list-style-type: none; padding-left: 0;">`;
             group.items.forEach(item => {
+                const safeItemName = escapeHTML(item.name);
                 let textStyle = item.checked ? "text-decoration: line-through; color: #8A8482;" : "color: #4A4543; font-weight: 600;";
                 let icon = item.checked ? `<span style="color: #8BA08E; margin-right: 4px;">☑</span>` : `<span style="color: #8A8482; margin-right: 4px;">☐</span>`;
-                htmlContent += `<li style="margin-bottom: 10px; font-size: 16px; ${textStyle}">${icon} ${item.name}</li>`;
+                htmlContent += `<li style="margin-bottom: 10px; font-size: 16px; ${textStyle}">${icon} ${safeItemName}</li>`;
             });
             htmlContent += `</ul>`;
         });
 
         const htmlTemplate = `
         <div style="font-family: 'Plus Jakarta Sans', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px 20px; background-color: #ffffff; color: #4A4543;">
-            <h1 style="color: #C87E5C; margin-bottom: 5px; font-weight: 800;">🛒 ${listTitle}</h1>
+            <h1 style="color: #C87E5C; margin-bottom: 5px; font-weight: 800;">🛒 ${safeListTitle}</h1>
             <p style="color:#8A8482; font-size: 14px; margin-bottom: 30px;">Zaznaczone przedmioty zostały skreślone w koszyku.</p>
             
             <div style="background: #FAF6F0; padding: 20px; border-radius: 12px; border: 1px solid #E5E0D8;">
@@ -88,7 +101,7 @@ export default async function handler(req, res) {
         const { data, error } = await resend.emails.send({
             from: 'Family Chef Zakupy <kuchnia@resend.dev>',
             to: [verifiedEmail],
-            subject: `🛒 Twoja Lista: ${listTitle}`,
+            subject: `🛒 Twoja Lista: ${safeListTitle}`,
             html: htmlTemplate,
         });
 
