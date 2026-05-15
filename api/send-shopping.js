@@ -98,8 +98,9 @@ export default async function handler(req, res) {
         </div>
         `;
 
+        // WERSJA 5.3.1 - [SAAS SETUP: Zmiana adresu wysyłkowego z Sandbox na domenę produkcyjną]
         const { data, error } = await resend.emails.send({
-            from: 'Family Chef Zakupy <kuchnia@resend.dev>',
+            from: 'Family Chef Zakupy <zakupy@kiedyobiad.pl>',
             to: [verifiedEmail],
             subject: `🛒 Twoja Lista: ${safeListTitle}`,
             html: htmlTemplate,

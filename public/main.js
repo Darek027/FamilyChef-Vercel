@@ -546,8 +546,11 @@ function renderGrid(recipesToRender) {
             
             currentRecipeData.category = newVal;
 
-            if (currentRecipeData.id && currentRecipeData.id !== "temporary_saved") {
-                // WERSJA 4.9.1 - RLS SECURITY: Przekazanie tokenu do edycji kategorii
+            let authorEmail = currentRecipeData.author || currentRecipeData.author_email;
+            let isMe = String(authorEmail).trim().toLowerCase() === currentUserEmail;
+
+            if (isMe && currentRecipeData.id && currentRecipeData.id !== "temporary_saved") {
+                // WERSJA 4.9.22 - RLS SECURITY: Edycja kategorii w bazie (Tylko własne przepisy)
                 try {
                     const token = localStorage.getItem('supabaseToken');
                     await fetch('/api/update-recipe-category', {
@@ -558,14 +561,23 @@ function renderGrid(recipesToRender) {
                         },
                         body: JSON.stringify({ 
                             recipeId: currentRecipeData.id, 
-                            category: newVal, 
-                            email: currentUserEmail 
+                            category: newVal
+                            // Zero Trust: Backend ignoruje e-mail z body, bazuje na Tokenie JWT
                         })
                     });
                     loadDashboard(); 
                 } catch (error) {
                     console.error("Błąd aktualizacji kategorii w bazie:", error);
                 }
+            } else if (!isMe && currentRecipeData.id) {
+                // WERSJA 4.9.22 - Tryb klonowania przy zmianie kategorii cudzego przepisu!
+                alert("Zmieniłeś kategorię przepisu innego domownika.\n\nAby zapisać tę wersję jako TWOJĄ nową pozycję w książce kucharskiej, kliknij 'Zapisz do bazy' na dole ekranu.");
+                
+                delete currentRecipeData.id; 
+                currentRecipeData.author_email = currentUserEmail;
+                currentRecipeData.author = currentUserEmail;
+                
+                setActionButtonsMode(false); // Wraca do trybu "Draftu" (Pokaż przycisk Zapisz)
             }
         }
 
@@ -771,6 +783,11 @@ body: JSON.stringify({
             if (response.status === "success") {
                 currentRecipeData = response.data;
                 
+                // WERSJA 4.9.21 - [BUGFIX: Przypisanie autorstwa do świeżego draftu AI]
+                // Zapobiega to oznaczaniu własnych, nowo wygenerowanych przepisów jako "cudze"
+                currentRecipeData.author_email = currentUserEmail;
+                currentRecipeData.author = currentUserEmail;
+
                 // WERSJA 4.9.9.2 - Zapisujemy metadane z API do głównego stanu, aby save-recipe.js mogło je odebrać i wrzucić do Supabase
                 currentRecipeData.usedChef = response.usedChef;
                 currentRecipeData.usedSkill = response.usedSkill;
