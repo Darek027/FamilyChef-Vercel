@@ -1,0 +1,24 @@
+{
+  "name": "KiedyObiad.pl",
+  "short_name": "KiedyObiad",
+  "description": "Twój inteligentny asystent kulinarny i planer zakupów.",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#FAF6F0",
+  "theme_color": "#FAF6F0",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://bnijuskmzcgnojefxhnk.supabase.co/storage/v1/object/public/assets/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://bnijuskmzcgnojefxhnk.supabase.co/storage/v1/object/public/assets/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

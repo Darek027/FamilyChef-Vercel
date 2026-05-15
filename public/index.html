@@ -3,440 +3,435 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <base target="_top">
-    <title>KiedyObiad.pl | Twój Asystent</title>
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="KiedyObiad.pl">
-    <meta name="mobile-web-app-capable" content="yes">
+    <title>KiedyObiad.pl | Twój Inteligentny Asystent Kulinarny</title>
+    <meta name="description" content="KiedyObiad.pl to aplikacja, która ułoży dla Ciebie przepisy i wygeneruje listę zakupów. Poznaj nasze unikalne persony kulinarne, takie jak Zabiegana Mama!">
     <meta name="theme-color" content="#FAF6F0">
-   
-    <link rel="apple-touch-icon" href="https://bnijuskmzcgnojefxhnk.supabase.co/storage/v1/object/public/assets/LOGO_transparent2.png">
     
-    <link rel="icon" type="image/png" href="https://bnijuskmzcgnojefxhnk.supabase.co/storage/v1/object/public/assets/LOGO_transparent2.png">
-<!-- WERSJA 5.2.0 - [PRODUKCYJNY CSS ZAMIAST CDN] -->
+    <link rel="icon" type="image/png" href="https://bnijuskmzcgnojefxhnk.supabase.co/storage/v1/object/public/assets/icon.png">
     <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/lucide@latest" defer></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    
     <style>
-        /* WERSJA 4.5.0 - Preloader CSS (Natywny, chroni przed opóźnieniami Tailwind CDN) */
-        #initial-preloader { position: fixed; inset: 0; background-color: #FAF6F0; z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
-        .spinner { width: 40px; height: 40px; border: 4px solid rgba(139,160,142,0.2); border-left-color: #8BA08E; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 16px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .preloader-text { font-family: 'Plus Jakarta Sans', sans-serif; color: #4A4543; font-weight: 700; font-size: 14px; letter-spacing: 1px; }
-
-        /* Zmiana bloba na delikatny szałwiowy zamiast mocnego pomarańczu */
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
         .app-blob { background: radial-gradient(circle, rgba(139,160,142,0.15) 0%, rgba(255,255,255,0) 70%); }
-        .select-hide-arrow { -webkit-appearance: none; -moz-appearance: none; appearance: none; text-align: center; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .item-checked { text-decoration: line-through; color: #8A8482; background-color: #FAF6F0; opacity: 0.6; }
     </style>
 </head>
-<body class="font-sans text-charcoal antialiased bg-cream min-h-screen flex flex-col">
+<body class="bg-cream text-charcoal antialiased min-h-screen flex flex-col relative overflow-x-hidden">
 
-    <!-- WERSJA 4.5.0 - Globalny Preloader startowy -->
-    <div id="initial-preloader">
-        <div class="spinner"></div>
-        <div class="preloader-text">GOTOWANIE INTERFEJSU...</div>
-    </div>
-
-    <div id="auth-overlay" class="fixed inset-0 bg-cream z-[100] flex items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-3xl shadow-xl border border-black/5 max-w-md w-full text-center relative overflow-hidden">
-            <div class="absolute inset-0 app-blob z-0 opacity-70"></div>
-            <div class="relative z-10 flex flex-col items-center">
-                <!-- NOWE LOGO + MIX-BLEND-MULTIPLY by usunąć białe tło z obrazka -->
-                <img src="https://bnijuskmzcgnojefxhnk.supabase.co/storage/v1/object/public/assets/LOGO_transparent2.png" alt="KiedyObiad.pl Logo" class="h-32 object-contain mb-8 mix-blend-multiply">
-                
-                <!-- WERSJA 4.6.0 - UI logowania OTP -->
-                <div class="space-y-4 w-full" id="authStep1">
-                    <input type="email" id="loginEmail" placeholder="twoj@email.com" class="w-full px-4 py-4 bg-cream/50 border border-charcoal/10 rounded-2xl focus:ring-2 focus:ring-sage outline-none transition text-charcoal text-center text-lg font-medium">
-                    <button onclick="processAuth()" id="authBtn" class="w-full bg-sage text-white px-8 py-4 rounded-2xl text-lg font-bold hover:bg-sage_dark transition shadow-lg shadow-sage/20 flex items-center justify-center gap-2">
-                        <i data-lucide="mail" class="w-5 h-5"></i> Wyślij kod
-                    </button>
-                    <p id="authErrorMsg" class="text-terracotta text-sm hidden mt-2 font-semibold"></p>
-                </div>
-
-                <div class="space-y-4 w-full hidden" id="authStep2">
-                    <!-- WERSJA 4.6.1 - Wymuszenie klawiatury numerycznej dla kodu OTP -->
-                    <p class="text-charcoal_light text-sm font-medium mb-2">Wpisz 6-cyfrowy kod wysłany na Twój e-mail.</p>
-                    <input type="text" inputmode="numeric" pattern="[0-9]*" id="loginCode" placeholder="000000" maxlength="6" class="w-full px-4 py-4 bg-cream/50 border border-charcoal/10 rounded-2xl focus:ring-2 focus:ring-sage outline-none transition text-charcoal text-center text-2xl font-bold tracking-[0.5em]">
-                    <button onclick="verifyAuthCode()" id="verifyBtn" class="w-full bg-charcoal text-white px-8 py-4 rounded-2xl text-lg font-bold hover:bg-charcoal_light transition shadow-lg flex items-center justify-center gap-2">
-                        <i data-lucide="check-circle" class="w-5 h-5"></i> Weryfikuj
-                    </button>
-                    <button onclick="resetAuth()" class="w-full text-charcoal_light text-sm font-bold mt-2 hover:text-terracotta transition">
-                        Cofnij
-                    </button>
-                    <p id="verifyErrorMsg" class="text-terracotta text-sm hidden mt-2 font-semibold"></p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-<div id="app-container" class="hidden flex-grow flex-col">
+    <div class="absolute inset-0 app-blob z-0 pointer-events-none"></div>
 
 <nav class="w-full z-50 bg-cream/90 backdrop-blur-lg border-b border-charcoal/5 sticky top-0">
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center h-20 gap-4">
-            
-            <div class="flex items-center min-w-0 shrink">
-                <img src="https://bnijuskmzcgnojefxhnk.supabase.co/storage/v1/object/public/assets/Header_transparent2.png" alt="KiedyObiad.pl" class="h-14 sm:h-16 md:h-20 max-w-[150px] sm:max-w-[220px] md:max-w-xs w-auto object-contain object-left mix-blend-multiply">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-20">
+            <a href="/" class="flex items-center shrink-0 hover:opacity-80 transition-opacity">
+                <img src="https://bnijuskmzcgnojefxhnk.supabase.co/storage/v1/object/public/assets/Header_transparent2.png" alt="KiedyObiad.pl" class="h-14 md:h-16 w-auto object-contain mix-blend-multiply">
+            </a>
+            <div class="hidden md:flex gap-8 font-semibold text-charcoal_light text-sm items-center">
+                <a href="#jak-to-dziala" class="hover:text-sage transition">Jak to działa?</a>
+                <a href="#persony" class="hover:text-terracotta transition">Szefowie Kuchni</a>
+                <a href="#faq" class="hover:text-sage transition">FAQ</a>
             </div>
+            <div class="flex items-center shrink-0">
+                <a href="/app.html" class="bg-charcoal text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md hover:bg-charcoal_light transition flex items-center gap-2">
+                    Zaloguj się <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </a>
+            </div>
+        </div>
+    </nav>
 
-            <div class="flex items-center gap-2 sm:gap-4 shrink-0 relative">
-                <button id="premiumBadge" onclick="triggerUpgradeModal()" class="hidden"></button>
+    <main class="flex-grow relative z-10">
+        
+        <section class="max-w-4xl mx-auto px-4 pt-10 pb-10 text-center">
+            <span class="bg-terracotta/10 text-terracotta px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold uppercase tracking-wider mb-6 inline-block">Twój kulinarny ratunek</span>
+            <h1 class="text-4xl md:text-6xl font-extrabold text-charcoal leading-tight mb-6">
+                Co dzisiaj na obiad?<br>
+                <span class="text-sage">Zostaw to nam.</span>
+            </h1>
+            <p class="text-lg text-charcoal_light font-medium mb-10 max-w-2xl mx-auto">
+                Inteligentny asystent, który wymyśli przepis na podstawie tego, co masz w lodówce, dopasuje porcje i automatycznie wygeneruje inteligentną listę zakupów.
+            </p>
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <a href="/app.html" class="bg-sage text-white px-8 py-4 rounded-2xl text-lg font-bold shadow-lg shadow-sage/20 hover:bg-sage_dark transition hover:-translate-y-1">
+                    Zacznij gotować za darmo
+                </a>
+            </div>
+        </section>
+
+<section id="jak-to-dziala" class="bg-white pt-12 pb-24 border-y border-charcoal/5">
+            <div class="max-w-5xl mx-auto px-4">
+                <h2 class="text-3xl md:text-4xl font-extrabold text-charcoal text-center mb-16">Od pustej lodówki do <span class="text-sage">gotowego planu</span></h2>
                 
-                <div class="relative">
-                    <button onclick="toggleUserMenu(event)" id="userMenuBtn" class="bg-white p-2.5 rounded-full shadow-sm border border-charcoal/10 hover:border-sage transition flex items-center justify-center text-charcoal_light hover:text-sage">
-                        <i data-lucide="user" class="w-5 h-5"></i>
-                    </button>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+                    <div>
+                        <div class="bg-cream w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-charcoal/5">
+                            <i data-lucide="message-square" class="w-8 h-8 text-sage"></i>
+                        </div>
+                        <h4 class="font-bold text-lg mb-2 text-charcoal">1. Powiedz na co masz ochotę</h4>
+                        <p class="text-sm text-charcoal_light">Wpisz np. "szybki obiad z kurczakiem" albo "mam tylko jajka, ser i pomidory".</p>
+                    </div>
+                    <div>
+                        <div class="bg-cream w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-charcoal/5">
+                            <i data-lucide="wand-2" class="w-8 h-8 text-terracotta"></i>
+                        </div>
+                        <h4 class="font-bold text-lg mb-2 text-charcoal">2. AI gotuje przepis</h4>
+                        <p class="text-sm text-charcoal_light">Nasz asystent generuje autorski przepis, dopasowując porcje i styl do wybranego Szefa Kuchni.</p>
+                    </div>
+                    <div>
+                        <div class="bg-cream w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-charcoal/5">
+                            <i data-lucide="shopping-cart" class="w-8 h-8 text-sage"></i>
+                        </div>
+                        <h4 class="font-bold text-lg mb-2 text-charcoal">3. Automatyczna lista zakupów</h4>
+                        <p class="text-sm text-charcoal_light">Zaznacz przepisy, a my połączymy składniki w jedną, pogrupowaną listę zakupów na cały tydzień.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+<section id="persony" class="pt-8 pb-24">
+            <div class="max-w-6xl mx-auto px-4">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-extrabold text-charcoal mb-4">Poznaj naszych <span class="text-terracotta">Szefów Kuchni</span></h2>
+                    <p class="text-charcoal_light max-w-2xl mx-auto">Zwykłe przepisy to nuda. Nasza sztuczna inteligencja wciela się w ekspertów, aby dopasować styl gotowania i składniki do Twojej życiowej sytuacji.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div onclick="openExampleModal('busy_mom')" class="bg-white p-8 rounded-3xl border border-charcoal/5 hover:border-terracotta/30 hover:shadow-xl transition-all cursor-pointer flex flex-col group hover:-translate-y-2 relative overflow-hidden">
+                        <div class="bg-terracotta/10 w-14 h-14 rounded-2xl flex items-center justify-center mb-6 text-terracotta">
+                            <i data-lucide="clock" class="w-7 h-7"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-charcoal mb-2">Zabiegana Mama</h3>
+                        <div class="mb-4"><span class="bg-terracotta/10 text-terracotta px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider">Hit Użytkowników</span></div>
+                        <p class="text-sm text-charcoal_light mb-4 flex-grow">Ma 15 minut, płaczące dziecko na ręku i resztki w lodówce. Jej przepisy są błyskawiczne, brudzą mało naczyń i smakują nawet największym niejadkom.</p>
+                        <div class="bg-cream/50 p-4 rounded-xl text-xs italic text-charcoal/70 border border-charcoal/5 mb-6">"Dziś robimy turbo-makaron. Wrzucasz wszystko na jedną patelnię i masz spokój!"</div>
+                        <div class="text-terracotta text-sm font-bold flex items-center gap-1 group-hover:gap-2 transition-all mt-auto border-t border-charcoal/5 pt-4">
+                            Zobacz przepis <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </div>
+                    </div>
                     
-                    <div id="userDropdown" class="hidden absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-charcoal/5 z-[100] overflow-hidden">
-                        <button onclick="switchTab('profile')" class="w-full text-left px-4 py-3 text-sm font-semibold text-charcoal hover:bg-cream hover:text-sage transition flex items-center gap-2">
-                            <i data-lucide="settings" class="w-4 h-4"></i> Profil i ustawienia
+                    <div onclick="openExampleModal('pro_chef')" class="bg-white p-8 rounded-3xl border-2 border-sage/30 hover:border-sage hover:shadow-2xl transition-all cursor-pointer flex flex-col group hover:-translate-y-2 relative overflow-hidden ring-4 ring-sage/5">
+                        <div class="bg-sage w-14 h-14 rounded-2xl flex items-center justify-center mb-6 text-white shadow-lg shadow-sage/20">
+                            <i data-lucide="utensils" class="w-7 h-7"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-charcoal mb-2">Chef Restauracji</h3>
+                        <div class="mb-4"><span class="bg-sage text-white px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-sm">Klasa Premium</span></div>
+                        <p class="text-sm text-charcoal_light mb-4 flex-grow font-medium text-charcoal">To jest "Fine Dining" w Twoim domu. Chef poprowadzi Cię przez zaawansowane techniki, dobierze idealne wino i sprawi, że poczujesz się jak w gwiazdkowej restauracji.</p>
+                        <div class="bg-sage/10 p-4 rounded-xl text-xs italic text-sage_dark border border-sage/20 mb-6">"Zredukuj sos do konsystencji demi-glace, pamiętając o emulsyfikacji zimnym masłem dla idealnego połysku."</div>
+                        <div class="text-sage_dark text-base font-extrabold flex items-center gap-1 group-hover:gap-2 transition-all mt-auto border-t border-sage/10 pt-4">
+                            Odkryj menu degustacyjne <i data-lucide="sparkles" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-charcoal p-8 rounded-3xl border border-charcoal hover:shadow-2xl transition-all flex flex-col relative overflow-hidden group">
+                        <div class="absolute -right-8 -top-8 opacity-5 group-hover:rotate-12 transition-transform duration-700">
+                            <i data-lucide="zap" class="w-48 h-48 text-white"></i>
+                        </div>
+                        
+                        <div class="relative z-10 flex flex-col h-full">
+                            <div class="bg-white/10 w-14 h-14 rounded-2xl flex items-center justify-center mb-6 text-white border border-white/10">
+                                <i data-lucide="plus-circle" class="w-7 h-7"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-white mb-2">...i dziesiątki innych!</h3>
+                            <div class="mb-4"><span class="bg-terracotta text-white px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider">Potęga AI</span></div>
+                            <p class="text-sm text-white/70 mb-8 flex-grow leading-relaxed">
+                                Potrzebujesz <span class="text-sage font-bold">Misji Odchudzanie</span> by zbić wagę? A może Babci, która zna sekret idealnych pierogów? Nasz asystent zmienia osobowość 1 kliknięciem, dopasowując się do Twoich celów.
+                            </p>
+                            
+                            <a href="/app.html" class="w-full bg-sage text-white text-center py-4 rounded-xl font-bold hover:bg-sage_dark transition mt-auto shadow-lg shadow-sage/20 flex items-center justify-center gap-2">
+                                Wypróbuj wszystkie persony <i data-lucide="chef-hat" class="w-5 h-5"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+         
+<section id="faq" class="bg-white pt-16 pb-16 border-t border-charcoal/5">
+            <div class="max-w-3xl mx-auto px-4">
+                <h2 class="text-3xl font-extrabold text-charcoal text-center mb-12">Często zadawane pytania</h2>
+                
+                <div class="space-y-4">
+                    <div class="bg-cream/30 border border-charcoal/5 rounded-2xl overflow-hidden transition-all duration-300">
+                        <button onclick="toggleFaq(this)" class="w-full text-left p-6 flex justify-between items-center focus:outline-none group">
+                            <h4 class="font-bold text-charcoal flex items-center gap-3 group-hover:text-sage transition-colors"><i data-lucide="help-circle" class="w-5 h-5 text-sage shrink-0"></i> Czy aplikacja jest darmowa?</h4>
+                            <i data-lucide="chevron-down" class="w-5 h-5 text-charcoal_light transition-transform duration-300 transform"></i>
                         </button>
-                        <div class="border-t border-charcoal/5"></div>
-                        <button onclick="logoutUser()" class="w-full text-left px-4 py-3 text-sm font-bold text-terracotta hover:bg-terracotta/10 transition flex items-center gap-2">
-                            <i data-lucide="log-out" class="w-4 h-4"></i> Wyloguj się
+                        <div class="faq-answer hidden px-6 pb-6 text-sm text-charcoal_light leading-relaxed border-t border-charcoal/5 pt-4 mx-6">
+                            Tak! Rejestracja i podstawowe generowanie przepisów z "Codziennym Kucharzem" są darmowe. Z czasem wprowadzimy opcjonalny pakiet Premium odblokowujący bardziej zaawansowane persony (np. Zabieganą Mamę) i dodatkowe limity.
+                        </div>
+                    </div>
+
+                    <div class="bg-cream/30 border border-charcoal/5 rounded-2xl overflow-hidden transition-all duration-300">
+                        <button onclick="toggleFaq(this)" class="w-full text-left p-6 flex justify-between items-center focus:outline-none group">
+                            <h4 class="font-bold text-charcoal flex items-center gap-3 group-hover:text-sage transition-colors"><i data-lucide="help-circle" class="w-5 h-5 text-sage shrink-0"></i> Czy muszę instalować aplikację z App Store / Google Play?</h4>
+                            <i data-lucide="chevron-down" class="w-5 h-5 text-charcoal_light transition-transform duration-300 transform"></i>
                         </button>
+                        <div class="faq-answer hidden px-6 pb-6 text-sm text-charcoal_light leading-relaxed border-t border-charcoal/5 pt-4 mx-6">
+                            Nie! KiedyObiad.pl działa prosto w Twojej przeglądarce. Po zalogowaniu będziesz mógł dodać ją do ekranu głównego telefonu (jako tzw. aplikację PWA) dla najszybszego dostępu.
+                        </div>
+                    </div>
+
+                    <div class="bg-cream/30 border border-charcoal/5 rounded-2xl overflow-hidden transition-all duration-300">
+                        <button onclick="toggleFaq(this)" class="w-full text-left p-6 flex justify-between items-center focus:outline-none group">
+                            <h4 class="font-bold text-charcoal flex items-center gap-3 group-hover:text-sage transition-colors"><i data-lucide="help-circle" class="w-5 h-5 text-sage shrink-0"></i> Jak działa "Kod Rodziny"?</h4>
+                            <i data-lucide="chevron-down" class="w-5 h-5 text-charcoal_light transition-transform duration-300 transform"></i>
+                        </button>
+                        <div class="faq-answer hidden px-6 pb-6 text-sm text-charcoal_light leading-relaxed border-t border-charcoal/5 pt-4 mx-6">
+                            Zamiast wysyłać sobie listy zakupów SMS-em, wpisujecie w aplikacji ten sam Kod Rodziny. Od teraz macie wspólną bazę przepisów i jedną, aktualizującą się na żywo listę zakupów!
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+<div id="exampleRecipeModal" class="hidden fixed inset-0 bg-charcoal/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+        <div class="bg-white w-full max-w-3xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col transform scale-95 transition-transform duration-300 relative" id="modalContentBlock">
+            
+            <button onclick="closeExampleModal()" class="absolute top-4 right-4 bg-white/30 hover:bg-white/50 p-2 rounded-full text-white hover:text-charcoal transition z-20 backdrop-blur-md">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+
+            <div class="bg-sage p-6 sm:p-8 text-white relative shrink-0">
+                <div class="flex items-center gap-2 mb-3">
+                    <span id="modalPersonaBadge" class="bg-white/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1 shadow-sm"></span>
+                </div>
+                <h2 id="modalRecipeTitle" class="text-2xl sm:text-3xl font-extrabold leading-tight">Ładowanie przepisu...</h2>
+                <div class="flex flex-wrap gap-2 mt-4 text-xs font-bold">
+                    <span id="modalServings" class="bg-white/20 px-3 py-1.5 rounded-full flex items-center gap-1 shadow-sm"><i data-lucide="users" class="w-3.5 h-3.5"></i> 2 porcje</span>
+                    <span id="modalKcal" class="bg-white/20 px-3 py-1.5 rounded-full flex items-center gap-1 hidden shadow-sm"><i data-lucide="flame" class="w-3.5 h-3.5"></i> </span>
+                </div>
+            </div>
+            
+            <div class="p-6 sm:p-8 overflow-y-auto custom-scrollbar flex-grow bg-cream/30">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="md:col-span-1 bg-white p-6 rounded-2xl border border-charcoal/5 shadow-sm h-fit">
+                        <h3 class="font-bold text-lg text-charcoal mb-4 flex items-center gap-2"><i data-lucide="shopping-cart" class="w-5 h-5 text-sage"></i> Składniki</h3>
+                        <ul id="modalIngredients" class="space-y-3 text-charcoal_light text-sm list-disc pl-5 marker:text-sage_dark">
+                            </ul>
+                    </div>
+                    <div class="md:col-span-2 bg-white p-6 rounded-2xl border border-charcoal/5 shadow-sm">
+                        <h3 class="font-bold text-lg text-charcoal mb-4 flex items-center gap-2"><i data-lucide="list-ordered" class="w-5 h-5 text-sage"></i> Przygotowanie</h3>
+                        <ol id="modalInstructions" class="space-y-4 text-charcoal_light text-sm list-decimal pl-5 marker:font-bold marker:text-charcoal">
+                            </ol>
                     </div>
                 </div>
             </div>
             
-        </div>
-    </div>
-</nav>
-
-<div class="w-full bg-white border-b border-charcoal/5">
-    <div class="max-w-5xl mx-auto flex w-full justify-between sm:justify-center">
-        <button onclick="switchTab('generator')" id="tab-generator" class="flex-1 py-4 px-1 sm:px-4 font-bold text-terracotta border-b-2 border-terracotta flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-base transition-colors whitespace-nowrap"><i data-lucide="sparkles" class="w-4 h-4 sm:w-5 sm:h-5"></i> Kreator</button>
-        <button onclick="switchTab('dashboard')" id="tab-dashboard" class="flex-1 py-4 px-1 sm:px-4 font-semibold text-charcoal_light border-b-2 border-transparent hover:text-terracotta flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-base transition-colors whitespace-nowrap"><i data-lucide="book-open" class="w-4 h-4 sm:w-5 sm:h-5"></i> Przepisy</button>
-        <button onclick="switchTab('shopping')" id="tab-shopping" class="flex-1 py-4 px-1 sm:px-4 font-semibold text-charcoal_light border-b-2 border-transparent hover:text-terracotta flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-base transition-colors whitespace-nowrap"><i data-lucide="shopping-cart" class="w-4 h-4 sm:w-5 sm:h-5"></i> Zakupy</button>
-    </div>
-</div>
-
-    <main class="flex-grow relative pt-8 pb-20 overflow-hidden">
-        <div class="absolute inset-0 app-blob z-0"></div>
-        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-           
-            <!-- WERSJA 4.9.12 - Skondensowany nagłówek dla urządzeń mobilnych -->
-            <div id="view-generator" class="block max-w-3xl mx-auto">
-                <div class="text-center mb-6 md:mb-10">
-                    <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight text-charcoal mb-2 md:mb-4">
-                        Na co masz dzisiaj <span class="text-terracotta">ochotę?</span>
-                    </h1>
-                </div>
-
-                <!-- WERSJA 4.0.0 - Wdrożenie UI dla Prompt Matrix -->
-                <div class="bg-white p-6 rounded-3xl shadow-xl border border-black/5 mb-8">
-                    <div class="flex flex-col gap-3">
-                        <!-- Wyszukiwarka -->
-                        <div class="relative w-full">
-                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-charcoal_light">
-                                <i data-lucide="search" class="w-5 h-5"></i>
-                            </div>
-                            <input type="text" id="userInput" placeholder="Np. Szybki obiad z kurczakiem..." class="w-full pl-12 pr-4 py-4 bg-cream/50 border border-charcoal/10 rounded-2xl focus:ring-2 focus:ring-sage outline-none transition text-charcoal text-lg">
-                        </div>
-                        
-                        <!-- Opcje Persony i Poziomu (WERSJA 4.2.0 - Soft Paywall UI) -->
-                        <div class="flex flex-col sm:flex-row gap-3">
-                            <select id="generatorChef" onchange="enforcePremiumSelect(this, 'DEFAULT_CHEF')" class="flex-grow px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-2xl outline-none text-charcoal_light text-sm font-semibold hover:bg-cream focus:ring-2 focus:ring-sage transition cursor-pointer">
-                                <option value="DEFAULT_CHEF">👨‍🍳 Codzienny Kucharz</option>
-                                <option value="PREMIUM_CHEF">⭐ Kucharz PRO</option>
-                                <option value="PRO_CHEF">🎩 Chef Restauracji</option>
-                                <option value="BUSY_MOM">🏃‍♀️ Zabiegana Mama</option>
-                                <option value="KIDS_HERO">🦸‍♂️ Poskramiacz Dzieci</option>
-                                <option value="GRANDMA">👵 Wspomnienie Babci</option>
-                                <option value="ECO_PURE">🌱 Ekologiczny</option>
-                                <option value="VEGE_MASTER">🥦 Vege Master</option>
-                                <!-- WERSJA 4.9.7 -->
-                                <option value="POLISH_TRADITION">🥟 Polskie Tradycje</option>
-                                <option value="HUNTER">🌲 Kuchnia Myśliwska</option>
-                            </select>
-                            <!-- WERSJA 4.9.11 - Optymalizacja UX (Mobile Fix v2) -->
-                            <select id="generatorSkill" onchange="enforcePremiumSelect(this, 'DEFAULT_SKILL')" class="flex-grow px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-2xl outline-none text-charcoal_light text-sm font-semibold hover:bg-cream focus:ring-2 focus:ring-sage transition cursor-pointer">
-                                <option value="SKILL_NOOB">🟢 Poziom: Łatwy</option>
-                                <option value="DEFAULT_SKILL">🟡 Poziom: Średni</option>
-                                <option value="SKILL_EXPERT">🔴 Poziom: Ekspert</option>
-                            </select>
-                        </div>
-
-                        <!-- Przyciski i porcje -->
-                        <div class="flex flex-col sm:flex-row gap-3 mt-1">
-                            <div class="flex items-center justify-between bg-cream/50 border border-charcoal/10 rounded-2xl px-2 shrink-0 min-w-[120px] sm:w-auto w-full">
-                                <button onclick="changeServings(-1)" class="p-3 text-charcoal_light hover:text-terracotta transition"><i data-lucide="minus" class="w-5 h-5"></i></button>
-                                <div class="flex flex-col items-center justify-center">
-                                    <input type="number" id="recipeServings" value="2" min="1" max="20" class="w-8 text-center bg-transparent border-none outline-none text-charcoal font-bold text-lg p-0 pointer-events-none" readonly>
-                                    <span class="text-[10px] uppercase font-bold text-charcoal_light -mt-1">Porcje</span>
-                                </div>
-                                <button onclick="changeServings(1)" class="p-3 text-charcoal_light hover:text-sage transition"><i data-lucide="plus" class="w-5 h-5"></i></button>
-                            </div>
-
-                            <button id="submitBtn" onclick="askChef()" class="w-full sm:w-auto flex-grow bg-sage text-white px-8 py-4 rounded-2xl text-lg font-bold hover:bg-sage_dark transition shadow-lg shadow-sage/20 flex items-center justify-center gap-2">
-                                <i data-lucide="wand-2" class="w-5 h-5"></i> Gotujmy!
-                            </button>
-                        </div>
-                    </div>
-                    <div id="loadingMsg" class="hidden mt-6 text-center text-sage font-semibold animate-pulse flex items-center justify-center gap-2"></div>
-                </div>
-
-                <div id="recipeContainer" class="hidden bg-white rounded-3xl shadow-xl border border-black/5 overflow-hidden">
-                    <div class="bg-sage p-8 text-white relative">
-                        <div class="absolute top-4 right-8 z-20 flex items-center gap-1 group">
-                            <select id="recipeCategorySelect" onchange="changeCategoryHandler(this.value)" class="select-hide-arrow bg-white/20 text-white text-xs uppercase font-bold px-3 py-1 rounded-full backdrop-blur-sm border-none outline-none cursor-pointer hover:bg-white/30 transition shadow-sm">
-                                <option value="Inne" class="text-charcoal">Wczytywanie...</option>
-                            </select>
-                            <i data-lucide="pencil" class="w-3 h-3 text-white/50 group-hover:text-white transition"></i>
-                        </div>
-                        <div class="flex items-center gap-3 mt-2">
-                            <h2 id="recipeTitle" class="text-3xl font-bold leading-tight"></h2>
-                            <button onclick="editRecipeTitle()" class="text-white/60 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition shrink-0" title="Edytuj nazwę">
-                                <i data-lucide="pencil" class="w-5 h-5"></i>
-                            </button>
-                        </div>
-                        <!-- NOWE: Pojemnik na odznaki -->
-                        <div id="recipeBadges" class="flex flex-wrap gap-2 mt-4 hidden"></div>
-                    </div>
-                   
-                    <div class="p-8">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            <div class="md:col-span-1 bg-sage/5 p-6 rounded-2xl border border-sage/10 h-fit">
-                                <h3 class="font-bold text-lg text-charcoal mb-4"><i data-lucide="shopping-cart" class="w-5 h-5 inline text-sage mr-2"></i> Składniki</h3>
-                                <ul id="recipeIngredients" class="space-y-3 text-charcoal text-sm list-disc pl-5 marker:text-sage_dark"></ul>
-                            </div>
-                            <div class="md:col-span-2">
-                                <h3 class="font-bold text-lg text-charcoal mb-4"><i data-lucide="list-ordered" class="w-5 h-5 inline text-sage mr-2"></i> Instrukcje</h3>
-                                <ol id="recipeInstructions" class="space-y-4 text-charcoal text-sm list-decimal pl-5 marker:font-bold marker:text-charcoal_light"></ol>
-                            </div>
-                        </div>
-
-                        <div id="feedbackContainer" class="mt-10 p-6 bg-cream/50 border border-charcoal/10 rounded-2xl">
-                            <h4 class="font-bold text-charcoal mb-2">Coś zmienić?</h4>
-                            <div class="flex flex-col sm:flex-row gap-3">
-                                <input type="text" id="feedbackInput" placeholder="Np. Usuń czosnek..." class="flex-grow px-4 py-3 bg-white border border-charcoal/10 rounded-xl outline-none text-charcoal focus:ring-2 focus:ring-sage">
-                                <button onclick="sendFeedback()" class="bg-charcoal text-white px-6 py-3 rounded-xl font-semibold hover:bg-charcoal_light transition">Popraw</button>
-                            </div>
-                        </div>
-                       
-                        <!-- WERSJA 4.4.2 - Responsywne przyciski akcji (Poprawki mobilne) -->
-                        <div id="actionButtonsDraft" class="mt-6 pt-6 border-t border-charcoal/5 flex flex-col sm:flex-row gap-3 justify-center">
-                            <button id="saveOnlyBtn" onclick="saveOnlyAction()" class="flex-1 inline-flex items-center justify-center gap-2 bg-charcoal text-white border border-charcoal px-4 py-3 sm:px-8 sm:py-4 rounded-xl font-bold text-sm sm:text-lg hover:bg-charcoal_light transition">
-                                <i data-lucide="save" class="w-5 h-5 shrink-0"></i> Zapisz do bazy
-                            </button>
-                            <button id="saveEmailBtn" onclick="confirmAndSend()" class="flex-1 inline-flex items-center justify-center gap-2 bg-sage/10 text-sage_dark border border-sage/20 px-4 py-3 sm:px-8 sm:py-4 rounded-xl font-bold text-sm sm:text-lg hover:bg-sage/20 transition group">
-                                <i data-lucide="mail" class="w-5 h-5 text-sage shrink-0 group-hover:scale-110 transition-transform"></i> Zapisz i wyślij
-                            </button>
-                        </div>
-
-                        <div id="actionButtonsSaved" class="hidden mt-6 pt-6 border-t border-charcoal/5 text-center">
-                            <button onclick="confirmAndSend()" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-sage/10 text-sage_dark border border-sage/20 px-4 py-3 sm:px-8 sm:py-4 rounded-xl font-bold text-sm sm:text-lg hover:bg-sage/20 transition group mx-auto">
-                                <i data-lucide="mail" class="w-5 h-5 text-sage shrink-0 group-hover:scale-110 transition-transform"></i> Wyślij na e-mail
-                            </button>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-
-            <!-- WERSJA 1.24.0 - UI: Kompaktowy nagłówek Dashboardu, lepsze filtry i separatory -->
-            <div id="view-dashboard" class="hidden">
-                <div class="mb-6 flex flex-col gap-4 border-b border-charcoal/5 pb-4">
-                    <!-- Górny wiersz: Tytuł + Wyszukiwarka -->
-                    <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-                        <h2 class="text-2xl font-extrabold text-charcoal whitespace-nowrap"><i data-lucide="book-open" class="w-6 h-6 inline mr-2 text-sage"></i>Baza Przepisów</h2>
-                        
-                        <!-- WERSJA 1.24.2 - Fix dla iOS Safari auto-zoom (zmiana text-sm na text-base) -->
-                        <div class="relative w-full md:max-w-md flex-grow">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-charcoal_light">
-                                <i data-lucide="search" class="w-4 h-4"></i>
-                            </div>
-                            <input type="text" id="searchRecipe" oninput="applyFilters()" placeholder="Szukaj przepisu..." class="w-full pl-10 pr-4 py-2.5 bg-white border border-charcoal/10 rounded-xl focus:ring-2 focus:ring-sage outline-none transition text-charcoal text-base font-semibold shadow-sm">
-                        </div>
-                    </div>
-                    
-                    <!-- Dolny wiersz: Filtry, sortowanie i widok -->
-                    <div class="flex flex-wrap items-center gap-2 w-full bg-white p-2 rounded-2xl shadow-sm border border-charcoal/5">
-                        <select id="sortRecipe" onchange="applyFilters()" class="px-3 py-2 bg-cream/50 border-none rounded-xl outline-none text-charcoal cursor-pointer text-sm font-medium hover:bg-cream transition flex-grow md:flex-grow-0">
-                            <option value="newest">↓ Najnowsze</option>
-                            <option value="oldest">↑ Najstarsze</option>
-                            <option value="az">A-Z</option>
-                            <option value="za">Z-A</option>
-                        </select>
-                        
-                        <div class="hidden md:block w-px h-6 bg-charcoal/10 mx-1"></div> <!-- Separator -->
-                        
-                        <select id="filterUser" onchange="applyFilters()" class="px-3 py-2 bg-cream/50 border-none rounded-xl outline-none text-charcoal cursor-pointer text-sm font-medium hover:bg-cream transition flex-grow md:flex-grow-0">
-                            <option value="all">👨‍🍳 Wszyscy</option>
-                        </select>
-                        
-                        <div class="hidden md:block w-px h-6 bg-charcoal/10 mx-1"></div> <!-- Brakujący Separator! -->
-                        
-                        <select id="filterCategory" onchange="applyFilters()" class="px-3 py-2 bg-cream/50 border-none rounded-xl outline-none text-charcoal cursor-pointer text-sm font-medium hover:bg-cream transition flex-grow md:flex-grow-0">
-                            <option value="all">🍽️ Kategorie</option>
-                        </select>
-                        
-                        <!-- Przyciski akcji (rozciągnięte na mobile, z prawej na desktopie) -->
-                        <div class="flex items-center gap-2 ml-auto w-full md:w-auto justify-end mt-2 md:mt-0">
-                            <button onclick="toggleViewMode()" id="viewToggleBtn" class="text-charcoal flex-1 md:flex-none justify-center hover:text-terracotta p-2 bg-cream/50 hover:bg-cream rounded-xl transition flex items-center gap-2 text-sm font-semibold" title="Zmień widok">
-                                <i data-lucide="list" class="w-5 h-5"></i> <span class="md:hidden">Widok</span>
-                            </button>
-                            <button onclick="loadDashboard()" class="text-sage flex-1 md:flex-none justify-center hover:text-sage_dark p-2 bg-sage/10 rounded-xl transition flex items-center gap-2 text-sm font-semibold" title="Odśwież z bazy">
-                                <i data-lucide="refresh-cw" class="w-5 h-5"></i> <span class="md:hidden">Odśwież</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div id="dashboard-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-            </div>
-           
-            <div id="view-shopping" class="hidden w-full">
-               
-<!-- WERSJA 4.4.0 - UI Ręcznej Listy Zakupów (Ad-hoc) -->
-                <div id="shoppingDashView" class="block">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-3xl font-extrabold text-charcoal">Listy Zakupów</h2>
-                        <div class="flex items-center gap-2">
-                            <button onclick="toggleCustomListInput()" class="bg-terracotta text-white px-4 py-2 rounded-xl font-bold hover:bg-terracotta/90 transition shadow-sm flex items-center gap-2" title="Stwórz szybką listę"><i data-lucide="plus" class="w-5 h-5"></i><span class="hidden sm:inline">Nowa</span></button>
-                            <button onclick="fetchShoppingLists()" class="bg-sage/10 text-sage px-4 py-2 rounded-xl hover:bg-sage/20 transition shadow-sm"><i data-lucide="refresh-cw" class="w-5 h-5"></i></button>
-                        </div>
-                    </div>
-                    
-                    <div id="customListContainer" class="hidden mb-6 bg-white p-5 rounded-2xl border border-charcoal/5 shadow-sm">
-                        <label class="block text-sm font-bold text-charcoal mb-2">Szybkie zakupy (AI pogrupuje produkty)</label>
-                        <div class="flex flex-col sm:flex-row gap-3">
-                            <input type="text" id="customListInput" placeholder="Np. mleko, chleb, masło, 5 jajek..." class="flex-grow px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-xl outline-none text-charcoal focus:ring-2 focus:ring-sage font-medium">
-                            <button id="customListSubmitBtn" onclick="generateCustomShoppingList()" class="bg-sage text-white px-6 py-3 rounded-xl font-bold hover:bg-sage_dark transition flex justify-center items-center gap-2 whitespace-nowrap"><i data-lucide="wand-2" class="w-5 h-5"></i> Utwórz</button>
-                        </div>
-                    </div>
-                    <div id="shoppingListsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div class="col-span-full text-center py-10 text-charcoal_light"><i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2"></i> Ładowanie...</div>
-                    </div>
-                </div>
-
-                <!-- WERSJA 4.4.2 - Responsywny nagłówek Listy Zakupów -->
-                <div id="shoppingDetailView" class="hidden">
-                    <div class="flex justify-between items-center mb-6 gap-3">
-                        <button onclick="showShoppingDash()" class="bg-white border border-charcoal/10 text-charcoal_light p-3 rounded-xl font-bold flex items-center hover:bg-cream transition shrink-0"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
-                        <div class="flex-grow flex items-center justify-center gap-2 group cursor-pointer" onclick="editShoppingListTitle()">
-                            <h2 id="activeShoppingTitle" class="text-lg sm:text-xl font-extrabold text-charcoal truncate text-center">Zakupy</h2>
-                            <button class="text-charcoal/40 group-hover:text-terracotta transition" title="Zmień nazwę listy">
-                                <i data-lucide="pencil" class="w-5 h-5 sm:w-4 sm:h-4"></i>
-                            </button>
-                        </div>
-                        <button id="sendShoppingEmailBtn" onclick="sendShoppingPDF()" class="bg-sage/10 text-sage_dark p-3 rounded-xl hover:bg-sage/20 transition shrink-0" title="Wyślij listę na e-mail"><i data-lucide="mail" class="w-5 h-5 text-sage"></i></button>
-                    </div>
-                   
-                    <div id="shoppingListContainer" class="bg-white p-6 rounded-3xl shadow-sm border border-charcoal/5 min-h-[200px]">
-                        <div id="shoppingContent" class="space-y-6"></div>
-                        
-                        <div id="addMoreItemsContainer" class="mt-8 pt-6 border-t border-charcoal/5">
-                            <label class="block text-sm font-bold text-charcoal mb-3">Zapomniałeś o czymś? Dodaj do listy:</label>
-                            <div class="flex flex-col sm:flex-row gap-3">
-                                <input type="text" id="addMoreItemsInput" placeholder="Np. jabłka, płyn do naczyń..." class="flex-grow px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-xl outline-none text-charcoal focus:ring-2 focus:ring-sage font-medium">
-                                <button id="addMoreItemsBtn" onclick="addItemsToExistingList()" class="bg-sage text-white px-6 py-3 rounded-xl font-bold hover:bg-sage_dark transition flex justify-center items-center gap-2 whitespace-nowrap"><i data-lucide="plus" class="w-5 h-5"></i> Dodaj</button>
-                            </div>
-                        </div>
-
-                        <button id="clearShoppingBtn" onclick="deleteActiveShoppingList()" class="w-full mt-6 bg-terracotta/5 text-terracotta font-bold py-3 rounded-xl border border-terracotta/20 hover:bg-terracotta/10 transition">Usuń tę listę</button>
-                    </div>
-                </div>
-
-            </div>
-
-            <div id="view-profile" class="hidden max-w-2xl mx-auto">
-                <div class="mb-8"><h2 class="text-3xl font-extrabold text-charcoal">Ustawienia Konta</h2></div>
-                <div class="bg-white p-8 rounded-3xl shadow-xl border border-charcoal/5">
-                    <div class="space-y-6">
-                        <div><label class="block text-sm font-bold text-charcoal mb-2">Zalogowano jako:</label><div class="flex items-center gap-3 px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-xl text-charcoal_light font-mono text-sm cursor-not-allowed"><i data-lucide="mail" class="w-4 h-4"></i><span id="profileEmailDisplay"></span></div></div>
-                        
-<div>
-    <label class="block text-sm font-bold text-charcoal mb-2">Twoje ID Rodziny (Klucz dostępu)</label>
-    <div class="flex flex-col sm:flex-row gap-3">
-        <input type="text" id="profileFamilyId" readonly class="flex-grow px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-xl outline-none text-charcoal_light font-mono font-bold tracking-widest cursor-not-allowed" placeholder="Brak przypisanej rodziny">
-        <button onclick="promptFamilyChange()" class="bg-charcoal/5 text-charcoal px-6 py-3 rounded-xl font-bold hover:bg-charcoal/10 transition flex items-center justify-center gap-2 shrink-0 border border-transparent">
-            <i data-lucide="key" class="w-4 h-4"></i> Zmień Kod
-        </button>
-    </div>
-    <div class="mt-2 flex justify-start">
-        <button onclick="showFamilyMembers()" id="familyMembersBtn" class="hidden text-sage hover:text-sage_dark font-bold transition flex items-center gap-1.5 text-sm py-1"><i data-lucide="users" class="w-4 h-4"></i> Zobacz kto ma dostęp (<span id="familyMembersCount">1</span>)</button>
-    </div>
-</div>
-                        <!-- WERSJA 4.2.0 - Domyślna Persona i Poziom (Profil z Soft Paywallem UI) -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-bold text-charcoal mb-2">Domyślny Szef Kuchni</label>
-                                <select id="profileChef" onchange="enforcePremiumSelect(this, 'DEFAULT_CHEF')" class="w-full px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-xl outline-none text-charcoal focus:ring-2 focus:ring-sage font-semibold cursor-pointer">
-                                    <option value="DEFAULT_CHEF">👨‍🍳 Codzienny Kucharz (Free)</option>
-                                    <option value="PREMIUM_CHEF">⭐ Kucharz PRO (Premium)</option>
-                                    <option value="PRO_CHEF">🎩 Chef Restauracji (Premium)</option>
-                                    <option value="BUSY_MOM">🏃‍♀️ Zabiegana Mama (Premium)</option>
-                                    <option value="KIDS_HERO">🦸‍♂️ Poskramiacz Dzieci (Premium)</option>
-                                    <option value="GRANDMA">👵 Wspomnienie Babci (Premium)</option>
-                                    <option value="ECO_PURE">🌱 Ekologiczny (Premium)</option>
-                                    <option value="VEGE_MASTER">🥦 Vege Master (Premium)</option>
-                                    <!-- WERSJA 4.9.7 -->
-                                    <option value="POLISH_TRADITION">🥟 Polskie Tradycje (Premium)</option>
-                                    <option value="HUNTER">🌲 Kuchnia Myśliwska (Premium)</option>
-                                </select>
-                            </div>
-                            <!-- WERSJA 4.9.11 - Optymalizacja UX profilu (Mobile Fix v2) -->
-                            <div>
-                                <label class="block text-sm font-bold text-charcoal mb-2">Domyślny Poziom</label>
-                                <select id="profileSkill" onchange="enforcePremiumSelect(this, 'DEFAULT_SKILL')" class="w-full px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-xl outline-none text-charcoal focus:ring-2 focus:ring-sage font-semibold cursor-pointer">
-                                    <option value="SKILL_NOOB">🟢 Łatwy (PRO)</option>
-                                    <option value="DEFAULT_SKILL">🟡 Średni (Free)</option>
-                                    <option value="SKILL_EXPERT">🔴 Ekspert (PRO)</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-bold text-charcoal mb-2">Domyślna liczba porcji</label>
-                            <input type="number" id="profileServings" min="1" max="12" class="w-full px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-xl outline-none text-charcoal focus:ring-2 focus:ring-sage font-bold" placeholder="Np. 2">
-                        </div>
-                        <div><label class="block text-sm font-bold text-charcoal mb-2">Preferencje dietetyczne (dla AI)</label><textarea id="profilePreferences" rows="4" class="w-full px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-xl outline-none text-charcoal resize-none focus:ring-2 focus:ring-sage"></textarea></div>
-                        <button onclick="saveUserProfile()" id="saveProfileBtn" class="w-full bg-charcoal text-white px-8 py-4 rounded-xl text-lg font-bold hover:bg-charcoal_light transition flex items-center justify-center gap-2"><i data-lucide="save" class="w-5 h-5"></i> Zapisz zmiany</button>
-                        
-                        <!-- WERSJA 4.9.10 - Danger Zone: Usuwanie konta (UI Github/Vercel Style) -->
-                        <div class="pt-6 mt-6 border-t border-charcoal/10" id="deleteAccountSection">
-                            <button onclick="initiateDeleteAccount()" class="w-full bg-white text-terracotta border-2 border-terracotta/20 px-8 py-4 rounded-xl text-lg font-bold hover:bg-terracotta/5 transition flex items-center justify-center gap-2">
-                                <i data-lucide="trash-2" class="w-5 h-5"></i> Usuń konto i moje dane
-                            </button>
-                        </div>
-
-                        <!-- Ukryta sekcja potwierdzenia -->
-                        <div class="pt-6 mt-6 border-t border-terracotta/30 hidden bg-terracotta/5 p-5 rounded-2xl border" id="deleteAccountConfirmSection">
-                            <h4 class="font-bold text-terracotta mb-2 flex items-center gap-2"><i data-lucide="alert-triangle" class="w-5 h-5"></i> Strefa niebezpieczna</h4>
-                            <p class="text-sm text-charcoal mb-4 font-medium">Ta operacja jest <b>nieodwracalna</b>. Aby potwierdzić usunięcie konta, wpisz poniżej swój e-mail: <br><span id="deleteEmailHint" class="font-mono font-bold select-all text-terracotta mt-1 block"></span></p>
-                            
-                            <input type="email" id="deleteAccountInput" oninput="validateDeleteInput()" placeholder="Wpisz e-mail..." class="w-full px-4 py-3 bg-white border border-terracotta/30 rounded-xl outline-none text-charcoal focus:ring-2 focus:ring-terracotta mb-4 font-mono">
-                            
-                            <div class="flex gap-3">
-                                <button onclick="cancelDeleteAccount()" class="flex-1 bg-white text-charcoal border border-charcoal/10 px-4 py-3 rounded-xl font-bold hover:bg-cream transition">Anuluj</button>
-                                <button id="finalDeleteBtn" onclick="executeDeleteAccount()" disabled class="flex-1 bg-terracotta/40 text-white px-4 py-3 rounded-xl font-bold transition cursor-not-allowed flex justify-center items-center gap-2">Usuń bezpowrotnie</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-        <div id="shoppingListFab" class="fixed bottom-6 left-0 right-0 px-4 z-50 hidden pointer-events-none">
-            <div class="max-w-md mx-auto flex justify-center gap-2">
-                <button onclick="generateShoppingListAction()" class="flex-grow bg-sage text-white px-6 py-4 rounded-full shadow-2xl font-bold flex justify-center items-center gap-2 pointer-events-auto border-4 border-sage_dark hover:bg-sage_dark transition hover:scale-105">
-                    <i data-lucide="shopping-bag" class="w-5 h-5 shrink-0"></i>
-                    <span class="whitespace-nowrap">Stwórz Listę (<span id="shoppingListCount">0</span>)</span>
-                </button>
-                <button onclick="bulkDeleteRecipesAction()" class="bg-white text-terracotta px-6 py-4 rounded-full shadow-2xl font-bold flex justify-center items-center gap-2 pointer-events-auto border-4 border-terracotta/20 hover:bg-terracotta/10 hover:border-terracotta/40 transition hover:scale-105 shrink-0" title="Usuń zaznaczone przepisy">
-                    <i data-lucide="trash-2" class="w-5 h-5 shrink-0"></i>
-                </button>
+            <div class="p-4 sm:p-6 border-t border-charcoal/5 bg-white flex flex-col sm:flex-row justify-between items-center gap-4 shrink-0">
+                <p class="text-sm font-semibold text-charcoal_light">Chcesz ugotować coś swojego?</p>
+                <a href="/app.html" class="w-full sm:w-auto bg-terracotta text-white px-8 py-4 rounded-xl font-bold hover:bg-terracotta/90 transition shadow-md text-center flex items-center justify-center gap-2">
+                    Wygeneruj z własnych składników <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </a>
             </div>
         </div>
-    </main>
-</div>
+    </div>
 
-<!-- WERSJA 5.1.0 - [MODULARYZACJA FRONTENDU - Separacja logiki JS] -->
-<script src="main.js" defer></script>
+<footer class="bg-charcoal text-white/60 pt-10 pb-6 border-t border-white/10">
+        <div class="max-w-6xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div>
+                <img src="https://bnijuskmzcgnojefxhnk.supabase.co/storage/v1/object/public/assets/LOGO_transparent2.png" alt="KiedyObiad" class="h-10 opacity-80 mix-blend-screen mb-4 filter brightness-0 invert">
+                <p class="text-sm">Zmień stres związany z planowaniem posiłków w czystą przyjemność.</p>
+            </div>
+            <div class="flex flex-col gap-2">
+                <h4 class="text-white font-bold mb-2">Aplikacja</h4>
+                <a href="/app.html" class="hover:text-sage transition text-sm">Zaloguj się / Rejestracja</a>
+                <a href="#jak-to-dziala" class="hover:text-sage transition text-sm">Jak to działa?</a>
+                <a href="#persony" class="hover:text-sage transition text-sm">Szefowie Kuchni</a>
+            </div>
+            <div class="flex flex-col gap-2">
+                <h4 class="text-white font-bold mb-2">Informacje prawne</h4>
+                <a href="#" class="hover:text-white transition text-sm">Regulamin i Warunki (Wkrótce)</a>
+                <a href="#" class="hover:text-white transition text-sm">Polityka Prywatności i Cookies</a>
+                <a href="#" class="hover:text-white transition text-sm">Kontakt</a>
+            </div>
+        </div>
+        <div class="max-w-6xl mx-auto px-4 mt-8 pt-6 border-t border-white/10 text-xs text-center">
+            &copy; <script>document.write(new Date().getFullYear())</script> KiedyObiad.pl. Wszelkie prawa zastrzeżone.
+        </div>
+    </footer>
 
+ <script>
+        // Opóźniamy renderowanie ikon do momentu pełnego załadowania biblioteki z atrybutem 'defer'
+        window.addEventListener('DOMContentLoaded', (event) => {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        });
+
+        // BAZA PRZYKŁADOWYCH PRZEPISÓW 
+        const exampleRecipes = {
+            'busy_mom': {
+                "title": "Awaryjny Makaron Jednogarnkowy",
+                "ingredients": [
+                    "300 g makaronu (np. penne, fusilli – cokolwiek, co gotuje się szybko, aby nie tracić nerwów)",
+                    "500 g piersi kurczaka, pokrojonej w kostkę (albo gotowe, pokrojone kawałki – ratuj się, jak możesz!)",
+                    "1 duża paczka (ok. 450-500 g) mrożonych warzyw (np. 'mieszanka chińska' albo 'na patelnię' – bez wybrzydzania, byle jakieś były!)",
+                    "1 puszka (ok. 400 g) krojonych pomidorów albo 300 ml gotowego sosu pomidorowego do makaronu (nie szukaj świeżych, chyba, że chcesz zemdleć!)",
+                    "1 litr bulionu warzywnego (z kostki, z proszku, z saszetki – nikt nie ma czasu na prawdziwy rosół!)",
+                    "1 łyżka oleju roślinnego (cokolwiek, byle nie za dużo, bo potem będzie tłusto)",
+                    "Sól i pieprz do smaku (obowiązkowo, nawet jak już masz dość wszystkiego)",
+                    "Opcjonalnie: szczypta suszonego oregano lub bazylii (jak ci się przypomni i będziesz miała rękę wolną)",
+                    "Opcjonalnie: starty ser żółty do posypania (żeby chociaż wizualnie wyglądało, że się starałaś)"
+                ],
+                "instructions": [
+                    "Postaw ten cholerny garnek (TYLKO JEDEN, błagam!) na dużym ogniu i wlej łyżkę oleju. Szybko, nie mamy czasu, kurczak czeka, a dzieci już się kłócą o pilota!",
+                    "Wrzuć pokrojonego kurczaka i smaż, aż zetnie się z każdej strony. Nie musi być perfekcyjnie złocisty, ma być po prostu niesurowy! W międzyczasie rozdziel dzieci i udawaj, że wszystko jest pod kontrolą. Masz na to jakieś 3-4 minuty.",
+                    "Dorzuć mrożone warzywa. Tak, prosto z zamrażarki! Nie ma czasu na rozmrażanie, co to za luksus? Wsyp sól, pieprz i jeśli masz tę jedną wolną rękę, sypnij oregano. Mieszaj, aż warzywa chociaż trochę zmiękną. Moje dzieci zaraz zaczną gryźć ściany z głodu!",
+                    "Wlej puszkę pomidorów (albo gotowy sos – co tam masz!) i bulion. Podkręć ogień, to ma się zagotować w sekundę! Teraz możesz wypić ten łyk zimnej kawy, który stał od rana na blacie. Nie pytaj, czy jest jeszcze dobra, po prostu ją wypij, bo jest ci potrzebna.",
+                    "Kiedy płyn zacznie bulgotać jak moje ciśnienie przed południem, wrzuć suchy makaron. TAK, SUCHY! Mieszaj co chwilę, żeby się nie przykleił do dna. Ja już nie mam siły na szorowanie kolejnego garnka. Gotuj przez czas podany na opakowaniu makaronu, albo do momentu, gdy będzie al dente. Pamiętaj, płynu ma być tyle, żeby makaron się ugotował, ale żeby stworzył kremowy sos, a nie zupę! W tym czasie możesz próbować ogarnąć pranie, albo chociaż pomyśleć o drzemce, której nigdy nie będzie.",
+                    "Gdy makaron jest miękki, a sos gęsty i kremowy (lub po prostu 'jadalny', kto by się czepiał?), zdejmij z ognia. Spróbuj ratować smak, jeśli trzeba, dosyp soli, pieprzu. Podziel na 4 porcje, rzuć trochę sera na wierzch, jeśli masz jeszcze jakieś resztki sił, i podaj zanim ktoś zapyta po raz tysięczny 'Kiedy obiad?' Idę sobie nalać wina, albo chociaż dużą szklankę wody, bo pewnie zapomniałam pić cały dzień. Smacznego... przetrwania!"
+                ],
+                "servings": 4,
+                "calories_per_serving": 480
+            },
+            'pro_chef': {
+                "title": "Polędwiczka Sous-Vide, Sfery & Esencja",
+                "ingredients": [
+                    "Polędwiczka wieprzowa 'Iberyjska' (lub inna premium), około 300g",
+                    "Masło klarowane (do polędwiczki), 20g",
+                    "Wysokiej jakości oliwa truflowa, 10g",
+                    "Płatki soli morskiej Maldon, do smaku",
+                    "Świeżo mielony czarny pieprz Tellicherry, do smaku",
+                    "Czerwone wino premium (np. burgundzkie Pinot Noir), 100ml",
+                    "Glace de Veau (redukcja cielęca o głębokim umami) lub domowy demi-glace, 50ml",
+                    "Szczypta cukru trzcinowego Demerara",
+                    "Gałązka świeżego tymianku cytrynowego",
+                    "Młode marchwie, selekcjonowane (idealnie cylindryczne), 100g",
+                    "Masło wysokiej jakości (do beurre noisette), 70g",
+                    "Świeża szałwia, kilka listków",
+                    "Świeży groszek (lub mrożony z upraw ekologicznych), 150g",
+                    "Bulion warzywny de-luxe (klarowny, intensywny), 50ml",
+                    "Świeża mięta ogrodowa, kilka listków",
+                    "Odrobina śmietanki 30% (ultra-high temperature), 15ml",
+                    "Lecytyna sojowa (do emulsyfikacji pianki), szczypta",
+                    "Mini ogórki (korniszony baby), 1 sztuka",
+                    "Ocet ryżowy japoński, 15ml",
+                    "Sok yuzu świeżo wyciskany, 5ml",
+                    "Szczypta soli morskiej, szczypta cukru pudru",
+                    "Microgreens (np. Shiso Red, Koriander, Groszek), do dekoracji",
+                    "Świeża brzoskwinia (dojrzała, aromatyczna), 1 sztuka",
+                    "Sok z limonki Tahiti, 5ml",
+                    "Syrop cukrowy (1:1), 10ml",
+                    "Mleczan wapnia spożywczy, 2g",
+                    "Alginian sodu spożywczy, 2g",
+                    "Woda destylowana, 500ml (do kąpieli alginianowej)",
+                    "Wino musujące premium (np. Prosecco Superiore DOCG lub Franciacorta Brut), do serwowania"
+                ],
+                "instructions": [
+                    "<b>Polędwiczka Sous-Vide & Glace:</b> Przygotuj polędwiczkę, sezonując ją z namaszczeniem płatkami Maldon i świeżo mielonym pieprzem Tellicherry. Zamknij próżniowo i gotuj sous-vide w precyzyjnie kontrolowanej temperaturze 56.5°C przez równe 90 minut. To gwarantuje perfekcyjną, różową teksturę medium-rare na całej objętości. Po termicznej ablucji, osusz mięso do absolutnej perfekcji i obsmaż ekspresowo na rozgrzanym maśle klarowanym z oliwą truflową, tworząc perfekcyjną Maillard crust o głębokim, orzechowym aromacie. Odstaw mięso do spokojnego odpoczynku. Na tej samej, aromatycznej patelni, zdeglażuj czerwonym winem, dodaj demi-glace oraz gałązkę tymianku cytrynowego i redukuj do konsystencji aksamitnej, lśniącej glace. Przecedź przez finezyjne sito stożkowe i dopraw do perfekcji, zbalansuj.",
+                    "<b>Miniatura Marchwi Confit w Beurre Noisette z Esencją Szałwiową:</b> Selekcjonowane młode marchwie, precyzyjnie obrane do idealnie gładkiej powierzchni, blanszuj do momentu al dente. Następnie przygotuj beurre noisette, delikatnie paląc masło na patelni, aż uzyska głęboki, orzechowy aromat i bursztynowy kolor, ostrożnie odsącz stałe elementy. W małym rondelku lub w woreczku sous-vide, konfituj marchwie w przygotowanym beurre noisette z kilkoma listkami świeżej szałwii, w kontrolowanej temperaturze 85°C przez około 45 minut, do momentu osiągnięcia idealnej, jedwabistej miękkości, jednocześnie zachowując ich nienaganną formę i delikatny opór. Odcedź z precyzją, delikatnie oprósz płatkami soli Maldon.",
+                    "<b>Pianka Groszkowo-Miętowa (Ethereal Foam):</b> Świeży groszek zblanszuj w osolonej wodzie dosłownie na 60 sekund, a następnie natychmiast schłodź w kąpieli lodowej dla zachowania intensywnego, szmaragdowego koloru. Zblenduj na ultra-gładki mus z esencjonalnym bulionem, świeżą miętą i odrobiną śmietanki, dbając o jedwabistą konsystencję. Przecedź przez sito stożkowe, a następnie przez gazę, dla uzyskania absolutnej gładkości. Podgrzej delikatnie, dodaj lecytynę i spień za pomocą blendera immersyjnego lub dyszy aerującej, tworząc lekką, stabilną i efemeryczną piankę.",
+                    "<b>Kompresowany Ogórek & Vinaigrette Yuzu:</b> Mini ogórki pokrój w precyzyjne, transparentne plastry (użyj mandoliny dla idealnej powtarzalności). Zamarynatuj je w harmonijnej mieszance octu ryżowego, soku yuzu, szczypty soli morskiej i cukru pudru. Zamknij próżniowo na minimum 30 minut, aby uzyskać efekt kompresji, który intensyfikuje smak i nadaje ogórkom unikalną, chrupiącą teksturę.",
+                    "<b>Eliksir Sfer Brzoskwiniowych:</b> Zblenduj dojrzałą, aromatyczną brzoskwinię z sokiem z limonki i syropem cukrowym, tworząc nektar. Dodaj mleczan wapnia i dokładnie zmiksuj, upewniając się, że roztwór jest całkowicie jednorodny i pozbawiony grudek. W innej misce, rozpuść alginian sodu w wodzie destylowanej, używając blendera ręcznego, a następnie odstaw na co najmniej 1 godzinę, aby usunąć wszelkie pęcherzyki powietrza – klucz do idealnych sfer. Delikatnie wlewaj mieszankę brzoskwiniową kroplami do kąpieli alginianowej za pomocą pipety lub strzykawki, tworząc idealne, perłowe sfery. Pozostaw na minutę, delikatnie wyłów sitkiem i płucz w krystalicznie czystej wodzie, aby zatrzymać proces sferyfikacji. Podawaj po 2-3 sfery w eleganckich kieliszkach z zimnym, wytrawnym winem musującym.",
+                    "<b>Plating (Architektura Dania - Grand Finale):</b> Na podgrzanym talerzu, precyzyjnie ułóż dwa-trzy plastry odpoczętej polędwiczki, ukazując jej idealnie różowy przekrój i lśniącą skorupkę. Obok, w sposób artystyczny, stwórz kompozycję z miniatury marchwi confit. Na jednej z nich zaaplikuj elegancką kroplę gęstej glace mięsnej, stanowiącej kontrast smakowy i wizualny. Na przeciwległej stronie talerza, stwórz eteryczną bazę z pianki groszkowo-miętowej. Na tej aksamitnej chmurze, finezyjnie ułóż kompresowane ogórki oraz delikatne microgreens, dodające świeżości i wizualnej intrygi. Całość oprósz płatkami Maldon i świeżo mielonym pieprzem dla ostatniego akcentu tekstury i aromatu. Serwuj natychmiast z Eliksirem Sfer Brzoskwiniowych, który stanowi preludium lub postludium tej kulinarnej symfonii. Perfekcja jest w każdym detalu, balansie tekstur i harmonii smaków. To jest architektura na talerzu – odważna i subtelna jednocześnie."
+                ],
+                "servings": 2,
+                "calories_per_serving": 680
+            }
+        };
+
+        // Obsługa rozwijania FAQ (Akordeon)
+        function toggleFaq(button) {
+            const answer = button.nextElementSibling;
+            const icon = button.querySelector('.lucide-chevron-down');
+
+            if (answer.classList.contains('hidden')) {
+                // (Opcjonalnie) Zamknij inne otwarte zakładki
+                document.querySelectorAll('.faq-answer').forEach(el => {
+                    el.classList.add('hidden');
+                    const otherIcon = el.previousElementSibling.querySelector('.lucide-chevron-down');
+                    if(otherIcon) otherIcon.classList.remove('rotate-180');
+                });
+
+                // Otwórz klikniętą
+                answer.classList.remove('hidden');
+                if(icon) icon.classList.add('rotate-180');
+            } else {
+                // Zamknij klikniętą
+                answer.classList.add('hidden');
+                if(icon) icon.classList.remove('rotate-180');
+            }
+        }
+
+        // Funkcja renderująca JSON do Modala (Przygotowanie pod Krok 2)
+        function renderModalContent(recipeData) {
+            document.getElementById('modalRecipeTitle').innerText = recipeData.title;
+
+            const ingList = document.getElementById('modalIngredients');
+            ingList.innerHTML = '';
+            recipeData.ingredients.forEach(ing => {
+                ingList.innerHTML += `<li>${ing}</li>`;
+            });
+
+            const instList = document.getElementById('modalInstructions');
+            instList.innerHTML = '';
+            recipeData.instructions.forEach(inst => {
+                instList.innerHTML += `<li>${inst}</li>`;
+            });
+
+            document.getElementById('modalServings').innerHTML = `<i data-lucide="users" class="w-3.5 h-3.5"></i> ${recipeData.servings} porcje`;
+
+            const kcalElement = document.getElementById('modalKcal');
+            if (recipeData.calories_per_serving) {
+                kcalElement.innerHTML = `<i data-lucide="flame" class="w-3.5 h-3.5"></i> ok. ${recipeData.calories_per_serving} kcal / porcja`;
+                kcalElement.classList.remove('hidden');
+            } else {
+                kcalElement.classList.add('hidden');
+            }
+            
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        // --- GŁÓWNA LOGIKA MODALA ---
+        function openExampleModal(personaId) {
+            const modal = document.getElementById('exampleRecipeModal');
+            const content = document.getElementById('modalContentBlock');
+            
+            // Pokaż modal wizualnie (odblokowanie animacji)
+            modal.classList.remove('hidden');
+            void modal.offsetWidth; // Wymuszenie reflow dla płynnego pojawienia się
+            modal.classList.remove('opacity-0');
+            content.classList.remove('scale-95');
+            document.body.style.overflow = 'hidden'; // Blokada scrollowania strony w tle
+
+            // Renderowanie tymczasowe przed podaniem docelowego JSONa
+            if (exampleRecipes[personaId]) {
+                renderModalContent(exampleRecipes[personaId]);
+            } else {
+                document.getElementById('modalRecipeTitle').innerText = "Czekam na dane (Krok 2)...";
+                document.getElementById('modalIngredients').innerHTML = "<li>Czekam na ładny JSON z przepisem...</li>";
+                document.getElementById('modalInstructions').innerHTML = "<li>Czekam na ładny JSON z przygotowaniem...</li>";
+                document.getElementById('modalKcal').classList.add('hidden');
+                
+                // Dynamiczna odznaka na górze modala w zależności od klikniętej karty
+                if(personaId === 'busy_mom') {
+                    document.getElementById('modalPersonaBadge').innerHTML = '<i data-lucide="clock" class="w-3.5 h-3.5"></i> Zabiegana Mama';
+                } else if (personaId === 'pro_chef') {
+                    document.getElementById('modalPersonaBadge').innerHTML = '<i data-lucide="utensils" class="w-3.5 h-3.5"></i> Chef Restauracji';
+                }
+            }
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        function closeExampleModal() {
+            const modal = document.getElementById('exampleRecipeModal');
+            const content = document.getElementById('modalContentBlock');
+            
+            modal.classList.add('opacity-0');
+            content.classList.add('scale-95');
+            document.body.style.overflow = ''; // Przywrócenie scrollowania strony
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300); // Czekamy na koniec animacji przed całkowitym ukryciem
+        }
+
+        // Zamykanie modala po kliknięciu poza niego (w ciemne tło)
+        document.getElementById('exampleRecipeModal').addEventListener('click', function(e) {
+            if (e.target === this) closeExampleModal();
+        });
+    </script>
 </body>
 </html>

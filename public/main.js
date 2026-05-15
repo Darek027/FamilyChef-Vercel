@@ -1,4 +1,66 @@
         lucide.createIcons();
+
+        // WERSJA 5.6.0 - [LOGIKA PWA: Blokada Desktopu, Obsługa iOS/Android i Zapis decyzji]
+        let deferredPrompt;
+        const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+
+        // Zablokowanie domyślnego promptu Google Chrome
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault(); // Blokujemy domyślne zachowanie (żeby nie wyskakiwało okno systemowe np. na Desktopie)
+            deferredPrompt = e; // Zapisujemy zdarzenie na później
+            
+            // Pokazujemy nasz własny baner tylko jeśli to urządzenie mobilne, aplikacja nie jest jeszcze zainstalowana i user nie ukrył banera wcześniej
+            if (isMobileDevice && !isStandalone && !localStorage.getItem('pwaDismissed')) {
+                showPwaBanner();
+            }
+        });
+
+        // Specjalna obsługa iOS (Apple nie wspiera zdarzenia beforeinstallprompt)
+        window.addEventListener('load', () => {
+            if (isIOSDevice && !isStandalone && !localStorage.getItem('pwaDismissed')) {
+                showPwaBanner();
+            }
+        });
+
+        function showPwaBanner() {
+            const banner = document.getElementById('pwa-install-banner');
+            if (banner) {
+                banner.classList.remove('hidden');
+                // Mały timeout upewnia się, że element stracił klasę 'hidden' zanim odpali się animacja zjeżdżania (transition)
+                setTimeout(() => banner.classList.remove('translate-y-full'), 100);
+                lucide.createIcons();
+            }
+        }
+
+        function dismissPwaPrompt() {
+            const banner = document.getElementById('pwa-install-banner');
+            banner.classList.add('translate-y-full');
+            setTimeout(() => banner.classList.add('hidden'), 300); // Ukrywamy go fizycznie po 300ms animacji
+            
+            // Zapisujemy decyzję w localStorage, żeby nie irytować użytkownika, który raz odmówił
+            localStorage.setItem('pwaDismissed', 'true');
+        }
+
+        async function triggerPwaInstall() {
+            if (isIOSDevice) {
+                // Instrukcja fallbackowa dla urządzeń od Apple, które nie pozwalają wywołać promptu JS-em
+                alert("🍏 Jesteś na urządzeniu Apple:\n\n1. Kliknij ikonę 'Udostępnij' na dole ekranu (kwadrat ze strzałką).\n2. Wybierz opcję 'Do ekranu początkowego'.\n3. Gotowe!");
+                dismissPwaPrompt();
+            } else if (deferredPrompt) {
+                // Na Androidzie wywołujemy opóźniony natywny prompt
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    console.log('Użytkownik zainstalował PWA');
+                }
+                deferredPrompt = null;
+                dismissPwaPrompt();
+            }
+        }
+        // KONIEC MODUŁU PWA
+
         // WERSJA 1.23.0 - Dodanie stanu widoku (Kafelki vs Lista)
         // ==========================================
         // JWT REFRESH INTERCEPTOR (Surgical Fix)
