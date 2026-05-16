@@ -1,25 +1,39 @@
         lucide.createIcons();
 
-        // WERSJA 5.6.0 - [LOGIKA PWA: Blokada Desktopu, Obsługa iOS/Android i Zapis decyzji]
+          // WERSJA 5.7.0 - [LOGIKA PWA: Sprawdzony kod + 24h timer + rejestracja SW]
         let deferredPrompt;
         const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
 
-        // Zablokowanie domyślnego promptu Google Chrome
+        // Rejestracja Service Workera (Krytyczne dla odblokowania promptu w Android Chrome)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js');
+            });
+        }
+
+        // Funkcja sprawdzająca czy minęły 24 godziny od zamknięcia
+        function canShowPwa() {
+            const blockedUntil = localStorage.getItem('pwaBlockedUntil');
+            if (!blockedUntil) return true; // Nigdy nie zablokowano
+            if (Date.now() > parseInt(blockedUntil, 10)) {
+                localStorage.removeItem('pwaBlockedUntil'); // Czas minął, czyścimy flagę
+                return true;
+            }
+            return false; // Nadal zablokowane (nie minęły 24h)
+        }
+
         window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault(); // Blokujemy domyślne zachowanie (żeby nie wyskakiwało okno systemowe np. na Desktopie)
-            deferredPrompt = e; // Zapisujemy zdarzenie na później
-            
-            // Pokazujemy nasz własny baner tylko jeśli to urządzenie mobilne, aplikacja nie jest jeszcze zainstalowana i user nie ukrył banera wcześniej
-            if (isMobileDevice && !isStandalone && !localStorage.getItem('pwaDismissed')) {
+            e.preventDefault(); 
+            deferredPrompt = e; 
+            if (isMobileDevice && !isStandalone && canShowPwa()) {
                 showPwaBanner();
             }
         });
 
-        // Specjalna obsługa iOS (Apple nie wspiera zdarzenia beforeinstallprompt)
         window.addEventListener('load', () => {
-            if (isIOSDevice && !isStandalone && !localStorage.getItem('pwaDismissed')) {
+            if (isIOSDevice && !isStandalone && canShowPwa()) {
                 showPwaBanner();
             }
         });
@@ -28,33 +42,27 @@
             const banner = document.getElementById('pwa-install-banner');
             if (banner) {
                 banner.classList.remove('hidden');
-                // Mały timeout upewnia się, że element stracił klasę 'hidden' zanim odpali się animacja zjeżdżania (transition)
                 setTimeout(() => banner.classList.remove('translate-y-full'), 100);
-                lucide.createIcons();
+                if (typeof lucide !== 'undefined') lucide.createIcons();
             }
         }
 
         function dismissPwaPrompt() {
             const banner = document.getElementById('pwa-install-banner');
             banner.classList.add('translate-y-full');
-            setTimeout(() => banner.classList.add('hidden'), 300); // Ukrywamy go fizycznie po 300ms animacji
-            
-            // Zapisujemy decyzję w localStorage, żeby nie irytować użytkownika, który raz odmówił
-            localStorage.setItem('pwaDismissed', 'true');
+            setTimeout(() => banner.classList.add('hidden'), 300); 
+            // Zapisujemy blokadę na 24 godziny (24h * 60m * 60s * 1000ms = 86400000)
+            localStorage.setItem('pwaBlockedUntil', Date.now() + 86400000);
         }
 
         async function triggerPwaInstall() {
             if (isIOSDevice) {
-                // Instrukcja fallbackowa dla urządzeń od Apple, które nie pozwalają wywołać promptu JS-em
                 alert("🍏 Jesteś na urządzeniu Apple:\n\n1. Kliknij ikonę 'Udostępnij' na dole ekranu (kwadrat ze strzałką).\n2. Wybierz opcję 'Do ekranu początkowego'.\n3. Gotowe!");
                 dismissPwaPrompt();
             } else if (deferredPrompt) {
-                // Na Androidzie wywołujemy opóźniony natywny prompt
                 deferredPrompt.prompt();
                 const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                    console.log('Użytkownik zainstalował PWA');
-                }
+                if (outcome === 'accepted') console.log('Zainstalowano');
                 deferredPrompt = null;
                 dismissPwaPrompt();
             }
