@@ -13,15 +13,25 @@
             });
         }
 
-        // Funkcja sprawdzająca czy minęły 24 godziny od zamknięcia
+        // WERSJA 5.7.1 - [SAAS RESILIENCE: Zabezpieczenie localStorage w trybie prywatnym iOS]
+        // Używamy try...catch, aby restrykcyjne tryby prywatne Safari nie crashowały całej aplikacji.
+        
         function canShowPwa() {
-            const blockedUntil = localStorage.getItem('pwaBlockedUntil');
-            if (!blockedUntil) return true; // Nigdy nie zablokowano
-            if (Date.now() > parseInt(blockedUntil, 10)) {
-                localStorage.removeItem('pwaBlockedUntil'); // Czas minął, czyścimy flagę
-                return true;
+            try {
+                const blockedUntil = localStorage.getItem('pwaBlockedUntil');
+                if (!blockedUntil) return true; 
+                if (Date.now() > parseInt(blockedUntil, 10)) {
+                    localStorage.removeItem('pwaBlockedUntil'); 
+                    return true;
+                }
+                return false; 
+            } catch (error) {
+                // Jeżeli przeglądarka blokuje localStorage (np. ścisły tryb incognito),
+                // prewencyjnie nie pokazujemy banera, by nie drażnić użytkownika,
+                // który i tak w tym trybie nie zainstaluje PWA.
+                console.warn("PWA: Brak dostępu do localStorage (Tryb prywatny?). Blokuję baner.");
+                return false; 
             }
-            return false; // Nadal zablokowane (nie minęły 24h)
         }
 
         window.addEventListener('beforeinstallprompt', (e) => {
@@ -51,8 +61,13 @@
             const banner = document.getElementById('pwa-install-banner');
             banner.classList.add('translate-y-full');
             setTimeout(() => banner.classList.add('hidden'), 300); 
-            // Zapisujemy blokadę na 24 godziny (24h * 60m * 60s * 1000ms = 86400000)
-            localStorage.setItem('pwaBlockedUntil', Date.now() + 86400000);
+            
+            try {
+                // Zapisujemy blokadę na 24 godziny
+                localStorage.setItem('pwaBlockedUntil', Date.now() + 86400000);
+            } catch (error) {
+                console.warn("PWA: Nie udało się zapisać blokady banera w localStorage.");
+            }
         }
 
         async function triggerPwaInstall() {
