@@ -34,27 +34,40 @@
             }
         }
 
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault(); 
-            deferredPrompt = e; 
-            if (isMobileDevice && !isStandalone && canShowPwa()) {
-                showPwaBanner();
-            }
-        });
-
-        window.addEventListener('load', () => {
-            if (isIOSDevice && !isStandalone && canShowPwa()) {
-                showPwaBanner();
-            }
-        });
-
+        // WERSJA 5.8.1 - [SAAS PWA FIX: Niezawodny trigger z opóźnieniem UX]
+        
         function showPwaBanner() {
             const banner = document.getElementById('pwa-install-banner');
             if (banner) {
                 banner.classList.remove('hidden');
+                // Delikatne opóźnienie przed animacją pozwala przeglądarce upewnić się,
+                // że renderuje widoczny obiekt, co naprawia ucięte animacje w iOS Safari.
                 setTimeout(() => banner.classList.remove('translate-y-full'), 100);
                 if (typeof lucide !== 'undefined') lucide.createIcons();
             }
+        }
+
+        function initPwaLogic() {
+            if (isIOSDevice && !isStandalone && canShowPwa()) {
+                // Opóźniamy start banera o 1.5s - nie atakujemy usera w pierwszej sekundzie
+                setTimeout(showPwaBanner, 1500);
+            }
+        }
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault(); 
+            deferredPrompt = e; 
+            if (isMobileDevice && !isStandalone && canShowPwa()) {
+                setTimeout(showPwaBanner, 1500);
+            }
+        });
+
+        // Niezależnie od momentu zjawienia się skryptu w pamięci telefonu, 
+        // bezpiecznie sprawdzamy czy strona już żyje. Jeśli tak - odpalamy.
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            initPwaLogic();
+        } else {
+            window.addEventListener('DOMContentLoaded', initPwaLogic);
         }
 
         function dismissPwaPrompt() {

@@ -1136,6 +1136,10 @@ video {
   resize: none;
 }
 
+.scroll-pt-20 {
+  scroll-padding-top: 5rem;
+}
+
 .list-decimal {
   list-style-type: decimal;
 }
@@ -2692,6 +2696,10 @@ video {
 
   .md\:flex-grow-0 {
     flex-grow: 0;
+  }
+
+  .md\:scroll-pt-28 {
+    scroll-padding-top: 7rem;
   }
 
   .md\:grid-cols-2 {
