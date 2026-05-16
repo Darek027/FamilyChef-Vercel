@@ -141,23 +141,21 @@
                         <!-- Opcje Persony i Poziomu (WERSJA 4.2.0 - Soft Paywall UI) -->
                         <div class="flex flex-col sm:flex-row gap-3">
                             <select id="generatorChef" onchange="enforcePremiumSelect(this, 'DEFAULT_CHEF')" class="flex-grow px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-2xl outline-none text-charcoal_light text-sm font-semibold hover:bg-cream focus:ring-2 focus:ring-sage transition cursor-pointer">
-                                <option value="DEFAULT_CHEF">👨‍🍳 Codzienny Kucharz</option>
-                                <option value="PREMIUM_CHEF">⭐ Kucharz PRO</option>
-                                <option value="PRO_CHEF">🎩 Chef Restauracji</option>
-                                <option value="BUSY_MOM">🏃‍♀️ Zabiegana Mama</option>
-                                <option value="KIDS_HERO">🦸‍♂️ Poskramiacz Dzieci</option>
-                                <option value="GRANDMA">👵 Wspomnienie Babci</option>
-                                <option value="ECO_PURE">🌱 Ekologiczny</option>
-                                <option value="VEGE_MASTER">🥦 Vege Master</option>
-                                <!-- WERSJA 4.9.7 -->
+                                <option value="DEFAULT_CHEF">🍳 Codzienny Kucharz</option>
+                                <option value="PRO_CHEF">✨ Chef Restauracji</option>
+                                <option value="BUSY_MOM">⏱️ Zabiegana Mama</option>
+                                <option value="KIDS_HERO">🪄 Poskramiacz Dzieci</option>
+                                <option value="GRANDMA">🥘 Wspomnienie Babci</option>
+                                <option value="WEIGHT_LOSS">🔥 Misja Odchudzanie</option>
+                                <option value="ECO_PURE">🌿 Ekologiczny</option>
+                                <option value="VEGE_MASTER">🥑 Vege Master</option>
                                 <option value="POLISH_TRADITION">🥟 Polskie Tradycje</option>
-                                <option value="HUNTER">🌲 Kuchnia Myśliwska</option>
+                                <option value="HUNTER">🥩 Kuchnia Myśliwska</option>
                             </select>
-                            <!-- WERSJA 4.9.11 - Optymalizacja UX (Mobile Fix v2) -->
                             <select id="generatorSkill" onchange="enforcePremiumSelect(this, 'DEFAULT_SKILL')" class="flex-grow px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-2xl outline-none text-charcoal_light text-sm font-semibold hover:bg-cream focus:ring-2 focus:ring-sage transition cursor-pointer">
-                                <option value="SKILL_NOOB">🟢 Poziom: Łatwy</option>
-                                <option value="DEFAULT_SKILL">🟡 Poziom: Średni</option>
-                                <option value="SKILL_EXPERT">🔴 Poziom: Ekspert</option>
+                                <option value="SKILL_NOOB">💡 Poziom: Łatwy</option>
+                                <option value="DEFAULT_SKILL">🔪 Poziom: Średni</option>
+                                <option value="SKILL_EXPERT">🎓 Poziom: Ekspert</option>
                             </select>
                         </div>
 
@@ -361,31 +359,28 @@
         <button onclick="showFamilyMembers()" id="familyMembersBtn" class="hidden text-sage hover:text-sage_dark font-bold transition flex items-center gap-1.5 text-sm py-1"><i data-lucide="users" class="w-4 h-4"></i> Zobacz kto ma dostęp (<span id="familyMembersCount">1</span>)</button>
     </div>
 </div>
-                        <!-- WERSJA 4.2.0 - Domyślna Persona i Poziom (Profil z Soft Paywallem UI) -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-bold text-charcoal mb-2">Domyślny Szef Kuchni</label>
                                 <select id="profileChef" onchange="enforcePremiumSelect(this, 'DEFAULT_CHEF')" class="w-full px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-xl outline-none text-charcoal focus:ring-2 focus:ring-sage font-semibold cursor-pointer">
-                                    <option value="DEFAULT_CHEF">👨‍🍳 Codzienny Kucharz (Free)</option>
-                                    <option value="PREMIUM_CHEF">⭐ Kucharz PRO (Premium)</option>
-                                    <option value="PRO_CHEF">🎩 Chef Restauracji (Premium)</option>
-                                    <option value="BUSY_MOM">🏃‍♀️ Zabiegana Mama (Premium)</option>
-                                    <option value="KIDS_HERO">🦸‍♂️ Poskramiacz Dzieci (Premium)</option>
-                                    <option value="GRANDMA">👵 Wspomnienie Babci (Premium)</option>
-                                    <option value="ECO_PURE">🌱 Ekologiczny (Premium)</option>
-                                    <option value="VEGE_MASTER">🥦 Vege Master (Premium)</option>
-                                    <!-- WERSJA 4.9.7 -->
-                                    <option value="POLISH_TRADITION">🥟 Polskie Tradycje (Premium)</option>
-                                    <option value="HUNTER">🌲 Kuchnia Myśliwska (Premium)</option>
+                                    <option value="DEFAULT_CHEF">🍳 Codzienny Kucharz</option>
+                                    <option value="PRO_CHEF">✨ Chef Restauracji</option>
+                                    <option value="BUSY_MOM">⏱️ Zabiegana Mama</option>
+                                    <option value="KIDS_HERO">🪄 Poskramiacz Dzieci</option>
+                                    <option value="GRANDMA">🥘 Wspomnienie Babci</option>
+                                    <option value="WEIGHT_LOSS">🔥 Misja Odchudzanie</option>
+                                    <option value="ECO_PURE">🌿 Ekologiczny</option>
+                                    <option value="VEGE_MASTER">🥑 Vege Master</option>
+                                    <option value="POLISH_TRADITION">🥟 Polskie Tradycje</option>
+                                    <option value="HUNTER">🥩 Kuchnia Myśliwska</option>
                                 </select>
                             </div>
-                            <!-- WERSJA 4.9.11 - Optymalizacja UX profilu (Mobile Fix v2) -->
                             <div>
                                 <label class="block text-sm font-bold text-charcoal mb-2">Domyślny Poziom</label>
                                 <select id="profileSkill" onchange="enforcePremiumSelect(this, 'DEFAULT_SKILL')" class="w-full px-4 py-3 bg-cream/50 border border-charcoal/10 rounded-xl outline-none text-charcoal focus:ring-2 focus:ring-sage font-semibold cursor-pointer">
-                                    <option value="SKILL_NOOB">🟢 Łatwy (PRO)</option>
-                                    <option value="DEFAULT_SKILL">🟡 Średni (Free)</option>
-                                    <option value="SKILL_EXPERT">🔴 Ekspert (PRO)</option>
+                                    <option value="SKILL_NOOB">💡 Poziom: Łatwy</option>
+                                    <option value="DEFAULT_SKILL">🔪 Poziom: Średni</option>
+                                    <option value="SKILL_EXPERT">🎓 Poziom: Ekspert</option>
                                 </select>
                             </div>
                         </div>
@@ -437,19 +432,29 @@
 </div>
 
 <div id="pwa-install-banner" class="hidden fixed bottom-0 left-0 w-full bg-charcoal text-white p-4 z-[9999] shadow-[0_-10px_30px_rgba(0,0,0,0.3)] rounded-t-3xl transition-transform transform translate-y-full">
-    <div class="max-w-md mx-auto flex justify-between items-center">
-        <div class="flex items-center gap-3">
-            <img src="https://bnijuskmzcgnojefxhnk.supabase.co/storage/v1/object/public/assets/icon.png" alt="KiedyObiad" class="w-12 h-12 rounded-xl border border-white/20 shadow-sm">
-            <div class="text-sm">
-                <p class="font-bold text-base">Zainstaluj KiedyObiad</p>
-                <p class="text-xs text-white/70" id="pwa-install-text">Gotuj jednym kliknięciem!</p>
+    <div class="max-w-md mx-auto flex flex-col">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <img src="https://bnijuskmzcgnojefxhnk.supabase.co/storage/v1/object/public/assets/icon.png" alt="KiedyObiad" class="w-12 h-12 rounded-xl border border-white/20 shadow-sm">
+                <div class="text-sm">
+                    <p class="font-bold text-base">Zainstaluj KiedyObiad</p>
+                    <p class="text-xs text-white/70" id="pwa-install-text">Gotuj jednym kliknięciem!</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-1">
+                <button id="pwa-install-btn" onclick="triggerPwaInstall()" class="bg-sage text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-md hover:bg-sage_dark transition">Instaluj</button>
+                <button onclick="dismissPwaPrompt()" class="p-2.5 text-white/40 hover:text-white transition" title="Zamknij">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
             </div>
         </div>
-        <div class="flex items-center gap-1">
-            <button id="pwa-install-btn" onclick="triggerPwaInstall()" class="bg-sage text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-md hover:bg-sage_dark transition">Instaluj</button>
-            <button onclick="dismissPwaPrompt()" class="p-2.5 text-white/40 hover:text-white transition" title="Zamknij">
-                <i data-lucide="x" class="w-6 h-6"></i>
-            </button>
+        
+        <div id="pwa-ios-instructions" class="hidden mt-4 pt-4 border-t border-white/10 text-sm text-white/90">
+            <p class="font-bold text-sage mb-2">Jak zainstalować na urządzeniu Apple?</p>
+            <ol class="list-decimal pl-5 space-y-2">
+                <li>Otwórz menu przeglądarki: kliknij ikonę <b>Udostępnij</b> (kwadrat ze strzałką) lub <b>Menu</b> (trzy kropki).</li>
+                <li>Przewiń listę i wybierz opcję <b>"Do ekranu początkowego"</b> <i data-lucide="plus-square" class="w-4 h-4 inline opacity-70"></i></li>
+            </ol>
         </div>
     </div>
 </div>

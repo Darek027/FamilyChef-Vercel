@@ -1,4 +1,3 @@
-// WERSJA 4.8.0 - API VERCEL: AKTUALIZACJA PROFILU UŻYTKOWNIKA ORAZ PORCJI DOMYŚLNYCH
 // WERSJA 4.9.1 - ZERO TRUST PROFIL
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ status: "error" });

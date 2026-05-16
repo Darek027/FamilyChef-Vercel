@@ -70,10 +70,21 @@
             window.addEventListener('DOMContentLoaded', initPwaLogic);
         }
 
+// WERSJA 5.9.0 - [UX PWA: Resetowanie stanu banera i wyeliminowanie systemowego alertu]
         function dismissPwaPrompt() {
             const banner = document.getElementById('pwa-install-banner');
             banner.classList.add('translate-y-full');
-            setTimeout(() => banner.classList.add('hidden'), 300); 
+            
+            setTimeout(() => {
+                banner.classList.add('hidden');
+                // Resetujemy stan HTML, aby baner wyglądał poprawnie przy kolejnym otwarciu apki
+                const iosInst = document.getElementById('pwa-ios-instructions');
+                if(iosInst) iosInst.classList.add('hidden');
+                const installBtn = document.getElementById('pwa-install-btn');
+                if(installBtn) installBtn.classList.remove('hidden');
+                const installText = document.getElementById('pwa-install-text');
+                if(installText) installText.innerText = "Gotuj jednym kliknięciem!";
+            }, 300); 
             
             try {
                 // Zapisujemy blokadę na 24 godziny
@@ -85,8 +96,11 @@
 
         async function triggerPwaInstall() {
             if (isIOSDevice) {
-                alert("🍏 Jesteś na urządzeniu Apple:\n\n1. Kliknij ikonę 'Udostępnij' na dole ekranu (kwadrat ze strzałką).\n2. Wybierz opcję 'Do ekranu początkowego'.\n3. Gotowe!");
-                dismissPwaPrompt();
+                // Pokazujemy instrukcję bezpośrednio w DOM, nie zamrażając UI systemu
+                document.getElementById('pwa-install-btn').classList.add('hidden');
+                document.getElementById('pwa-ios-instructions').classList.remove('hidden');
+                document.getElementById('pwa-install-text').innerText = "Postępuj zgodnie z instrukcją poniżej:";
+                if (typeof lucide !== 'undefined') lucide.createIcons();
             } else if (deferredPrompt) {
                 deferredPrompt.prompt();
                 const { outcome } = await deferredPrompt.userChoice;
@@ -160,25 +174,24 @@
         let activeShoppingTitle = "";
         let activeShoppingListArray = [];
 
-        // WERSJA 4.9.9 - Aktualizacja mapowania odznak dla nowych person
+        // WERSJA 5.1.0 - [TRENDY ICONS: Nowoczesne odznaki person i poziomów]
         const CHEF_BADGES = {
-            'DEFAULT_CHEF': '👨‍🍳 Codzienny Kucharz',
-            'PREMIUM_CHEF': '⭐ Kucharz PRO',
-            'PRO_CHEF': '🎩 Chef Restauracji',
-            'BUSY_MOM': '🏃‍♀️ Zabiegana Mama',
-            'KIDS_HERO': '🦸‍♂️ Poskramiacz Dzieci',
-            'GRANDMA': '👵 Wspomnienie Babci',
-            'ECO_PURE': '🌱 Ekologiczny',
-            'VEGE_MASTER': '🥦 Vege Master',
-            // WERSJA 4.9.7
+            'DEFAULT_CHEF': '🍳 Codzienny Kucharz',
+            'PRO_CHEF': '✨ Chef Restauracji',
+            'BUSY_MOM': '⏱️ Zabiegana Mama',
+            'KIDS_HERO': '🪄 Poskramiacz Dzieci',
+            'GRANDMA': '🥘 Wspomnienie Babci',
+            'WEIGHT_LOSS': '🔥 Misja Odchudzanie',
+            'ECO_PURE': '🌿 Ekologiczny',
+            'VEGE_MASTER': '🥑 Vege Master',
             'POLISH_TRADITION': '🥟 Polskie Tradycje',
-            'HUNTER': '🌲 Kuchnia Myśliwska'
+            'HUNTER': '🥩 Kuchnia Myśliwska'
         };
-        // WERSJA 4.9.11 - Aktualizacja nazewnictwa poziomów
+
         const SKILL_BADGES = {
-            'SKILL_NOOB': '🟢 Poziom: Łatwy',
-            'DEFAULT_SKILL': '🟡 Poziom: Średni',
-            'SKILL_EXPERT': '🔴 Poziom: Ekspert'
+            'SKILL_NOOB': '💡 Poziom: Łatwy',
+            'DEFAULT_SKILL': '🔪 Poziom: Średni',
+            'SKILL_EXPERT': '🎓 Poziom: Ekspert'
         };
 
         // WERSJA 4.3.1 - Obsługa wskaźnika planu (Zabezpieczenie przed ściskaniem)
