@@ -21,8 +21,6 @@
 
     <div class="absolute inset-0 app-blob z-0 pointer-events-none"></div>
 
-<html lang="pl" class="scroll-smooth overflow-x-hidden">
-...
 <nav class="w-full z-50 bg-cream/90 backdrop-blur-lg border-b border-charcoal/5 relative md:sticky md:top-0">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16 md:h-20">
         <a href="/" class="flex items-center shrink-0 hover:opacity-80 transition-opacity">
@@ -30,7 +28,8 @@
         </a>
         <div class="hidden md:flex gap-8 font-semibold text-charcoal_light text-sm items-center">
             <a href="#jak-to-dziala" class="hover:text-sage transition">Jak to działa?</a>
-            <a href="#persony" class="hover:text-terracotta transition">Szefowie Kuchni</a>
+            <a href="#magia-polaczenia" class="hover:text-terracotta transition">Magia Połączenia</a>
+            <a href="#persony" class="hover:text-sage transition">Szefowie Kuchni</a>
             <a href="#faq" class="hover:text-sage transition">FAQ</a>
         </div>
         <div class="flex items-center shrink-0">
@@ -59,7 +58,7 @@
             </div>
         </section>
 
-<section id="jak-to-dziala" class="bg-white pt-12 pb-24 border-y border-charcoal/5">
+<section id="jak-to-dziala" class="bg-white pt-12 pb-12 md:pb-16 border-y border-charcoal/5">
             <div class="max-w-5xl mx-auto px-4">
                 <h2 class="text-3xl md:text-4xl font-extrabold text-charcoal text-center mb-16">Od pustej lodówki do <span class="text-sage">gotowego planu</span></h2>
                 
@@ -88,6 +87,88 @@
                 </div>
             </div>
         </section>
+
+<section id="magia-polaczenia" class="pt-12 pb-12 md:pt-12 md:pb-20 bg-charcoal text-white relative overflow-hidden shadow-2xl z-10">
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-sage/20 via-charcoal to-charcoal opacity-50"></div>
+    
+    <div class="max-w-6xl mx-auto px-4 relative z-10">
+        <div class="text-center mb-10 md:mb-16">
+            <span class="bg-sage/20 text-sage px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold uppercase tracking-wider mb-4 md:mb-6 inline-block border border-sage/30">Zrozum naszą potęgę</span>
+            <h2 class="text-3xl md:text-5xl font-extrabold mb-4 md:mb-6 leading-tight">To nie jest zwykły ChatGPT.<br>To Twój <span class="text-terracotta">Osobisty Ekosystem.</span></h2>
+            <p class="text-white/70 max-w-3xl mx-auto text-base md:text-lg">Dlaczego nasze przepisy zawsze trafiają w punkt? Ponieważ za każdym razem, gdy klikasz "Gotujmy", w ułamku sekundy łączymy 4 potężne parametry, dając Ci nieskończoną liczbę możliwości.</p>
+        </div>
+
+        <div class="flex md:grid md:grid-cols-4 gap-4 md:gap-6 mb-10 md:mb-16 overflow-x-auto md:overflow-x-visible [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden pb-4 md:pb-0">
+            
+            <div class="bg-white/5 border border-white/10 p-6 rounded-3xl backdrop-blur-sm hover:bg-white/10 transition shrink-0 w-[280px] sm:w-[320px] md:w-full">
+                <div class="bg-white/10 w-12 h-12 rounded-xl flex items-center justify-center mb-4"><i data-lucide="heart" class="w-6 h-6 text-terracotta"></i></div>
+                <h4 class="font-bold text-lg mb-2">1. Stałe Preferencje</h4>
+                <p class="text-sm text-white/60">Zdefiniuj swoje nawyki żywieniowe w zakładce <span class="text-sage font-bold">Profil i Ustawienia</span> w menu edycji konta. Wpisz tam stałe alergie, diety lub wykluczenia dla dzieci. Silnik AI automatycznie zaciągnie te dane do każdego nowego przepisu – bez ciągłego przypominania.</p>
+            </div>
+            
+            <div class="bg-white/5 border border-white/10 p-6 rounded-3xl backdrop-blur-sm hover:bg-white/10 transition shrink-0 w-[280px] sm:w-[320px] md:w-full">
+                <div class="bg-white/10 w-12 h-12 rounded-xl flex items-center justify-center mb-4"><i data-lucide="user-circle" class="w-6 h-6 text-sage"></i></div>
+                <h4 class="font-bold text-lg mb-2">2. Persona Kucharza</h4>
+                <p class="text-sm text-white/60">Wybierz swojego mistrza kuchni za pomocą listy rozwijanej w <span class="text-sage font-bold">Kreatorze</span> (lub ustaw ulubionego na stałe w Profilu). Każda persona drastycznie zmienia dobór składników i klimat: Polskie Tradycje zamienią spaghetti na łazanki, a Ekologiczny kucharz wyrzuci przetworzoną chemię.</p>
+            </div>
+            
+            <div class="bg-white/5 border border-white/10 p-6 rounded-3xl backdrop-blur-sm hover:bg-white/10 transition relative shrink-0 w-[280px] sm:w-[320px] md:w-full">
+                <div class="absolute top-0 right-0 bg-terracotta text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-wider hidden md:block">Kluczowe</div>
+                <div class="bg-white/10 w-12 h-12 rounded-xl flex items-center justify-center mb-4"><i data-lucide="bar-chart" class="w-6 h-6 text-sage"></i></div>
+                <h4 class="font-bold text-lg mb-2">3. Poziom Instrukcji</h4>
+                <p class="text-sm text-white/60">Ustaw poziom zaawansowania opisu w rozwijanym menu <span class="text-sage font-bold">Kreatora</span>. To nie zmienia trudności samego dania, lecz język AI! Poziom łatwy rozpisze wszystko na najprostsze mikrokroki kuchenne, a ekspert poda Ci tylko techniczne krytyczne proporcje i profil smaków.</p>
+            </div>
+            
+            <div class="bg-white/5 border border-white/10 p-6 rounded-3xl backdrop-blur-sm hover:bg-white/10 transition shrink-0 w-[280px] sm:w-[320px] md:w-full">
+                <div class="bg-white/10 w-12 h-12 rounded-xl flex items-center justify-center mb-4"><i data-lucide="message-square" class="w-6 h-6 text-terracotta"></i></div>
+                <h4 class="font-bold text-lg mb-2">4. Twój Pomysł</h4>
+                <p class="text-sm text-white/60">Wpisz to, na co masz dziś ochotę w <span class="text-sage font-bold">głównym polu wyszukiwarki Kreatora</span>. Może to być luźne 'czyszczenie lodówki z resztek' albo 'romantyczna kolacja dla dwojga z krewetkami'. Nasz system zepnie tę myśl z powyższymi trzema parametrami w ułamku sekundy.</p>
+            </div>
+            
+        </div>
+
+        <div class="bg-white rounded-3xl p-3 sm:p-4 shadow-2xl border border-charcoal/10 text-charcoal max-w-5xl mx-auto">
+            <div class="flex flex-col md:flex-row gap-4">
+                <div class="w-full md:w-1/3 p-2 md:p-4 flex flex-row md:flex-col gap-3 border-b md:border-b-0 md:border-r border-charcoal/10 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden shrink-0">
+                    <h4 class="font-extrabold text-lg mb-2 hidden md:block">Zobacz to w akcji:</h4>
+                    
+                    <button onclick="changeScenario(1)" id="btn-scenario-1" class="text-left px-4 py-3 rounded-xl border-2 border-sage bg-sage/5 transition flex items-center justify-between group shrink-0 min-w-[240px] md:min-w-0 w-auto md:w-full">
+                        <div>
+                            <p class="font-bold text-sm text-charcoal">Zupa Mocy Spidermana</p>
+                            <p class="text-xs text-charcoal_light">Poskramiacz Dzieci + Poziom: Łatwy</p>
+                        </div>
+                        <i data-lucide="chevron-right" class="w-5 h-5 text-sage group-hover:translate-x-1 transition-transform hidden md:block"></i>
+                    </button>
+
+                    <button onclick="changeScenario(2)" id="btn-scenario-2" class="text-left px-4 py-3 rounded-xl border-2 border-transparent hover:border-charcoal/10 hover:bg-cream transition flex items-center justify-between group opacity-70 hover:opacity-100 shrink-0 min-w-[240px] md:min-w-0 w-auto md:w-full">
+                        <div>
+                            <p class="font-bold text-sm text-charcoal">Staropolskie Łazanki</p>
+                            <p class="text-xs text-charcoal_light">Polskie Tradycje + Poziom: Średni</p>
+                        </div>
+                        <i data-lucide="chevron-right" class="w-5 h-5 text-charcoal_light group-hover:translate-x-1 transition-transform hidden md:block"></i>
+                    </button>
+                    
+                    <button onclick="changeScenario(3)" id="btn-scenario-3" class="text-left px-4 py-3 rounded-xl border-2 border-transparent hover:border-charcoal/10 hover:bg-cream transition flex items-center justify-between group opacity-70 hover:opacity-100 shrink-0 min-w-[240px] md:min-w-0 w-auto md:w-full">
+                        <div>
+                            <p class="font-bold text-sm text-charcoal">Krem Orkiszowo-Kokosowy</p>
+                            <p class="text-xs text-charcoal_light">Ekologiczny + Bez nabiału</p>
+                        </div>
+                        <i data-lucide="chevron-right" class="w-5 h-5 text-charcoal_light group-hover:translate-x-1 transition-transform hidden md:block"></i>
+                    </button>
+                </div>
+
+                <div class="w-full md:w-2/3 p-4 bg-cream/30 rounded-2xl flex flex-col min-h-[250px]">
+                    <div class="flex items-center gap-2 mb-4 pb-4 border-b border-charcoal/5">
+                        <i data-lucide="sparkles" class="w-5 h-5 text-sage"></i>
+                        <span class="font-bold text-sm text-charcoal_light">Oto jak AI zmodyfikuje instrukcje:</span>
+                    </div>
+                    <div id="scenario-output" class="transition-opacity duration-300 flex-grow">
+                        </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
 
 <section id="persony" class="pt-8 pb-24">
             <div class="max-w-6xl mx-auto px-4">
@@ -253,23 +334,7 @@
             &copy; <script>document.write(new Date().getFullYear())</script> KiedyObiad.pl. Wszelkie prawa zastrzeżone.
         </div>
     </footer>
-<div id="pwa-install-banner" class="hidden fixed bottom-0 left-0 w-full bg-charcoal text-white p-4 z-[9999] shadow-[0_-10px_30px_rgba(0,0,0,0.3)] rounded-t-3xl transition-transform transform translate-y-full">
-    <div class="max-w-md mx-auto flex justify-between items-center">
-        <div class="flex items-center gap-3">
-            <img src="https://bnijuskmzcgnojefxhnk.supabase.co/storage/v1/object/public/assets/icon.png" alt="KiedyObiad" class="w-12 h-12 rounded-xl border border-white/20 shadow-sm">
-            <div class="text-sm">
-                <p class="font-bold text-base">Zainstaluj KiedyObiad</p>
-                <p class="text-xs text-white/70" id="pwa-install-text">Gotuj jednym kliknięciem!</p>
-            </div>
-        </div>
-        <div class="flex items-center gap-1">
-            <button id="pwa-install-btn" onclick="triggerPwaInstall()" class="bg-sage text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-md hover:bg-sage_dark transition">Instaluj</button>
-            <button onclick="dismissPwaPrompt()" class="p-2.5 text-white/40 hover:text-white transition" title="Zamknij">
-                <i data-lucide="x" class="w-6 h-6"></i>
-            </button>
-        </div>
-    </div>
-</div>
+
  <script>
         // Opóźniamy renderowanie ikon do momentu pełnego załadowania biblioteki z atrybutem 'defer'
         window.addEventListener('DOMContentLoaded', (event) => {
@@ -278,55 +343,85 @@
             }
         });
 
-// LOGIKA PWA DLA LANDING PAGE
-        let deferredPrompt;
-        const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
-
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault(); 
-            deferredPrompt = e; 
-            if (isMobileDevice && !isStandalone && !localStorage.getItem('pwaDismissed')) {
-                showPwaBanner();
+// WERSJA 1.5 - [MOCK DATA UPDATE: Nowe persony (Poskramiacz, Tradycja, Ekologiczny)]
+        const promptScenarios = {
+            1: {
+                title: "Zupa Mocy Spidermana (Ukryte Warzywa)",
+                badges: '<span class="bg-terracotta/10 text-terracotta px-2 py-1 rounded-md text-[10px] font-bold">🦸‍♂️ Poskramiacz Dzieci</span> <span class="bg-sage/10 text-sage_dark px-2 py-1 rounded-md text-[10px] font-bold">🟢 Poziom: Łatwy</span>',
+                content: `
+                    <div class="space-y-3">
+                        <p class="text-sm font-semibold text-charcoal">MISJA SPECJALNA (Oszukanie niejadka):</p>
+                        <p class="text-sm text-charcoal_light italic bg-white p-3 rounded-xl border border-charcoal/5 shadow-sm">"Twoje dziecko odmawia jedzenia selera, pora czy cebuli? Spokojnie, nasz system wydaje AI jasny nakaz: zmodyfikuj teksturę potrawy. Wszystko co zdrowe musi zostać zblendowane na perfekcyjną mikropapkę bez ani jednej grudki. Smak będzie łagodny, a chwytliwa nazwa załatwi resztę."</p>
+                        <p class="text-sm font-semibold text-charcoal mt-4">KROK INSTRUKCJI DLA POCZĄTKUJĄCEGO:</p>
+                        <p class="text-sm text-charcoal_light italic bg-white p-3 rounded-xl border border-charcoal/5 shadow-sm">"Ugotuj warzywa korzeniowe do miękkości. Miksuj je blenderem na najwyższych obrotach przez pełne 3 minuty, aż uzyskasz idealnie aksamitną konsystencję. Dodaj naturalny przecier pomidorowy dla krwistoczerwonego koloru. Podaj dziecku jako Zupę Mocy Spidermana – zje z zachwytem!"</p>
+                    </div>
+                `
+            },
+            2: {
+                title: "Staropolskie Łazanki z Okrasą (Zamiast Spaghetti)",
+                badges: '<span class="bg-charcoal/10 text-charcoal px-2 py-1 rounded-md text-[10px] font-bold">🥟 Polskie Tradycje</span> <span class="bg-sage/10 text-sage_dark px-2 py-1 rounded-md text-[10px] font-bold">🟡 Poziom: Średni</span>',
+                content: `
+                    <div class="space-y-3">
+                        <p class="text-sm font-semibold text-charcoal">ZABEZPIECZENIE PURYSTYCZNE (Automatyczna konwersja):</p>
+                        <p class="text-sm text-charcoal_light italic bg-white p-3 rounded-xl border border-charcoal/5 shadow-sm">"Użytkownik wpisał w kreatorze pomysł na włoskie 'spaghetti z resztek'. Silnik AI Staropolskiej Tradycji twardo odrzuca zagraniczne wynalazki (zero awokado, soi czy oliwy). Danie zostaje automatycznie przekształcone w sycący polski odpowiednik oparty o potężne potrawy chłopskie."</p>
+                        <p class="text-sm font-semibold text-charcoal mt-4">KROK INSTRUKCJI DLA ŚREDNIOZAAWANSOWANEGO:</p>
+                        <p class="text-sm text-charcoal_light italic bg-white p-3 rounded-xl border border-charcoal/5 shadow-sm">"Zamiast makaronu spaghetti, ugotuj klasyczne kluski łazankowe. Na patelni rozpuść łyżkę smalcu i wysmaż pokrojoną w kostkę wędzonkę oraz swojską kiszoną kapustę. Połącz wszystko w jednym garnku i obficie zasyp majerankiem. Ma pachnieć staropolską karczmą."</p>
+                    </div>
+                `
+            },
+            3: {
+                title: "Krem Orkiszowo-Kokosowy z Imbirem",
+                badges: '<span class="bg-sage/10 text-sage px-2 py-1 rounded-md text-[10px] font-bold">🌱 Ekologiczny</span> <span class="bg-white border border-charcoal/10 text-charcoal px-2 py-1 rounded-md text-[10px] font-bold">⚠️ Bez nabiału (Twoje Preferencje)</span>',
+                content: `
+                    <div class="space-y-3">
+                        <p class="text-sm font-semibold text-charcoal">INTEGRACJA PREFERENCJI (Clean Eating):</p>
+                        <p class="text-sm text-charcoal_light italic bg-white p-3 rounded-xl border border-charcoal/5 shadow-sm">"Silnik AI odczytał z Twojego profilu twarde wymaganie: BEZ NABIAŁU. Tradycyjne masło lub śmietana zostają natychmiast wykluczone. Ekologiczny kucharz zastępuje zwykłą mąkę wersją orkiszową i kładzie moralny nacisk na właściwości przeciwzapalne potrawy."</p>
+                        <p class="text-sm font-semibold text-charcoal mt-4">WYTYCZNE DLA EKSPERTA (Kulinarny Ninja):</p>
+                        <p class="text-sm text-charcoal_light italic bg-white p-3 rounded-xl border border-charcoal/5 shadow-sm">"Zredukuj domowy esencjonalny bulion z dzikich boczniaków, świeżej kurkumy i imbiru (potężny antyoksydant). Zabiel całość organicznym mlekiem kokosowym i zagęść delikatnie hydratyzowaną mąką orkiszową. Zostawiam puste pole na autorski plating i dobór mikroziół."</p>
+                    </div>
+                `
             }
-        });
+        };
 
-        window.addEventListener('load', () => {
-            if (isIOSDevice && !isStandalone && !localStorage.getItem('pwaDismissed')) {
-                showPwaBanner();
+        function changeScenario(id) {
+            for(let i=1; i<=3; i++) {
+                const btn = document.getElementById('btn-scenario-' + i);
+                btn.classList.remove('border-sage', 'bg-sage/5', 'opacity-100');
+                btn.classList.add('border-transparent', 'opacity-70');
+                if(btn.querySelector('i')) {
+                    btn.querySelector('i').classList.remove('text-sage');
+                    btn.querySelector('i').classList.add('text-charcoal_light');
+                }
             }
-        });
 
-        function showPwaBanner() {
-            const banner = document.getElementById('pwa-install-banner');
-            if (banner) {
-                banner.classList.remove('hidden');
-                setTimeout(() => banner.classList.remove('translate-y-full'), 100);
+            const activeBtn = document.getElementById('btn-scenario-' + id);
+            activeBtn.classList.remove('border-transparent', 'opacity-70');
+            activeBtn.classList.add('border-sage', 'bg-sage/5', 'opacity-100');
+            if(activeBtn.querySelector('i')) {
+                activeBtn.querySelector('i').classList.remove('text-charcoal_light');
+                activeBtn.querySelector('i').classList.add('text-sage');
+            }
+
+            const output = document.getElementById('scenario-output');
+            output.style.opacity = '0';
+            
+            // WERSJA 1.2 - [POPRAWKA SKŁADNI: Usunięcie zbędnych znaków ucieczki błędu edytora]
+            setTimeout(() => {
+                output.innerHTML = `
+                    <h3 class="text-xl font-extrabold text-charcoal mb-2">${promptScenarios[id].title}</h3>
+                    <div class="flex flex-wrap gap-2 mb-6">${promptScenarios[id].badges}</div>
+                    ${promptScenarios[id].content}
+                `;
+                output.style.opacity = '1';
                 if (typeof lucide !== 'undefined') lucide.createIcons();
-            }
+            }, 150);
         }
 
-        function dismissPwaPrompt() {
-            const banner = document.getElementById('pwa-install-banner');
-            banner.classList.add('translate-y-full');
-            setTimeout(() => banner.classList.add('hidden'), 300); 
-            localStorage.setItem('pwaDismissed', 'true');
-        }
-
-        async function triggerPwaInstall() {
-            if (isIOSDevice) {
-                alert("🍏 Jesteś na urządzeniu Apple:\n\n1. Kliknij ikonę 'Udostępnij' na dole ekranu (kwadrat ze strzałką).\n2. Wybierz opcję 'Do ekranu początkowego'.\n3. Gotowe!");
-                dismissPwaPrompt();
-            } else if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') console.log('Zainstalowano');
-                deferredPrompt = null;
-                dismissPwaPrompt();
-            }
-        }
-
+        document.addEventListener('DOMContentLoaded', () => {
+            changeScenario(1); // Inicjalizacja pierwszego scenariusza po załadowaniu
+        });
+        // KONIEC LOGIKI SYMULATORA
+        
         // BAZA PRZYKŁADOWYCH PRZEPISÓW 
         const exampleRecipes = {
             'busy_mom': {
