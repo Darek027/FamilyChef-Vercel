@@ -1,9 +1,9 @@
-// WERSJA 4.9.1 - ZERO TRUST PROFIL
+// WERSJA 5.5.0 - ZERO TRUST PROFIL (Obsługa Nazwy/Nicku)
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ status: "error" });
 
-    // Ignorujemy email od klienta (familyId zostawiamy, bo to użytkownik je podaje podczas łączenia kont!)
-    let { familyId, preferences, defaultServings, defaultChef, defaultSkill } = req.body;
+    // Ignorujemy email od klienta, ale odbieramy pole "name"
+    let { name, familyId, preferences, defaultServings, defaultChef, defaultSkill } = req.body;
 
     try {
         const authHeader = req.headers.authorization;
@@ -58,12 +58,17 @@ export default async function handler(req, res) {
             }
         }
 
-        // 1. Zapisanie danych w głównej tabeli użytkownika (Wersja 4.9.0 - Dynamiczny Payload)
+        // 1. Zapisanie danych w głównej tabeli użytkownika (Wersja 5.5.0 - Dynamiczny Payload)
         const updatePayload = { 
             family_id: familyId, 
             preferences: preferences,
             default_servings: defaultServings || 2 
         };
+        
+        // Zabezpieczenie wejściowe dla nazwy (chronimy bazę przed wstrzykiwaniem długich ciągów)
+        if (name && typeof name === 'string' && name.trim() !== '') {
+            updatePayload.name = name.trim().substring(0, 15); 
+        }
 
         // Zabezpieczenie: Aktualizujemy parametry AI tylko jeśli zostały przesłane z frontendu
         if (defaultChef) updatePayload.default_chef = defaultChef;

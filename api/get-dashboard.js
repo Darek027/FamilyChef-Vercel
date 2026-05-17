@@ -67,11 +67,43 @@ export default async function handler(req, res) {
         const { data: shoppingLists, error: shoppingError } = await shoppingQuery.order('created_at', { ascending: false });
         if (shoppingError) throw shoppingError;
 
+        // WERSJA 5.5.0 - MAPOWANIE IMION (SaaS Security Pattern - Omijamy RLS tylko do odczytu imion)
+        // Krok 1: Zbieramy unikalne ID autorów ze wszystkich rekordów
+        const uniqueAuthorIds = [...new Set([
+            ...(recipes || []).map(r => r.author_id),
+            ...(shoppingLists || []).map(l => l.author_id)
+        ].filter(Boolean))];
+
+        let authorNamesMap = {};
+        if (uniqueAuthorIds.length > 0) {
+            // Używamy klienta Admin tylko w jednym celu - przetłumaczenia UUID na "Nick" (omijając ciasne reguły RLS tabeli users)
+            const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+            const { data: usersData } = await supabaseAdmin
+                .from('users')
+                .select('id, name')
+                .in('id', uniqueAuthorIds);
+                
+            if (usersData) {
+                usersData.forEach(u => authorNamesMap[u.id] = u.name);
+            }
+        }
+
+        // Krok 2: Doklejamy rozwiązane nazwy do głównego strumienia danych
+        const enrichedRecipes = (recipes || []).map(r => ({
+            ...r,
+            author_name: authorNamesMap[r.author_id] || null
+        }));
+
+        const enrichedShoppingLists = (shoppingLists || []).map(l => ({
+            ...l,
+            author_name: authorNamesMap[l.author_id] || null
+        }));
+
         // 3. Zwracamy paczkę w formacie, jakiego oczekuje frontend
         return res.status(200).json({ 
             status: "success", 
-            recipes: recipes || [],
-            shoppingLists: shoppingLists || []
+            recipes: enrichedRecipes,
+            shoppingLists: enrichedShoppingLists
         });
 
     // WERSJA 4.7.3 - DASHBOARD: Agresywne łapanie błędów JWT

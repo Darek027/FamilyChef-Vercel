@@ -129,12 +129,13 @@ export default async function handler(req, res) {
                     }
                 }
 
-                // WERSJA 5.4.0 - ZERO TRUST: Tworzenie konta w public.users (Bez kolumn wrażliwych)
+                // WERSJA 5.5.0 - ZERO TRUST: Tworzenie konta z parsowaniem domyślnego Nicku (SaaS)
                 const { data: newUser, error: insertError } = await supabaseAdmin
                     .from('users')
                     .insert([{ 
                         id: authUserId, 
-                        email: verifiedEmail, 
+                        email: verifiedEmail,
+                        name: verifiedEmail.split('@')[0], // WERSJA 5.5.0 - Domyślny nick z adresu e-mail
                         default_chef: 'DEFAULT_CHEF',
                         default_skill: 'DEFAULT_SKILL',
                         family_id: generatedId 

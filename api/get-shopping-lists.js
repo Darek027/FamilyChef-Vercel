@@ -48,7 +48,28 @@ export default async function handler(req, res) {
 
         if (error) throw error;
 
-        return res.status(200).json({ status: "success", lists: data });
+        // WERSJA 5.5.0 - MAPOWANIE IMION (Zabezpieczone przez Service Role)
+        const uniqueAuthorIds = [...new Set((data || []).map(l => l.author_id).filter(Boolean))];
+        let authorNamesMap = {};
+        
+        if (uniqueAuthorIds.length > 0) {
+            const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+            const { data: usersData } = await supabaseAdmin
+                .from('users')
+                .select('id, name')
+                .in('id', uniqueAuthorIds);
+                
+            if (usersData) {
+                usersData.forEach(u => authorNamesMap[u.id] = u.name);
+            }
+        }
+
+        const enrichedLists = (data || []).map(l => ({
+            ...l,
+            author_name: authorNamesMap[l.author_id] || null
+        }));
+
+        return res.status(200).json({ status: "success", lists: enrichedLists });
 
 // WERSJA 4.7.3 - Shopping List: Agresywne łapanie błędów JWT
     } catch (error) {

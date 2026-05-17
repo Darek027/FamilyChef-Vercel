@@ -206,7 +206,7 @@
                 badge.onclick = null; 
             } else {
                 // Wygląd dla FREE (zachęcające do kliknięcia)
-                badge.innerHTML = `FREE <span class="font-normal opacity-75 hidden sm:inline">- Ulepsz</span>`;
+                badge.innerHTML = `DARMOWY <span class="font-normal opacity-75 hidden sm:inline">- Ulepsz</span>`;
                 badge.className = "text-[10px] sm:text-xs font-bold px-3 py-1.5 rounded-full transition-all border shadow-sm flex items-center gap-1 shrink-0 cursor-pointer bg-white text-charcoal_light border-charcoal/10 hover:border-terracotta/30 hover:text-terracotta hover:bg-terracotta/5";
                 badge.onclick = triggerUpgradeModal;
             }
@@ -235,24 +235,28 @@
             // Pierwsza litera duża, reszta mała (np. "Danie główne")
             return cat.charAt(0).toUpperCase() + cat.slice(1).toLowerCase();
         }
-        window.onload = function() {
-            // WERSJA 4.5.0 - Płynne ukrycie preloadera po załadowaniu skryptów
+        // WERSJA 5.1.3 - [UX FIX: Logika Preloadera]
+        function hideInitialPreloader() {
             const preloader = document.getElementById('initial-preloader');
-            if(preloader) {
+            if(preloader && preloader.style.opacity !== '0') {
                 preloader.style.opacity = '0';
-                setTimeout(() => preloader.remove(), 500); // 500ms na CSS transition
+                setTimeout(() => preloader.remove(), 500);
             }
+        }
 
+        window.onload = function() {
             lucide.createIcons();
             const storedEmail = localStorage.getItem('familyChefEmail');
+            const storedToken = localStorage.getItem('supabaseToken');
             const magicEmail = window.MAGIC_LINK_EMAIL;
            
             if (magicEmail && magicEmail !== "") {
                 localStorage.setItem('familyChefEmail', magicEmail);
-                verifyUserInDatabase(magicEmail);
-            } else if (storedEmail) {
-                verifyUserInDatabase(storedEmail);
+                verifyUserInDatabase(magicEmail); // Preloader zostaje, czekamy na weryfikację!
+            } else if (storedEmail && storedToken) {
+                verifyUserInDatabase(storedEmail); // Preloader zostaje, czekamy na weryfikację!
             } else {
+                hideInitialPreloader(); // Brak sesji - zdejmujemy preloader i pokazujemy okno logowania
                 document.getElementById('auth-overlay').classList.remove('hidden');
                 document.getElementById('app-container').classList.add('hidden');
             }
@@ -348,6 +352,7 @@ localStorage.setItem('supabaseRefreshToken', res.session.refresh_token); // Zapi
             // KROK 1: Jeśli w pamięci nie ma tokenu JWT, twardo wylogowujemy.
             const storedToken = localStorage.getItem('supabaseToken');
             if (!storedToken) {
+                hideInitialPreloader();
                 logoutUser();
                 return;
             }
@@ -366,11 +371,14 @@ localStorage.setItem('supabaseRefreshToken', res.session.refresh_token); // Zapi
                 
                 if (res.status === 'success') {
                     finalizeLogin(res.data);
+                    hideInitialPreloader(); // WERSJA 5.1.3 - Sukces logowania, odkrywamy gotowy interfejs!
                 } else {
+                    hideInitialPreloader();
                     logoutUser();
                 }
             } catch (error) {
                 console.error("Auto-login error", error);
+                hideInitialPreloader(); 
                 logoutUser(); // W przypadku błędu bezpieczniej wyrzucić do ekranu logowania
             }
         }
@@ -489,16 +497,28 @@ function switchTab(tabName) {
             }
         }
 
-        // WERSJA 1.24.1 - Poprawiony scope funkcji i skrócone teksty w dropdownach
+        // WERSJA 5.5.2 - [UX: Filtry oparte o pobrany Nick zamiast e-maila]
         function populateFilters() {
             const userSelect = document.getElementById('filterUser');
             const catSelect = document.getElementById('filterCategory');
-            // Skrócone nazwy dla lepszego wyświetlania na smartfonach
+            
             userSelect.innerHTML = '<option value="all">👨‍👩‍👧 Wszyscy</option>';
             catSelect.innerHTML = '<option value="all">🍽️ Kategorie</option>';
            
-            const users = [...new Set(allSavedRecipes.map(r => String(r.author_email || r.author).trim().toLowerCase()))];
-            users.forEach(u => userSelect.innerHTML += `<option value="${u}">${u.split('@')[0]}${u===currentUserEmail ? " (Ty)" : ""}</option>`);
+            // Tworzymy unikalną mapę użytkowników (email jako klucz dla wartości logicznych, name do wyświetlania)
+            const usersMap = {};
+            allSavedRecipes.forEach(r => {
+                const email = String(r.author_email || r.author).trim().toLowerCase();
+                if (email && email !== 'undefined') {
+                    // Fallback do pierwszej części e-maila, jeśli backend z jakiegoś powodu nie zwróci name
+                    usersMap[email] = r.author_name || email.split('@')[0];
+                }
+            });
+
+            Object.entries(usersMap).forEach(([email, name]) => {
+                userSelect.innerHTML += `<option value="${email}">${name}${email === currentUserEmail ? " (Ty)" : ""}</option>`;
+            });
+
             uniqueCategories.forEach(c => catSelect.innerHTML += `<option value="${c}">${c}</option>`);
         }
 
@@ -570,6 +590,8 @@ function renderGrid(recipesToRender) {
         let authorEmail = recipe.author_email || recipe.author; 
         let isMe = String(authorEmail).trim().toLowerCase() === currentUserEmail;
         let isChecked = selectedRecipesForShopping.includes(recipe.id) ? 'checked' : '';
+        // WERSJA 5.5.2 - Wyciągnięcie Nicku użytkownika do widoku
+        let displayAuthorName = recipe.author_name || String(authorEmail || currentUserEmail).split('@')[0];
         
         var card = document.createElement('div');
         let borderClass = isChecked ? 'border-sage ring-2 ring-sage/20 shadow-md' : 'border-black/5 shadow-sm';
@@ -588,7 +610,7 @@ function renderGrid(recipesToRender) {
                     <span class="bg-terracotta/10 text-terracotta border border-terracotta/20 text-[10px] uppercase font-bold px-2 py-0.5 rounded-md tracking-wider w-max">${recipe.category || 'Inne'}</span>
                 </div>
                 <div class="hidden sm:flex text-xs text-charcoal_light font-mono shrink-0 items-center gap-1">
-                    <i data-lucide="user" class="w-3 h-3"></i> ${String(authorEmail || currentUserEmail).split('@')[0]}
+                    <i data-lucide="user" class="w-3 h-3"></i> ${displayAuthorName}
                 </div>
                 ${deleteBtnListHtml}
             `;
@@ -606,7 +628,7 @@ function renderGrid(recipesToRender) {
                     <span class="bg-terracotta/10 text-terracotta border border-terracotta/20 text-[10px] uppercase font-bold px-2 py-1 rounded-md tracking-wider overflow-hidden text-ellipsis whitespace-nowrap">${recipe.category || 'Inne'}</span>
                 </div>
                 <h3 class="font-bold text-lg text-charcoal leading-tight mb-2 pr-2">${recipe.title || 'Bez tytułu'}</h3>
-                <p class="text-xs text-charcoal_light font-mono mb-4 flex items-center gap-1"><i data-lucide="user" class="w-3 h-3"></i> ${String(authorEmail || currentUserEmail).split('@')[0]} &bull; ${recipe.created_at ? new Date(recipe.created_at).toLocaleDateString() : ''}</p>
+                <p class="text-xs text-charcoal_light font-mono mb-4 flex items-center gap-1"><i data-lucide="user" class="w-3 h-3"></i> ${displayAuthorName} &bull; ${recipe.created_at ? new Date(recipe.created_at).toLocaleDateString() : ''}</p>
                 <div class="mt-auto pt-4 border-t border-charcoal/5 relative"><p class="text-sm text-charcoal_light">Kliknij, aby ugotować...</p></div>
             `;
         }
@@ -1035,6 +1057,15 @@ body: JSON.stringify({
         function loadProfileData() {
             if (currentUserProfile) {
                 document.getElementById('profileEmailDisplay').innerText = currentUserEmail;
+                
+                // WERSJA 5.5.1 - Ładowanie Nazwy/Nicku (z fallbackiem do emaila)
+                let defaultName = currentUserEmail.split('@')[0];
+                let profileName = currentUserProfile.name;
+                if (!profileName || profileName === 'Nowy Szef Kuchni') {
+                    profileName = defaultName;
+                }
+                document.getElementById('profileName').value = profileName;
+
                 document.getElementById('profileFamilyId').value = currentUserProfile.family_id || "";
                 document.getElementById('profilePreferences').value = currentUserProfile.preferences || "";
                 document.getElementById('profileServings').value = currentUserProfile.default_servings || 2;
@@ -1070,9 +1101,10 @@ body: JSON.stringify({
             const fId = document.getElementById('profileFamilyId').value;
             const pref = document.getElementById('profilePreferences').value || "Brak wytycznych";
             const serv = parseInt(document.getElementById('profileServings').value) || 2;
-            // WERSJA 4.0.0 - Pobranie ustawień persony
             const chef = document.getElementById('profileChef').value;
             const skill = document.getElementById('profileSkill').value;
+            // WERSJA 5.5.1 - Pobranie wpisanego Nicku
+            const newName = document.getElementById('profileName').value.trim();
             
             // WERSJA 4.0.0 - Soft Paywall
             if (!currentUserProfile.is_premium && (chef !== 'DEFAULT_CHEF' || skill !== 'DEFAULT_SKILL')) {
@@ -1099,6 +1131,7 @@ body: JSON.stringify({
                     },
                     body: JSON.stringify({ 
                         email: currentUserEmail, 
+                        name: newName, // WERSJA 5.5.1 - Wysyłka nicku do bazy
                         familyId: fId, 
                         preferences: pref, 
                         defaultServings: serv,
@@ -1110,6 +1143,7 @@ body: JSON.stringify({
 
                 if (res.status === 'success') {
                     btn.innerHTML = `<i data-lucide="check" class="w-5 h-5 text-sage"></i> Zapisano`;
+                    currentUserProfile.name = newName; // WERSJA 5.5.1 - Aktualizacja nicku w pamięci sesji
                     currentUserProfile.family_id = res.newFamilyId || fId;
                     currentUserProfile.preferences = pref;
                     currentUserProfile.default_servings = serv;
@@ -1268,12 +1302,14 @@ body: JSON.stringify({
                 const res = await response.json();
 
                 if (res.status === 'success') {
+                    // WERSJA 5.5.2 - Dodanie pobranego author_name do obiektu w pamięci
                     allShoppingLists = res.lists.map(listObj => {
                         return {
                             id: listObj.id,
                             title: listObj.title,
                             date: listObj.created_at,       
-                            author: listObj.author_email,   
+                            author: listObj.author_email,
+                            author_name: listObj.author_name,
                             data: listObj.data              
                         };
                     });
@@ -1300,29 +1336,32 @@ function renderShoppingListsDash() {
 
     const fragment = document.createDocumentFragment();
 
-    allShoppingLists.forEach(list => {
-        let totalItems = 0; let checkedItems = 0;
-        list.data.forEach(g => g.items.forEach(i => { totalItems++; if(i.checked) checkedItems++; }));
-        const progress = totalItems === 0 ? 0 : Math.round((checkedItems/totalItems)*100);
+allShoppingLists.forEach(list => {
+            let totalItems = 0; let checkedItems = 0;
+            list.data.forEach(g => g.items.forEach(i => { totalItems++; if(i.checked) checkedItems++; }));
+            const progress = totalItems === 0 ? 0 : Math.round((checkedItems/totalItems)*100);
 
-        const card = document.createElement('div');
-        card.className = "bg-white p-5 rounded-2xl border border-charcoal/5 shadow-sm hover:border-sage/30 hover:shadow-md transition cursor-pointer relative flex flex-col";
-        card.onclick = () => openShoppingListDetail(list.id);
+            const card = document.createElement('div');
+            card.className = "bg-white p-5 rounded-2xl border border-charcoal/5 shadow-sm hover:border-sage/30 hover:shadow-md transition cursor-pointer relative flex flex-col";
+            card.onclick = () => openShoppingListDetail(list.id);
 
-        card.innerHTML = `
-            <div class="flex justify-between items-start mb-3 pr-8">
-                <h3 class="font-bold text-charcoal leading-tight">${list.title}</h3>
-            </div>
-            <button onclick="event.stopPropagation(); deleteShoppingListFromDash('${list.id}')" class="absolute top-4 right-4 p-2 text-charcoal_light hover:text-terracotta hover:bg-terracotta/10 rounded-full transition z-20"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-            <p class="text-xs text-charcoal_light mb-4 font-mono"><i data-lucide="calendar" class="w-3 h-3 inline mr-1"></i>${new Date(list.date).toLocaleDateString()} • ${String(list.author).split('@')[0]}</p>
+            // WERSJA 5.5.2 - Renderowanie Nicku z fallbackiem do e-maila na dashboardzie list
+            let displayAuthorName = list.author_name || String(list.author).split('@')[0];
+
+            card.innerHTML = `
+                <div class="flex justify-between items-start mb-3 pr-8">
+                    <h3 class="font-bold text-charcoal leading-tight">${list.title}</h3>
+                </div>
+                <button onclick="event.stopPropagation(); deleteShoppingListFromDash('${list.id}')" class="absolute top-4 right-4 p-2 text-charcoal_light hover:text-terracotta hover:bg-terracotta/10 rounded-full transition z-20"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                <p class="text-xs text-charcoal_light mb-4 font-mono"><i data-lucide="calendar" class="w-3 h-3 inline mr-1"></i>${new Date(list.date).toLocaleDateString()} • ${displayAuthorName}</p>
            
-            <div class="mt-auto w-full bg-charcoal/5 rounded-full h-2.5 mb-1 overflow-hidden">
-                <div class="bg-sage h-2.5 rounded-full transition-all" style="width: ${progress}%"></div>
-            </div>
-            <div class="text-xs text-right text-charcoal_light font-bold">${checkedItems}/${totalItems} produktów</div>
-        `;
-        fragment.appendChild(card);
-    });
+                <div class="mt-auto w-full bg-charcoal/5 rounded-full h-2.5 mb-1 overflow-hidden">
+                    <div class="bg-sage h-2.5 rounded-full transition-all" style="width: ${progress}%"></div>
+                </div>
+                <div class="text-xs text-right text-charcoal_light font-bold">${checkedItems}/${totalItems} produktów</div>
+            `;
+            fragment.appendChild(card);
+        });
     
     grid.appendChild(fragment);
     lucide.createIcons();
