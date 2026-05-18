@@ -6,6 +6,7 @@ export default async function handler(req, res) {
     // WERSJA 5.3.0 - ZERO TRUST: Ignorujemy email i familyId z frontendu
     let { rawItems, listId } = req.body;
     let currentDailyCount; 
+    let authUserId; // WERSJA 5.3.4 - BUGFIX SCOPE'U dla bloku catch
 
     if (!rawItems || rawItems.trim() === '') {
         return res.status(400).json({ status: "error", message: "Brak produktów." });
@@ -18,14 +19,23 @@ export default async function handler(req, res) {
     }
 
     try {
-        // WERSJA 5.3.0 - SECURITY: ZERO TRUST + RLS + Race Condition Fix
-        const authHeader = req.headers.authorization;
-        if (!authHeader) return res.status(401).json({ status: "error", message: "Brak dostępu." });
+        // WERSJA 6.2.0 - [SAAS SECURITY: Universal Cookie Parser]
+        const parseCookies = (cookieHeader) => {
+            if (!cookieHeader) return {};
+            return cookieHeader.split(';').reduce((res, c) => {
+                const [key, val] = c.trim().split('=').map(decodeURIComponent);
+                return Object.assign(res, { [key]: val });
+            }, {});
+        };
+        const cookies = parseCookies(req.headers.cookie);
+        const tokenToVerify = cookies['sb-access-token'];
+
+        if (!tokenToVerify) return res.status(401).json({ status: "error", message: "Brak ciasteczka autoryzacyjnego." });
 
         const { createClient } = await import('@supabase/supabase-js');
         
         const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
-            global: { headers: { Authorization: authHeader } }
+            global: { headers: { Authorization: `Bearer ${tokenToVerify}` } }
         });
         const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -34,14 +44,13 @@ export default async function handler(req, res) {
         if (authError || !authUser) return res.status(401).json({ status: "error", message: "Nieważny token sesji." });
         
         const email = authUser.email; // Zaufany email z JWT
-        const authUserId = authUser.id; // Migracja na UUID
+        authUserId = authUser.id; // WERSJA 5.3.4 - Usunięto const
 
         // 1. Odczyt Family ID z JWT (Auth Hook) i limitów AI (z users_billing przez Admina)
-        // WERSJA 5.3.2 - BUGFIX SAAS: Odczyt Kodu Rodziny bezpośrednio z Base64 JWT
+        // WERSJA 6.2.1 - BUGFIX SAAS: Odczyt Kodu Rodziny bezpośrednio z ciasteczka
         let familyId = null;
         try {
-            const tokenStr = authHeader.replace('Bearer ', '');
-            const payloadBase64 = tokenStr.split('.')[1];
+            const payloadBase64 = tokenToVerify.split('.')[1];
             const base64 = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
             const jwtPayload = JSON.parse(Buffer.from(base64, 'base64').toString('utf-8'));
             familyId = jwtPayload.app_metadata?.family_id || null;
@@ -172,7 +181,7 @@ Zwróć wynik WYŁĄCZNIE jako czysty JSON według tego schematu:
             // A. Pobieramy obecny stan listy z bazy
             let fetchQuery = supabase.from('shopping_lists').select('data').eq('id', listId);
             if (familyId && familyId !== 'undefined') fetchQuery = fetchQuery.eq('family_id', familyId);
-            else fetchQuery = fetchQuery.eq('author_email', email);
+            else fetchQuery = fetchQuery.eq('author_id', authUserId); // WERSJA 5.3.3 - DOMKNIĘCIE ZERO TRUST (UUID)
 
             const { data: existingListDB, error: fetchError } = await fetchQuery.single();
             
@@ -230,10 +239,10 @@ Zwróć wynik WYŁĄCZNIE jako czysty JSON według tego schematu:
         console.error("🔥 CUSTOM SHOPPING LIST ERROR:", error.message);
         
         // REFUND: Zwracamy do tabeli bilingowej przez Admina
-        if (currentDailyCount !== undefined) {
+        if (currentDailyCount !== undefined && authUserId) {
             const { createClient } = await import('@supabase/supabase-js');
             const supAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-            await supAdmin.from('users_billing').update({ daily_generations: currentDailyCount }).eq('id', authUser.id);
+            await supAdmin.from('users_billing').update({ daily_generations: currentDailyCount }).eq('id', authUserId);
         }
 
         return res.status(500).json({ status: "error", message: "Błąd serwera: " + error.message });

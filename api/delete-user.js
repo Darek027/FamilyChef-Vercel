@@ -6,15 +6,24 @@ export default async function handler(req, res) {
     if (!email) return res.status(400).json({ status: "error", message: "Brak e-maila." });
 
     try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader) return res.status(401).json({ status: "error", message: "Brak tokenu autoryzacyjnego." });
+        // WERSJA 6.2.0 - [SAAS SECURITY: Universal Cookie Parser]
+        const parseCookies = (cookieHeader) => {
+            if (!cookieHeader) return {};
+            return cookieHeader.split(';').reduce((res, c) => {
+                const [key, val] = c.trim().split('=').map(decodeURIComponent);
+                return Object.assign(res, { [key]: val });
+            }, {});
+        };
+        const cookies = parseCookies(req.headers.cookie);
+        const tokenToVerify = cookies['sb-access-token'];
+
+        if (!tokenToVerify) return res.status(401).json({ status: "error", message: "Brak ciasteczka autoryzacyjnego." });
 
         const { createClient } = await import('@supabase/supabase-js');
 
         // KROK 1: Weryfikacja tożsamości z użyciem anon_key.
-        // Zabezpiecza nas to przed sytuacją, gdzie użytkownik A próbuje wysłać żądanie usunięcia konta użytkownika B.
         const supabaseAuth = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
-            global: { headers: { Authorization: authHeader } }
+            global: { headers: { Authorization: `Bearer ${tokenToVerify}` } }
         });
 
         const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();

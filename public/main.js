@@ -113,7 +113,7 @@
 
         // WERSJA 1.23.0 - Dodanie stanu widoku (Kafelki vs Lista)
         // ==========================================
-        // JWT REFRESH INTERCEPTOR (Surgical Fix)
+        // WERSJA 6.0.3 - HTTP-ONLY COOKIE REFRESH INTERCEPTOR (SaaS Grade)
         // ==========================================
         const originalFetch = window.fetch;
         let isRefreshing = false;
@@ -121,16 +121,23 @@
 
         window.fetch = async (...args) => {
             let [resource, config] = args;
+            
+            // DRY CLEANER: Automatycznie usuwamy stare nagłówki Authorization z requestów, 
+            // żebyś nie musiał ręcznie edytować ponad 20 funkcji fetch w całym kodzie!
+            if (config && config.headers && config.headers['Authorization']) {
+                delete config.headers['Authorization'];
+            }
+
+            // Wymuszamy wysyłanie ciasteczek do każdego zapytania do naszego API
+            config = config || {};
+            config.credentials = 'same-origin';
+
             let response = await originalFetch(resource, config);
 
             if (response.status === 401 && resource.toString().includes('/api/')) {
-                const refreshToken = localStorage.getItem('supabaseRefreshToken');
-                if (!refreshToken) { logoutUser(); return response; }
-
                 if (isRefreshing) {
                     return new Promise(resolve => {
-                        refreshSubscribers.push((newToken) => {
-                            config.headers['Authorization'] = `Bearer ${newToken}`;
+                        refreshSubscribers.push(() => {
                             resolve(originalFetch(resource, config));
                         });
                     });
@@ -138,20 +145,22 @@
 
                 isRefreshing = true;
                 try {
+                    // Backend automatycznie odczyta refresh_token z ciasteczka i sam wystawi nowe!
                     const res = await originalFetch('/api/auth', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ step: 'refresh', refresh_token: refreshToken })
+                        body: JSON.stringify({ step: 'refresh' }),
+                        credentials: 'same-origin'
                     });
+                    
                     const data = await res.json();
-                    if (data.status === 'success' && data.session) {
-                        localStorage.setItem('supabaseToken', data.session.access_token);
-                        localStorage.setItem('supabaseRefreshToken', data.session.refresh_token);
+                    if (data.status === 'success') {
                         isRefreshing = false;
-                        refreshSubscribers.forEach(cb => cb(data.session.access_token));
+                        refreshSubscribers.forEach(cb => cb());
                         refreshSubscribers = [];
-                        config.headers['Authorization'] = `Bearer ${data.session.access_token}`;
                         return await originalFetch(resource, config);
+                    } else {
+                        logoutUser();
                     }
                 } catch (e) { logoutUser(); }
                 isRefreshing = false;
@@ -244,19 +253,22 @@
             }
         }
 
+        // WERSJA 6.3.0 - [SAAS FIX: Inicjalizacja sesji oparta o ciasteczka]
         window.onload = function() {
             lucide.createIcons();
             const storedEmail = localStorage.getItem('familyChefEmail');
-            const storedToken = localStorage.getItem('supabaseToken');
             const magicEmail = window.MAGIC_LINK_EMAIL;
            
             if (magicEmail && magicEmail !== "") {
                 localStorage.setItem('familyChefEmail', magicEmail);
-                verifyUserInDatabase(magicEmail); // Preloader zostaje, czekamy na weryfikację!
-            } else if (storedEmail && storedToken) {
-                verifyUserInDatabase(storedEmail); // Preloader zostaje, czekamy na weryfikację!
+                verifyUserInDatabase(magicEmail); 
+            } else if (storedEmail) { 
+                // ZMIANA: Skoro token mamy ukryty w bezpiecznym ciasteczku HttpOnly, 
+                // na frontendzie sprawdzamy tylko, czy użytkownik "pamięta" swój email.
+                // Przeglądarka sama doklei ciasteczko, a backend oceni czy sesja jest ważna.
+                verifyUserInDatabase(storedEmail); 
             } else {
-                hideInitialPreloader(); // Brak sesji - zdejmujemy preloader i pokazujemy okno logowania
+                hideInitialPreloader(); 
                 document.getElementById('auth-overlay').classList.remove('hidden');
                 document.getElementById('app-container').classList.add('hidden');
             }
@@ -319,13 +331,10 @@
                 });
                 const res = await response.json();
 
-                if (res.status === 'success') {
-                    // SaaS Foundation: Zachowujemy JWT Token pod późniejszy mechanizm RLS
-                    if(res.session && res.session.access_token) {
-                        localStorage.setItem('supabaseToken', res.session.access_token);
-localStorage.setItem('supabaseRefreshToken', res.session.refresh_token); // Zapisujemy token odświeżania
-                    }
-                    finalizeLogin(res.data);
+// WERSJA 6.0.0 - [SECURITY FIRST: Koniec z JWT w localStorage. Backend wysyła HttpOnly Cookies]
+            if (res.status === 'success') {
+                // Tokeny są teraz ustawiane automatycznie przez przeglądarkę z nagłówków Set-Cookie
+                finalizeLogin(res.data);
                 } else {
                     document.getElementById('verifyErrorMsg').innerText = res.message;
                     document.getElementById('verifyErrorMsg').classList.remove('hidden');
@@ -347,24 +356,15 @@ localStorage.setItem('supabaseRefreshToken', res.session.refresh_token); // Zapi
             document.getElementById('verifyErrorMsg').classList.add('hidden');
         }
 
-        // WERSJA 4.6.3 - FRONTEND: Bezpieczny auto-login z tokenem JWT (SaaS Security Fix)
+        // WERSJA 6.0.1 - [SECURITY FIRST: Auto-login oparty o ciasteczka HttpOnly]
         async function verifyUserInDatabase(email) {
-            // KROK 1: Jeśli w pamięci nie ma tokenu JWT, twardo wylogowujemy.
-            const storedToken = localStorage.getItem('supabaseToken');
-            if (!storedToken) {
-                hideInitialPreloader();
-                logoutUser();
-                return;
-            }
-
             try {
-                // Dodajemy nagłówek Authorization z tokenem JWT do zapytania!
+                // Przeglądarka sama dołączy ciasteczko z tokenem sesyjnym!
                 const response = await fetch('/api/auth', {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${storedToken}` 
-                    },
+                    headers: { 'Content-Type': 'application/json' },
+                    // Włączenie credentials pozwala na przesył ciasteczek w środowiskach lokalnych i na Vercelu
+                    credentials: 'same-origin',
                     body: JSON.stringify({ email: email, step: 'get_profile' })
                 });
                 const res = await response.json();
@@ -401,10 +401,22 @@ localStorage.setItem('supabaseRefreshToken', res.session.refresh_token); // Zapi
             loadDashboard();
         }
        
-        function logoutUser() { 
+        // WERSJA 6.0.2 - [SECURITY FIRST: Bezpieczne wylogowywanie (ubijanie ciasteczek na backendzie)]
+        async function logoutUser() { 
             localStorage.removeItem('familyChefEmail'); 
-            localStorage.removeItem('supabaseToken');
-            localStorage.removeItem('supabaseRefreshToken'); // Czyścimy oba tokeny
+            localStorage.removeItem('supabaseToken'); // Czyścimy resztki starego systemu u obecnych userów
+            localStorage.removeItem('supabaseRefreshToken'); 
+            
+            try {
+                await fetch('/api/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ step: 'logout' })
+                });
+            } catch (e) {
+                console.error("Błąd podczas wylogowywania:", e);
+            }
             location.reload(); 
         }
 
@@ -460,16 +472,11 @@ function switchTab(tabName) {
             lucide.createIcons();
 
             try {
-                // WERSJA 4.7.0 - RLS SECURITY (Wysyłka tokenu autoryzacyjnego)
+                // WERSJA 4.7.0 - RLS SECURITY (Ciasteczka automatyczne)
                 const fId = (currentUserProfile && currentUserProfile.family_id) ? currentUserProfile.family_id : '';
-                const token = localStorage.getItem('supabaseToken');
                 
                 // WERSJA 1.25.0 - DASHBOARD: Intercepcja 401 (Auto-Logout)
-                const response = await fetch(`/api/get-dashboard?email=${encodeURIComponent(currentUserEmail)}&familyId=${encodeURIComponent(fId)}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+                const response = await fetch(`/api/get-dashboard?email=${encodeURIComponent(currentUserEmail)}&familyId=${encodeURIComponent(fId)}`);
                 
                 // Przerywamy i wylogowujemy, zanim frontend zdąży spanikować
                 if (response.status === 401) {
@@ -515,11 +522,12 @@ function switchTab(tabName) {
                 }
             });
 
-            Object.entries(usersMap).forEach(([email, name]) => {
-                userSelect.innerHTML += `<option value="${email}">${name}${email === currentUserEmail ? " (Ty)" : ""}</option>`;
+Object.entries(usersMap).forEach(([email, name]) => {
+                let safeName = escapeHTML(name);
+                userSelect.innerHTML += `<option value="${escapeHTML(email)}">${safeName}${email === currentUserEmail ? " (Ty)" : ""}</option>`;
             });
 
-            uniqueCategories.forEach(c => catSelect.innerHTML += `<option value="${c}">${c}</option>`);
+            uniqueCategories.forEach(c => catSelect.innerHTML += `<option value="${escapeHTML(c)}">${escapeHTML(c)}</option>`);
         }
 
         // Funkcja wyciągnięta poza applyFilters (naprawa błędu scope'u)
@@ -567,6 +575,15 @@ function switchTab(tabName) {
             renderGrid(filteredRecipes);
         }
 
+// WERSJA 6.1.0 - [SECURITY FIRST: Globalna funkcja sanitizująca XSS]
+const escapeHTML = (str) => {
+    if (!str) return '';
+    return String(str).replace(/[&<>"']/g, (match) => {
+        const escapeMap = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+        return escapeMap[match];
+    });
+};
+
 // WERSJA 5.3.0 - [OPTYMALIZACJA DOM: DocumentFragment dla renderGrid]
 function renderGrid(recipesToRender) {
     var grid = document.getElementById("dashboard-grid");
@@ -590,8 +607,11 @@ function renderGrid(recipesToRender) {
         let authorEmail = recipe.author_email || recipe.author; 
         let isMe = String(authorEmail).trim().toLowerCase() === currentUserEmail;
         let isChecked = selectedRecipesForShopping.includes(recipe.id) ? 'checked' : '';
-        // WERSJA 5.5.2 - Wyciągnięcie Nicku użytkownika do widoku
-        let displayAuthorName = recipe.author_name || String(authorEmail || currentUserEmail).split('@')[0];
+        
+        // WERSJA 6.1.1 - SANITIZACJA ZMIENNYCH PRZED WSTRZYKNIĘCIEM DO DOM (Ochrona XSS)
+        let displayAuthorName = escapeHTML(recipe.author_name || String(authorEmail || currentUserEmail).split('@')[0]);
+        let safeTitle = escapeHTML(recipe.title || 'Bez tytułu');
+        let safeCategory = escapeHTML(recipe.category || 'Inne');
         
         var card = document.createElement('div');
         let borderClass = isChecked ? 'border-sage ring-2 ring-sage/20 shadow-md' : 'border-black/5 shadow-sm';
@@ -606,8 +626,8 @@ function renderGrid(recipesToRender) {
             card.innerHTML = `
                 <input type="checkbox" ${isChecked} onclick="event.stopPropagation(); toggleCart('${recipe.id}')" class="w-5 h-5 accent-sage rounded cursor-pointer shrink-0">
                 <div class="flex-grow min-w-0 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-                    <h3 class="font-bold text-base text-charcoal truncate">${recipe.title || 'Bez tytułu'}</h3>
-                    <span class="bg-terracotta/10 text-terracotta border border-terracotta/20 text-[10px] uppercase font-bold px-2 py-0.5 rounded-md tracking-wider w-max">${recipe.category || 'Inne'}</span>
+                    <h3 class="font-bold text-base text-charcoal truncate">${safeTitle}</h3>
+                    <span class="bg-terracotta/10 text-terracotta border border-terracotta/20 text-[10px] uppercase font-bold px-2 py-0.5 rounded-md tracking-wider w-max">${safeCategory}</span>
                 </div>
                 <div class="hidden sm:flex text-xs text-charcoal_light font-mono shrink-0 items-center gap-1">
                     <i data-lucide="user" class="w-3 h-3"></i> ${displayAuthorName}
@@ -625,9 +645,9 @@ function renderGrid(recipesToRender) {
                 ${deleteBtnGridHtml}
                 <div class="flex items-center gap-2 mb-3 relative z-20 pr-12">
                     <input type="checkbox" ${isChecked} onclick="event.stopPropagation(); toggleCart('${recipe.id}')" class="w-5 h-5 accent-sage rounded cursor-pointer shrink-0">
-                    <span class="bg-terracotta/10 text-terracotta border border-terracotta/20 text-[10px] uppercase font-bold px-2 py-1 rounded-md tracking-wider overflow-hidden text-ellipsis whitespace-nowrap">${recipe.category || 'Inne'}</span>
+                    <span class="bg-terracotta/10 text-terracotta border border-terracotta/20 text-[10px] uppercase font-bold px-2 py-1 rounded-md tracking-wider overflow-hidden text-ellipsis whitespace-nowrap">${safeCategory}</span>
                 </div>
-                <h3 class="font-bold text-lg text-charcoal leading-tight mb-2 pr-2">${recipe.title || 'Bez tytułu'}</h3>
+                <h3 class="font-bold text-lg text-charcoal leading-tight mb-2 pr-2">${safeTitle}</h3>
                 <p class="text-xs text-charcoal_light font-mono mb-4 flex items-center gap-1"><i data-lucide="user" class="w-3 h-3"></i> ${displayAuthorName} &bull; ${recipe.created_at ? new Date(recipe.created_at).toLocaleDateString() : ''}</p>
                 <div class="mt-auto pt-4 border-t border-charcoal/5 relative"><p class="text-sm text-charcoal_light">Kliknij, aby ugotować...</p></div>
             `;
@@ -685,12 +705,10 @@ function renderGrid(recipesToRender) {
             if (isMe && currentRecipeData.id && currentRecipeData.id !== "temporary_saved") {
                 // WERSJA 4.9.22 - RLS SECURITY: Edycja kategorii w bazie (Tylko własne przepisy)
                 try {
-                    const token = localStorage.getItem('supabaseToken');
                     await fetch('/api/update-recipe-category', {
                         method: 'POST',
                         headers: { 
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
+                            'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({ 
                             recipeId: currentRecipeData.id, 
@@ -724,15 +742,12 @@ function renderGrid(recipesToRender) {
             }
         }
 
-        // WERSJA 4.8.1 - RLS SECURITY: Przekazanie tokenu dla pobierania przepisu
+        // WERSJA 4.8.1 - RLS SECURITY: Ciasteczka dla pobierania przepisu
         async function openRecipe(id) {
             startLoadingProcess("Pobieram przepis z bazy...");
             
             try {
-                const token = localStorage.getItem('supabaseToken');
-                const response = await fetch(`/api/get-recipe?id=${id}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await fetch(`/api/get-recipe?id=${id}`);
                 const recipe = await response.json();
 
                 if (recipe && !recipe.status) { 
@@ -810,13 +825,11 @@ function renderGrid(recipesToRender) {
             startLoadingProcess("Szef kuchni pracuje... 👨‍🍳");
             
             try {
-                // WERSJA 5.0.0 - RLS SECURITY: Przekazanie tokenu do endpointu AI
-                const token = localStorage.getItem('supabaseToken');
+                // WERSJA 5.0.0 - RLS SECURITY: Ciasteczka dla endpointu AI
                 const response = await fetch('/api/generate', {
                     method: 'POST',
                     headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Content-Type': 'application/json'
                     },
 body: JSON.stringify({
                     email: currentUserEmail,
@@ -861,13 +874,11 @@ body: JSON.stringify({
             startLoadingProcess("Koryguję... 🔄");
             
             try {
-                // WERSJA 5.0.0 - RLS SECURITY: Przekazanie tokenu dla poprawki przepisu
-                const token = localStorage.getItem('supabaseToken');
+                // WERSJA 5.0.0 - RLS SECURITY: Ciasteczka dla poprawki przepisu
                 const response = await fetch('/api/generate', {
                     method: 'POST',
                     headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Content-Type': 'application/json'
                     },
                     // WERSJA 5.5.1 - [SAAS UX: Obsługa Timeoutów AI - Krok 4.2]
                     body: JSON.stringify({
@@ -977,14 +988,12 @@ body: JSON.stringify({
             btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Zapisywanie...`;
             btn.disabled = true; lucide.createIcons();
             
-            // WERSJA 4.9.3 - RLS SECURITY: Przekazanie tokenu przy zapisie do bazy
+            // WERSJA 4.9.3 - RLS SECURITY: Ciasteczka przy zapisie do bazy
             try {
-                const token = localStorage.getItem('supabaseToken');
                 const response = await fetch('/api/save-recipe', {
                     method: 'POST',
                     headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
                         email: currentUserEmail,
@@ -1120,14 +1129,12 @@ body: JSON.stringify({
             btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Zapisywanie...`; 
             btn.disabled = true; lucide.createIcons();
 
-            // WERSJA 4.8.3 - RLS SECURITY: Przekazanie tokenu do aktualizacji profilu
+            // WERSJA 4.8.3 - RLS SECURITY: Ciasteczka do aktualizacji profilu
             try {
-                const token = localStorage.getItem('supabaseToken');
                 const response = await fetch('/api/update-user-profile', {
                     method: 'POST',
                     headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ 
                         email: currentUserEmail, 
@@ -1156,22 +1163,18 @@ body: JSON.stringify({
                     document.getElementById('generatorChef').value = chef;
                     document.getElementById('generatorSkill').value = skill;
 
-                    // WERSJA 5.4.0 - PROACTIVE JWT REFRESH (Krok 4.1 Planu)
-                    // Odświeżamy token, by Auth Hook natychmiast zassał z bazy nowe family_id
-                    const rToken = localStorage.getItem('supabaseRefreshToken');
-                    if (rToken) {
-                        fetch('/api/auth', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ step: 'refresh', refresh_token: rToken })
-                        }).then(r => r.json()).then(data => {
-                            if (data.status === 'success' && data.session) {
-                                localStorage.setItem('supabaseToken', data.session.access_token);
-                                localStorage.setItem('supabaseRefreshToken', data.session.refresh_token);
-                                console.log("🔒 Sesja zsynchronizowana z nowym Family ID.");
-                            }
-                        }).catch(e => console.error("Błąd odświeżania tokena po zapisie profilu", e));
-                    }
+                    // WERSJA 6.1.2 - [SAAS SECURITY: Proactive Refresh via Cookies]
+                    // Wymuszamy odświeżenie ciasteczka na backendzie (przeglądarka sama dołączy stare ciastko)
+                    fetch('/api/auth', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({ step: 'refresh' })
+                    }).then(r => r.json()).then(data => {
+                        if (data.status === 'success') {
+                            console.log("🔒 Sesja (Ciasteczka) zsynchronizowana z nowym Family ID.");
+                        }
+                    }).catch(e => console.error("Błąd odświeżania ciasteczka po zapisie profilu", e));
                 } else {
                     alert(res.message);
                     btn.innerHTML = oHtml;
@@ -1220,14 +1223,12 @@ body: JSON.stringify({
             btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Usuwanie...`;
             btn.disabled = true; lucide.createIcons();
 
-            // RLS SECURITY: Przekazanie tokenu JWT + Hard Delete Backend Call
+            // RLS SECURITY: Ciasteczka + Hard Delete Backend Call
             try {
-                const token = localStorage.getItem('supabaseToken');
                 const response = await fetch('/api/delete-user', {
                     method: 'POST',
                     headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ email: currentUserEmail })
                 });
@@ -1258,14 +1259,12 @@ body: JSON.stringify({
             grid.innerHTML = `<div class="col-span-full text-center py-12"><i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto mb-3 text-terracotta"></i> Usuwanie...</div>`; 
             lucide.createIcons();
             
-            // WERSJA 4.9.7 - RLS SECURITY: Przekazanie tokenu dla pojedynczego usunięcia przepisu
+            // WERSJA 4.9.7 - RLS SECURITY: Ciasteczka dla pojedynczego usunięcia przepisu
             try {
-                const token = localStorage.getItem('supabaseToken');
                 await fetch('/api/delete-recipe', {
                     method: 'POST',
                     headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ 
                         recipeId: recipeId 
@@ -1283,15 +1282,12 @@ body: JSON.stringify({
             document.getElementById('shoppingListsGrid').innerHTML = `<div class="col-span-full text-center py-10 text-charcoal_light"><i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2"></i></div>`;
             lucide.createIcons();
             
-            // WERSJA 4.7.1 - Przekazanie tokenu RLS do list zakupów z frontendu
+            // WERSJA 4.7.1 - Ciasteczka automatyczne do list zakupów z frontendu
             try {
                 const fId = (currentUserProfile && currentUserProfile.family_id) ? currentUserProfile.family_id : '';
-                const token = localStorage.getItem('supabaseToken');
                 
                 // WERSJA 1.25.0 - SHOPPING LISTS: Intercepcja 401 (Auto-Logout)
-                const response = await fetch(`/api/get-shopping-lists?email=${encodeURIComponent(currentUserEmail)}&familyId=${encodeURIComponent(fId)}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await fetch(`/api/get-shopping-lists?email=${encodeURIComponent(currentUserEmail)}&familyId=${encodeURIComponent(fId)}`);
                 
                 if (response.status === 401) {
                     alert("Twoja sesja wygasła ze względów bezpieczeństwa. Zaloguj się ponownie.");
@@ -1345,15 +1341,17 @@ allShoppingLists.forEach(list => {
             card.className = "bg-white p-5 rounded-2xl border border-charcoal/5 shadow-sm hover:border-sage/30 hover:shadow-md transition cursor-pointer relative flex flex-col";
             card.onclick = () => openShoppingListDetail(list.id);
 
-            // WERSJA 5.5.2 - Renderowanie Nicku z fallbackiem do e-maila na dashboardzie list
+            // SANITIZACJA DANYCH
             let displayAuthorName = list.author_name || String(list.author).split('@')[0];
+            let safeTitle = escapeHTML(list.title);
+            let safeAuthorName = escapeHTML(displayAuthorName);
 
             card.innerHTML = `
                 <div class="flex justify-between items-start mb-3 pr-8">
-                    <h3 class="font-bold text-charcoal leading-tight">${list.title}</h3>
+                    <h3 class="font-bold text-charcoal leading-tight">${safeTitle}</h3>
                 </div>
                 <button onclick="event.stopPropagation(); deleteShoppingListFromDash('${list.id}')" class="absolute top-4 right-4 p-2 text-charcoal_light hover:text-terracotta hover:bg-terracotta/10 rounded-full transition z-20"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                <p class="text-xs text-charcoal_light mb-4 font-mono"><i data-lucide="calendar" class="w-3 h-3 inline mr-1"></i>${new Date(list.date).toLocaleDateString()} • ${displayAuthorName}</p>
+                <p class="text-xs text-charcoal_light mb-4 font-mono"><i data-lucide="calendar" class="w-3 h-3 inline mr-1"></i>${new Date(list.date).toLocaleDateString()} • ${safeAuthorName}</p>
            
                 <div class="mt-auto w-full bg-charcoal/5 rounded-full h-2.5 mb-1 overflow-hidden">
                     <div class="bg-sage h-2.5 rounded-full transition-all" style="width: ${progress}%"></div>
@@ -1389,16 +1387,14 @@ allShoppingLists.forEach(list => {
 
         async function deleteShoppingListFromDash(listId) {
             if (!confirm("Usunąć tę listę zakupów?")) return;
-            // WERSJA 4.8.5 - RLS SECURITY: Token dla usuwania listy z dashboardu
+            // WERSJA 4.8.5 - RLS SECURITY: Ciasteczka dla usuwania listy z dashboardu
             try {
                 const fId = (currentUserProfile && currentUserProfile.family_id) ? currentUserProfile.family_id : null;
-                const token = localStorage.getItem('supabaseToken');
                 
                 await fetch('/api/delete-shopping-list', {
                     method: 'POST',
                     headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Content-Type': 'application/json'
                     },
                         body: JSON.stringify({ 
                         listId: listId 
@@ -1415,16 +1411,14 @@ allShoppingLists.forEach(list => {
             if (!confirm("Na pewno usunąć tę listę?")) return;
             const btn = document.getElementById('clearShoppingBtn');
             btn.innerText = "Usuwanie...";
-            // WERSJA 4.8.6 - RLS SECURITY: Token dla usuwania aktywnej listy
+            // WERSJA 4.8.6 - RLS SECURITY: Ciasteczka dla usuwania aktywnej listy
             try {
                 const fId = (currentUserProfile && currentUserProfile.family_id) ? currentUserProfile.family_id : null;
-                const token = localStorage.getItem('supabaseToken');
                 
                 await fetch('/api/delete-shopping-list', {
                     method: 'POST',
                     headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Content-Type': 'application/json'
                     },
   
                     body: JSON.stringify({ 
@@ -1450,13 +1444,11 @@ allShoppingLists.forEach(list => {
                 try {
                     const fId = (currentUserProfile && currentUserProfile.family_id) ? currentUserProfile.family_id : null;
                     
-                    // WERSJA 4.8.2 - RLS SECURITY: Przekazanie tokenu do aktualizacji listy
-                    const token = localStorage.getItem('supabaseToken');
+                    // WERSJA 4.8.2 - RLS SECURITY: Ciasteczka do aktualizacji listy
                     await fetch('/api/update-shopping-list', {
                         method: 'POST',
                         headers: { 
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
+                            'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({ 
                             listId: activeShoppingListId, 
@@ -1478,13 +1470,11 @@ allShoppingLists.forEach(list => {
             btn.disabled = true; lucide.createIcons();
             
             try {
-                // WERSJA 5.0.0 - RLS SECURITY: Przekazanie tokenu dla generowania masowej listy
-                const token = localStorage.getItem('supabaseToken');
+                // WERSJA 5.0.0 - RLS SECURITY: Ciasteczka dla generowania masowej listy
                 const response = await fetch('/api/generate-shopping-list', {
                     method: 'POST',
                     headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
                         email: currentUserEmail,
@@ -1534,13 +1524,11 @@ allShoppingLists.forEach(list => {
 
             try {
                 const fId = (currentUserProfile && currentUserProfile.family_id) ? currentUserProfile.family_id : null;
-                // WERSJA 5.0.0 - RLS SECURITY: Przekazanie tokenu dla własnej listy
-                const token = localStorage.getItem('supabaseToken');
+                // WERSJA 5.0.0 - RLS SECURITY: Ciasteczka dla własnej listy
                 const response = await fetch('/api/generate-custom-shopping-list', {
                     method: 'POST',
                     headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
                         email: currentUserEmail,
@@ -1579,14 +1567,12 @@ allShoppingLists.forEach(list => {
 
             try {
                 const fId = (currentUserProfile && currentUserProfile.family_id) ? currentUserProfile.family_id : null;
-                const token = localStorage.getItem('supabaseToken');
                 
                 // Używamy tego samego endpointu, ale podajemy 'listId'
                 const response = await fetch('/api/generate-custom-shopping-list', {
                     method: 'POST',
                     headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
                         email: currentUserEmail,
@@ -1652,15 +1638,13 @@ allShoppingLists.forEach(list => {
             fab.innerHTML = `<div class="max-w-xs mx-auto bg-white px-6 py-4 rounded-full shadow-2xl font-bold flex justify-center gap-3 text-terracotta pointer-events-auto border-4 border-terracotta/20"><i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Usuwanie...</div>`;
             lucide.createIcons();
 
-            // WERSJA 4.9.8 - RLS SECURITY: Przekazanie tokenu dla masowego usuwania
+            // WERSJA 4.9.8 - RLS SECURITY: Ciasteczka dla masowego usuwania
             try {
-                const token = localStorage.getItem('supabaseToken');
                 const response = await fetch('/api/delete-recipe', {
                     method: 'POST',
                     headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-},
+                        'Content-Type': 'application/json'
+                    },
                     body: JSON.stringify({ 
                         recipeIds: selectedRecipesForShopping
                         // ZERO TRUST: Usunięto email
@@ -1696,24 +1680,30 @@ allShoppingLists.forEach(list => {
             let checkedItemsHtml = "";
             
             activeShoppingListArray.forEach((group, gIndex) => {
+                // SANITIZACJA KATEGORII
+                const safeCategory = escapeHTML(group.category);
+
                 // 1. Wyciągamy tylko NIEKUPIONE produkty
                 const uncheckedItems = group.items.map((item, iIndex) => ({item, iIndex})).filter(x => !x.item.checked);
                 
                 if (uncheckedItems.length > 0) {
                     const grpDiv = document.createElement('div');
-                    grpDiv.innerHTML = `<h3 class="font-bold text-sage_dark mb-2 border-b border-charcoal/5 pb-1">${group.category}</h3>`;
+                    grpDiv.innerHTML = `<h3 class="font-bold text-sage_dark mb-2 border-b border-charcoal/5 pb-1">${safeCategory}</h3>`;
                 
                     const ul = document.createElement('div'); 
                     ul.className = "space-y-2 mb-4";
                     
                     let itemsHtml = "";
                     uncheckedItems.forEach(({item, iIndex}) => {
+                        // SANITIZACJA NAZWY PRODUKTU (Niekupione)
+                        const safeItemName = escapeHTML(item.name);
+                        
                         itemsHtml += `
                             <div class="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-xl border bg-white border-charcoal/5 shadow-sm hover:border-sage/30 transition">
                                 <div onclick="toggleShoppingItem(${gIndex}, ${iIndex})" class="mt-0.5 shrink-0 cursor-pointer p-1">
                                     <i data-lucide="square" class="text-charcoal/20 w-5 h-5 hover:text-sage transition"></i>
                                 </div>
-                                <span onclick="toggleShoppingItem(${gIndex}, ${iIndex})" class="text-sm font-semibold flex-grow cursor-pointer">${item.name}</span>
+                                <span onclick="toggleShoppingItem(${gIndex}, ${iIndex})" class="text-sm font-semibold flex-grow cursor-pointer">${safeItemName}</span>
                                 <button onclick="deleteShoppingItem(${gIndex}, ${iIndex})" class="text-charcoal/20 hover:text-terracotta transition p-3 -mr-2 shrink-0 flex items-center justify-center" title="Usuń produkt">
                                     <i data-lucide="x" class="w-4 h-4"></i>
                                 </button>
@@ -1730,12 +1720,15 @@ allShoppingLists.forEach(list => {
                 if (checkedItems.length > 0) {
                     hasCheckedItems = true;
                     checkedItems.forEach(({item, iIndex}) => {
+                        // SANITIZACJA NAZWY PRODUKTU (Kupione)
+                        const safeItemNameChecked = escapeHTML(item.name);
+                        
                         checkedItemsHtml += `
                             <div class="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-xl border item-checked transition">
                                 <div onclick="toggleShoppingItem(${gIndex}, ${iIndex})" class="mt-0.5 shrink-0 cursor-pointer p-1">
                                     <i data-lucide="check-square" class="text-sage w-5 h-5"></i>
                                 </div>
-                                <span onclick="toggleShoppingItem(${gIndex}, ${iIndex})" class="text-sm font-semibold flex-grow cursor-pointer line-through">${item.name}</span>
+                                <span onclick="toggleShoppingItem(${gIndex}, ${iIndex})" class="text-sm font-semibold flex-grow cursor-pointer line-through">${safeItemNameChecked}</span>
                                 <button onclick="deleteShoppingItem(${gIndex}, ${iIndex})" class="text-charcoal/30 hover:text-terracotta transition p-3 -mr-2 shrink-0 flex items-center justify-center" title="Usuń produkt">
                                     <i data-lucide="x" class="w-4 h-4"></i>
                                 </button>
@@ -1783,12 +1776,11 @@ allShoppingLists.forEach(list => {
             syncTimeout = setTimeout(async () => {
                 try {
                     const fId = (currentUserProfile && currentUserProfile.family_id) ? currentUserProfile.family_id : null;
-                    const token = localStorage.getItem('supabaseToken');
+                    
                     await fetch('/api/update-shopping-list', {
                         method: 'POST',
                         headers: { 
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
+                            'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({ 
                             listId: activeShoppingListId, 
@@ -1814,14 +1806,12 @@ allShoppingLists.forEach(list => {
             btn.disabled = true; lucide.createIcons();
             
             // WERSJA 1.21.2 - Frontend: Dodanie familyId do payloadu dla atomowego zapisu i wysyłki
-            // WERSJA 4.9.6 - RLS SECURITY: Przekazanie tokenu do zapisu i wysyłki
+            // WERSJA 4.9.6 - RLS SECURITY: Ciasteczka do zapisu i wysyłki
             try {
-                const token = localStorage.getItem('supabaseToken');
                 const response = await fetch('/api/send-recipe', {
                     method: 'POST',
                     headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ 
                         email: currentUserEmail, 
@@ -1857,14 +1847,12 @@ allShoppingLists.forEach(list => {
             const btn = document.getElementById('sendShoppingEmailBtn'); const oHtml = btn.innerHTML;
             btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>`;
             
-            // WERSJA 4.8.4 - RLS SECURITY: Przekazanie tokenu do wysyłki maila
+            // WERSJA 4.8.4 - RLS SECURITY: Ciasteczka do wysyłki maila
             try {
-                const token = localStorage.getItem('supabaseToken');
                 const response = await fetch('/api/send-shopping', {
                     method: 'POST',
                     headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ 
                         email: currentUserEmail, 
@@ -1905,12 +1893,10 @@ allShoppingLists.forEach(list => {
             if (isMe && currentRecipeData.id && currentRecipeData.id !== "temporary_saved") {
                 // To JEST Twój przepis. Uderzamy w nasz zoptymalizowany endpoint od kategorii
                 try {
-                    const token = localStorage.getItem('supabaseToken');
                     await fetch('/api/update-recipe-category', {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
+                            'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
                             recipeId: currentRecipeData.id,
@@ -1946,12 +1932,10 @@ allShoppingLists.forEach(list => {
 
             // Listy zakupów są współdzielone, nadpisujemy w bazie (Update) za pomocą głównego endpointa list
             try {
-                const token = localStorage.getItem('supabaseToken');
                 await fetch('/api/update-shopping-list', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
                         listId: activeShoppingListId,

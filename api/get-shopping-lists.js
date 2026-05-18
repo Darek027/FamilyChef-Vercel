@@ -6,14 +6,22 @@ export default async function handler(req, res) {
     // Nie odczytujemy req.query.email ani req.query.familyId!
 
     try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader) {
-            return res.status(401).json({ status: "error", message: "Brak dostępu. Zaloguj się ponownie." });
-        }
+        // WERSJA 6.2.0 - [SAAS SECURITY: Universal Cookie Parser]
+        const parseCookies = (cookieHeader) => {
+            if (!cookieHeader) return {};
+            return cookieHeader.split(';').reduce((res, c) => {
+                const [key, val] = c.trim().split('=').map(decodeURIComponent);
+                return Object.assign(res, { [key]: val });
+            }, {});
+        };
+        const cookies = parseCookies(req.headers.cookie);
+        const tokenToVerify = cookies['sb-access-token'];
+
+        if (!tokenToVerify) return res.status(401).json({ status: "error", message: "Brak ciasteczka autoryzacyjnego. Zaloguj się ponownie." });
 
         const { createClient } = await import('@supabase/supabase-js');
         const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
-            global: { headers: { Authorization: authHeader } }
+            global: { headers: { Authorization: `Bearer ${tokenToVerify}` } }
         });
 
         // WERSJA 4.9.0 - AUTH HOOK: ODCZYT TOŻSAMOŚCI I KODU RODZINY PROSTO Z JWT
@@ -24,10 +32,10 @@ export default async function handler(req, res) {
         const authUserId = user.id; 
 
         // WERSJA 4.9.1 - BUGFIX SAAS: Wyciąganie tożsamości z surowego payloadu JWT
+        // WERSJA 6.2.1 - FIX SAAS: Odczyt Kodu Rodziny bezpośrednio z ciasteczka
         let realFamilyId = null;
         try {
-            const tokenStr = authHeader.replace('Bearer ', '');
-            const payloadBase64 = tokenStr.split('.')[1];
+            const payloadBase64 = tokenToVerify.split('.')[1];
             const base64 = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
             const jwtPayload = JSON.parse(Buffer.from(base64, 'base64').toString('utf-8'));
             realFamilyId = jwtPayload.app_metadata?.family_id || null;

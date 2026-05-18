@@ -22,13 +22,23 @@ export default async function handler(req, res) {
         });
     };
 
-    try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader) return res.status(401).json({ status: "error", message: "Brak dostępu." });
+// WERSJA 6.2.0 - [SAAS SECURITY: Universal Cookie Parser]
+    const parseCookies = (cookieHeader) => {
+        if (!cookieHeader) return {};
+        return cookieHeader.split(';').reduce((res, c) => {
+            const [key, val] = c.trim().split('=').map(decodeURIComponent);
+            return Object.assign(res, { [key]: val });
+        }, {});
+    };
+    const cookies = parseCookies(req.headers.cookie);
+    const tokenToVerify = cookies['sb-access-token'];
 
+    if (!tokenToVerify) return res.status(401).json({ status: "error", message: "Brak ciasteczka autoryzacyjnego." });
+
+    try {
         const { createClient } = await import('@supabase/supabase-js');
         const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
-            global: { headers: { Authorization: authHeader } }
+            global: { headers: { Authorization: `Bearer ${tokenToVerify}` } }
         });
         const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -41,10 +51,10 @@ export default async function handler(req, res) {
 
         // --- START BLOKADY SPAMU ORAZ POBRANIA FAMILY_ID ---
         // WERSJA 5.3.2 - BUGFIX SAAS: Odczyt Kodu Rodziny bezpośrednio z Base64 JWT
-        let familyId = null;
+// WERSJA 6.2.1 - BUGFIX SAAS: Odczyt Kodu Rodziny bezpośrednio z ciasteczka
+        let realFamilyId = null;
         try {
-            const tokenStr = authHeader.replace('Bearer ', '');
-            const payloadBase64 = tokenStr.split('.')[1];
+            const payloadBase64 = tokenToVerify.split('.')[1];
             const base64 = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
             const jwtPayload = JSON.parse(Buffer.from(base64, 'base64').toString('utf-8'));
             familyId = jwtPayload.app_metadata?.family_id || null;

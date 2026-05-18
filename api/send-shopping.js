@@ -21,13 +21,23 @@ export default async function handler(req, res) {
         });
     };
 
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ status: "error", message: "Brak dostępu." });
+    // WERSJA 6.2.0 - [SAAS SECURITY: Universal Cookie Parser]
+    const parseCookies = (cookieHeader) => {
+        if (!cookieHeader) return {};
+        return cookieHeader.split(';').reduce((res, c) => {
+            const [key, val] = c.trim().split('=').map(decodeURIComponent);
+            return Object.assign(res, { [key]: val });
+        }, {});
+    };
+    const cookies = parseCookies(req.headers.cookie);
+    const tokenToVerify = cookies['sb-access-token'];
+
+    if (!tokenToVerify) return res.status(401).json({ status: "error", message: "Brak ciasteczka autoryzacyjnego." });
 
     try {
         const { createClient } = await import('@supabase/supabase-js');
         const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
-            global: { headers: { Authorization: authHeader } }
+            global: { headers: { Authorization: `Bearer ${tokenToVerify}` } }
         });
         const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 

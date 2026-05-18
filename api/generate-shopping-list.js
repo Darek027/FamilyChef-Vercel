@@ -4,16 +4,29 @@ export default async function handler(req, res) {
 
     // WERSJA 5.1.0 - ZERO TRUST
     const { recipeIds } = req.body; // Ignorujemy email i familyId
+    
+    // WERSJA 5.4.3 - BUGFIX SCOPE'U: Zmienne globalne dla bloku try/catch
+    let authUserId;
+    let currentDailyCount;
 
     try {
-        // WERSJA 5.1.0 - RLS SECURITY + ZERO TRUST: Zabezpieczony klient do masowych list zakupów
-        const authHeader = req.headers.authorization;
-        if (!authHeader) return res.status(401).json({ status: "error", message: "Brak dostępu." });
+        // WERSJA 6.2.0 - [SAAS SECURITY: Universal Cookie Parser]
+        const parseCookies = (cookieHeader) => {
+            if (!cookieHeader) return {};
+            return cookieHeader.split(';').reduce((res, c) => {
+                const [key, val] = c.trim().split('=').map(decodeURIComponent);
+                return Object.assign(res, { [key]: val });
+            }, {});
+        };
+        const cookies = parseCookies(req.headers.cookie);
+        const tokenToVerify = cookies['sb-access-token'];
+
+        if (!tokenToVerify) return res.status(401).json({ status: "error", message: "Brak ciasteczka autoryzacyjnego." });
 
         const { createClient } = await import('@supabase/supabase-js');
         
         const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
-            global: { headers: { Authorization: authHeader } }
+            global: { headers: { Authorization: `Bearer ${tokenToVerify}` } }
         });
         const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -22,13 +35,13 @@ export default async function handler(req, res) {
         if (authError || !authUser) return res.status(401).json({ status: "error", message: "Nieważny token sesji." });
         
         const email = authUser.email; // Zaufany email
-        const authUserId = authUser.id; // Stały UUID użytkownika
+        authUserId = authUser.id; // WERSJA 5.4.3 - Usunięto const
 
         // WERSJA 5.1.2 - BUGFIX SAAS: Odczyt Kodu Rodziny bezpośrednio z Base64 JWT
+        // WERSJA 6.2.1 - BUGFIX SAAS: Odczyt Kodu Rodziny bezpośrednio z ciasteczka
         let familyId = null;
         try {
-            const tokenStr = authHeader.replace('Bearer ', '');
-            const payloadBase64 = tokenStr.split('.')[1];
+            const payloadBase64 = tokenToVerify.split('.')[1];
             const base64 = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
             const jwtPayload = JSON.parse(Buffer.from(base64, 'base64').toString('utf-8'));
             familyId = jwtPayload.app_metadata?.family_id || null;
@@ -60,7 +73,7 @@ export default async function handler(req, res) {
         const todayStr = new Date().toISOString().split('T')[0];
         const userLastDate = billing?.last_generation_date ? new Date(billing.last_generation_date).toISOString().split('T')[0] : null;
         
-        let currentDailyCount = billing?.daily_generations || 0;
+        currentDailyCount = billing?.daily_generations || 0; // WERSJA 5.4.3 - Usunięto let
         if (userLastDate !== todayStr) {
             currentDailyCount = 0;
         }
@@ -80,6 +93,19 @@ export default async function handler(req, res) {
         }
 
         const newDailyCount = currentDailyCount + 1;
+
+        // WERSJA 5.4.2 - SECURITY FIX: Zapis limitu do USERS_BILLING przez Admina (Charge Upfront)
+        const { error: limitUpdateError } = await supabaseAdmin
+            .from('users_billing')
+            .update({ 
+                daily_generations: newDailyCount, 
+                last_generation_date: todayStr 
+            })
+            .eq('id', authUserId);
+
+        if (limitUpdateError) {
+            throw new Error("Błąd autoryzacji limitów przed agregacją AI.");
+        }
 
         // 2. Łączymy w jeden blok tekstowy
         const allIngredients = recipes.map(r => `Przepis: ${r.title}\nSkładniki:\n${r.ingredients || 'Brak danych'}`).join('\n\n');
@@ -188,21 +214,21 @@ Zwróć wynik WYŁĄCZNIE jako czysty JSON według tego schematu:
 
         if (insertError) throw insertError;
 
-        // WERSJA 5.4.1 - KONSUMPCJA LIMITU (Aktualizacja w nowej tabeli billingowej przez Admina)
-        const { error: updateError } = await supabaseAdmin
-            .from('users_billing')
-            .update({ 
-                daily_generations: newDailyCount, 
-                last_generation_date: todayStr 
-            })
-            .eq('id', authUserId);
-
-        if (updateError) console.error("🔥 Błąd zapisu limitu dziennego (Shopping List):", updateError);
+        // KONSUMPCJA LIMITU PRZENIESIONA NA GÓRĘ (Charge Upfront)
 
         return res.status(200).json({ status: "success", message: "Zsumowana lista gotowa!" });
 
     } catch (error) {
         console.error("🔥 SHOPPING LIST ERROR:", error.message);
+        
+        // WERSJA 5.4.4 - SAAS REFUND FIX: Kuloodporny mechanizm zwrotu (tylko z zainicjalizowanym UUID i licznikiem)
+        if (currentDailyCount !== undefined && authUserId) {
+            await supabaseAdmin
+                .from('users_billing')
+                .update({ daily_generations: currentDailyCount })
+                .eq('id', authUserId);
+        }
+
         return res.status(500).json({ 
             status: "error", 
             message: "Błąd agregacji: " + error.message 

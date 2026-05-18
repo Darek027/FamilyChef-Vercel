@@ -5,9 +5,21 @@ export default async function handler(req, res) {
         return res.status(405).json({ status: "error", message: "Metoda niedozwolona. Użyj POST." });
     }
 
-    const { email, step, token, refresh_token } = req.body;
-    // ZMIANA: Email nie jest wymagany, jeśli tylko odświeżamy sesję
-    if (!email && step !== 'refresh') {
+    // WERSJA 6.1.0 - [SAAS SECURITY: Obsługa HTTP-Only Cookies]
+    const { email, step, token } = req.body;
+    
+    // Funkcja pomocnicza do bezpiecznego parsowania ciasteczek
+    const parseCookies = (cookieHeader) => {
+        if (!cookieHeader) return {};
+        return cookieHeader.split(';').reduce((res, c) => {
+            const [key, val] = c.trim().split('=').map(decodeURIComponent);
+            return Object.assign(res, { [key]: val });
+        }, {});
+    };
+    const cookies = parseCookies(req.headers.cookie);
+    
+    // ZMIANA: Email nie jest wymagany przy odświeżaniu lub wylogowywaniu
+    if (!email && step !== 'refresh' && step !== 'logout') {
         return res.status(400).json({ status: "error", message: "Brak adresu email." });
     }
 
@@ -20,12 +32,35 @@ export default async function handler(req, res) {
         // KLIENT 2: Administrator. Zawsze omija RLS, nie przechowuje sesji zwykłych użytkowników.
         const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-        // NOWY KROK: ODŚWIEŻANIE SESJI
+        // WERSJA 6.1.1 - Niszczenie sesji (Wylogowanie)
+        if (step === 'logout') {
+            res.setHeader('Set-Cookie', [
+                'sb-access-token=; Path=/; HttpOnly; SameSite=Strict; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Secure',
+                'sb-refresh-token=; Path=/; HttpOnly; SameSite=Strict; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Secure'
+            ]);
+            return res.status(200).json({ status: "success", message: "Wylogowano." });
+        }
+
+        // NOWY KROK: ODŚWIEŻANIE SESJI (Na podstawie HttpOnly Cookie)
         if (step === 'refresh') {
-            if (!refresh_token) return res.status(400).json({ status: "error", message: "Brak refresh_token." });
+            const refresh_token = cookies['sb-refresh-token'];
+            if (!refresh_token) return res.status(401).json({ status: "error", message: "Brak tokenu odświeżania." });
+            
             const { data, error } = await supabaseAuth.auth.refreshSession({ refresh_token });
-            if (error || !data.session) return res.status(401).json({ status: "error", message: "Sesja wygasła. Zaloguj się ponownie." });
-            return res.status(200).json({ status: "success", session: data.session });
+            if (error || !data.session) {
+                res.setHeader('Set-Cookie', [
+                    'sb-access-token=; Path=/; HttpOnly; SameSite=Strict; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Secure',
+                    'sb-refresh-token=; Path=/; HttpOnly; SameSite=Strict; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Secure'
+                ]);
+                return res.status(401).json({ status: "error", message: "Sesja wygasła. Zaloguj się ponownie." });
+            }
+            
+            res.setHeader('Set-Cookie', [
+                `sb-access-token=${data.session.access_token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${data.session.expires_in}; Secure`,
+                `sb-refresh-token=${data.session.refresh_token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=3456000; Secure`
+            ]);
+            
+            return res.status(200).json({ status: "success" }); // ZERO TRUST: Nie zwracamy tokenów na frontend!
         }
 
         // KROK 1: WYSYŁKA KODU OTP NA E-MAIL
@@ -73,12 +108,11 @@ export default async function handler(req, res) {
             }
 
             if (step === 'get_profile') {
-                const authHeader = req.headers.authorization;
-                if (!authHeader) {
-                    return res.status(401).json({ status: "error", message: "Brak tokenu sesji. Odmowa dostępu." });
+                // WERSJA 6.1.2 - Odczyt tokenu z bezpiecznego ciasteczka
+                const tokenToVerify = cookies['sb-access-token'];
+                if (!tokenToVerify) {
+                    return res.status(401).json({ status: "error", message: "Brak ciasteczka sesji. Odmowa dostępu." });
                 }
-
-                const tokenToVerify = authHeader.replace('Bearer ', '');
                 
                 // Sprawdzamy tożsamość z użyciem dostarczonego JWT
                 const { data: authData, error: authError } = await supabaseAuth.auth.getUser(tokenToVerify);
@@ -180,11 +214,18 @@ export default async function handler(req, res) {
                 user.family_members = familyData ? familyData.map(m => m.email) : [];
             }
 
+            // WERSJA 6.1.3 - Wstrzyknięcie ciasteczek po udanym logowaniu OTP
+            if (step === 'verify' && sessionData) {
+                res.setHeader('Set-Cookie', [
+                    `sb-access-token=${sessionData.access_token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${sessionData.expires_in}; Secure`,
+                    `sb-refresh-token=${sessionData.refresh_token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=3456000; Secure`
+                ]);
+            }
+
             return res.status(200).json({
                 status: "success",
                 message: step === 'verify' ? "Zalogowano pomyślnie OTP" : "Profil pobrany",
-                data: user,
-                session: sessionData 
+                data: user
             });
         }
 
