@@ -14,7 +14,7 @@ export default async function handler(req, res) {
         userMessage = userMessage.substring(0, 400);
     }
 
-// WERSJA 7.0.0 - [PROMPT ENGINEERING: Zmiana Person na Style Gotowania (Zero Roleplay)]
+// WERSJA 7.1.0 - [PROMPT ENGINEERING: Dodanie stylów HIGH_PROTEIN, LOW_GI, MEAL_PREP]
     const CHEF_PROMPTS = {
         'DEFAULT_CHEF': 'Styl: "Domowa Kuchnia". Generuj rzetelne, zbilansowane przepisy oparte o ogólnodostępne składniki. Instrukcje mają być bezpośrednie, jasne i podzielone na logiczne etapy. Skup się na poprawnych technikach kulinarnych, budowaniu głębi smaku poprzez odpowiednie podsmażanie czy redukcję. Nie używaj persony, bądź po prostu bezbłędnym asystentem kulinarnym.',
 
@@ -26,15 +26,21 @@ export default async function handler(req, res) {
 
         'KETO': 'Styl: "Dieta KETO". Rygorystycznie przestrzegaj zasad diety ketogenicznej: wysoka podaż tłuszczu, umiarkowana zawartość białka, drastycznie niska zawartość węglowodanów. Bezwzględnie unikaj cukru, standardowych zbóż, ziemniaków i warzyw skrobiowych. Wykorzystuj zamienniki (np. mąka migdałowa, erytrytol, makaron z cukinii). Skup się na bogatych, sycących profilach smakowych opartych na oliwie, maśle, serach i tłustych mięsach.',
 
+        'HIGH_PROTEIN': 'Styl: "Wysokobiałkowy". Cel to budowa masy mięśniowej i skuteczna regeneracja po treningu. Maksymalizuj podaż pełnowartościowego białka. Używaj chudego mięsa, jaj, strączków, nabiału proteinowego lub odżywek. Komponuj solidne, objętościowe i ekstremalnie sycące posiłki wspierające hipertrofię, dbając o odpowiednią podaż węglowodanów i umiarkowaną ilość tłuszczów.',
+
         'ECO_PURE': 'Styl: "Czyste i Ekologiczne". Gotowanie od podstaw, w duchu "Clean Eating". Całkowity zakaz używania żywności wysokoprzetworzonej, rafinowanego cukru i gotowych bulionów z kostki. Opieraj przepis na pełnych ziarnach, naturalnych słodzikach, orzechach i nasionach. Promuj techniki wydobywające naturalny smak, zwracając uwagę na zachowanie mikroskładników odżywczych podczas obróbki.',
         
         'VEGE_MASTER': 'Styl: "Kuchnia Roślinna (Wege)". Skup się na maksymalizowaniu profilu Umami bez użycia mięsa (używaj pasty miso, płatków drożdżowych, grzybów shiitake, sosu sojowego). Domyślnie proponuj rozwiązania w 100% wegańskie, chyba że użytkownik wyraźnie w preferencjach dopuszcza nabiał i jajka. Twórz innowacyjne tekstury z roślin strączkowych, tofu lub seitanu, które zadowolą nawet mięsożerców.',
+
+        'LOW_GI': 'Styl: "Niskie IG". Rygorystycznie opieraj danie na składnikach o niskim i średnim ładunku glikemicznym. Eliminuj całkowicie białą mąkę, cukier i rozgotowane warzywa skrobiowe. Łącz węglowodany złożone z odpowiednią ilością zdrowych tłuszczy i błonnika, by ustabilizować poziom cukru we krwi i zapobiec wyrzutom insuliny. Przepis musi być w 100% bezpieczny dla osób z insulinoopornością.',
         
         'PRO_CHEF': 'Styl: "Kunszt Restauracyjny (Restauracyjnie)". Oczekiwana jest najwyższa jakość kulinarna i wielowymiarowość tekstur (np. chrupiące vs jedwabiste). Implementuj zaawansowane techniki (emulsyfikacja, deglasowanie, sous-vide, konfitowanie). Przepis musi być ambitny, z naciskiem na elegancki plating (architekturę dania na talerzu) oraz precyzyjny balans kwasowości, słodyczy i soli. Używaj profesjonalnej terminologii kulinarnej.',
         
         'POLISH_TRADITION': 'Styl: "Polskie Tradycje". Odtwarzaj głębokie, tradycyjne smaki kuchni staropolskiej. Bazuj na korzeniowych warzywach, kiszonkach, dzikich grzybach, wędzonkach oraz świeżych ziołach. Stosuj klasyczne techniki, takie jak długie duszenie, zasmażki czy hartowanie śmietany. Dania mają być esencjonalne, sycące i budzące skojarzenia z klasycznym, rzemieślniczym gotowaniem.',
         
-        'HUNTER': 'Styl: "Kuchnia Myśliwska i Leśna". Buduj potężne profile smakowe oparte na aromacie dymu, ogniska i darach lasu. Sugeruj użycie dziczyzny, ale ZAWSZE podawaj w składnikach łatwo dostępny, sklepowy substytut (np. "dzik, opcjonalnie przerośnięta wieprzowina" lub "sarnina, opcjonalnie chuda wołowina"). Preferuj obróbkę w żeliwie, kociołki, pieczenie i techniki rustykalne.'
+        'HUNTER': 'Styl: "Kuchnia Myśliwska i Leśna". Buduj potężne profile smakowe oparte na aromacie dymu, ogniska i darach lasu. Sugeruj użycie dziczyzny, ale ZAWSZE podawaj w składnikach łatwo dostępny, sklepowy substytut (np. "dzik, opcjonalnie przerośnięta wieprzowina" lub "sarnina, opcjonalnie chuda wołowina"). Preferuj obróbkę w żeliwie, kociołki, pieczenie i techniki rustykalne.',
+
+        'MEAL_PREP': 'Styl: "Raz a dobrze (Meal Prep)". Projektuj dania przeznaczone do batch-cookingu (gotowania na zapas), przechowywania w pudełkach w lodówce lub do mrożenia. Wybieraj wyłącznie składniki i techniki obróbki (np. duszenie, pieczenie w gęstym sosie), które gwarantują, że jedzenie nie straci tekstury i smaku podczas odgrzewania po 2-3 dniach. Skup się na trwałości i łatwości porcjowania.'
     };
     
     // WERSJA 6.3.0 - [PROMPT MATRIX: Twarda separacja trudności potrawy od umiejętności kucharza]

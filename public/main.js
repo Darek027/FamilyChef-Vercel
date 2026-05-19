@@ -185,17 +185,21 @@
 
         // WERSJA 5.1.0 - [TRENDY ICONS: Nowoczesne odznaki person i poziomów]
         // WERSJA 7.3.0 - [UI: Zmiana Odznak Person na Style Gotowania z zachowaniem poprawnej kolejności]
+// WERSJA 7.4.0 - [UI: Zmiana Odznak Person na Style Gotowania (Dodane 3 nowe style)]
         const CHEF_BADGES = {
             'DEFAULT_CHEF': '🍳 Domowa Kuchnia',
             'QUICK_EASY': '⏱️ Na Szybko',
             'KIDS_HERO': '🪄 Dla Niejadków',
             'WEIGHT_LOSS': '🔥 Misja Odchudzanie',
             'KETO': '🥘 KETO',
+            'HIGH_PROTEIN': '🏋️ Wysokobiałkowy',
             'ECO_PURE': '🌿 Ekologiczny',
             'VEGE_MASTER': '🥑 Wege',
+            'LOW_GI': '📉 Niskie IG',
             'PRO_CHEF': '✨ Restauracyjnie',
             'POLISH_TRADITION': '🥟 Polskie Tradycje',
-            'HUNTER': '🥩 Kuchnia Myśliwska'
+            'HUNTER': '🥩 Kuchnia Myśliwska',
+            'MEAL_PREP': '🍱 Raz a dobrze'
         };
 
         const SKILL_BADGES = {
