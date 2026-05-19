@@ -184,15 +184,16 @@
         let activeShoppingListArray = [];
 
         // WERSJA 5.1.0 - [TRENDY ICONS: Nowoczesne odznaki person i poziomów]
+        // WERSJA 7.3.0 - [UI: Zmiana Odznak Person na Style Gotowania z zachowaniem poprawnej kolejności]
         const CHEF_BADGES = {
-            'DEFAULT_CHEF': '🍳 Codzienny Kucharz',
-            'PRO_CHEF': '✨ Chef Restauracji',
-            'BUSY_MOM': '⏱️ Zabiegana Mama',
-            'KIDS_HERO': '🪄 Poskramiacz Dzieci',
-            'GRANDMA': '🥘 Wspomnienie Babci',
+            'DEFAULT_CHEF': '🍳 Domowa Kuchnia',
+            'QUICK_EASY': '⏱️ Na Szybko',
+            'KIDS_HERO': '🪄 Dla Niejadków',
             'WEIGHT_LOSS': '🔥 Misja Odchudzanie',
+            'KETO': '🥘 KETO',
             'ECO_PURE': '🌿 Ekologiczny',
-            'VEGE_MASTER': '🥑 Vege Master',
+            'VEGE_MASTER': '🥑 Wege',
+            'PRO_CHEF': '✨ Restauracyjnie',
             'POLISH_TRADITION': '🥟 Polskie Tradycje',
             'HUNTER': '🥩 Kuchnia Myśliwska'
         };

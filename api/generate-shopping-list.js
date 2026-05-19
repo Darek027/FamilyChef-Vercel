@@ -5,9 +5,10 @@ export default async function handler(req, res) {
     // WERSJA 5.1.0 - ZERO TRUST
     const { recipeIds } = req.body; // Ignorujemy email i familyId
     
-    // WERSJA 5.4.3 - BUGFIX SCOPE'U: Zmienne globalne dla bloku try/catch
+    // WERSJA 5.4.5 - [SAAS REFUND FIX: Globalny zasięg dla klienta Admina]
     let authUserId;
     let currentDailyCount;
+    let supabaseAdmin; 
 
     try {
         // WERSJA 6.2.0 - [SAAS SECURITY: Universal Cookie Parser]
@@ -28,7 +29,7 @@ export default async function handler(req, res) {
         const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
             global: { headers: { Authorization: `Bearer ${tokenToVerify}` } }
         });
-        const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+        supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
         // KRYPTOGRAFICZNA WERYFIKACJA TOŻSAMOŚCI
         const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
@@ -229,9 +230,13 @@ Zwróć wynik WYŁĄCZNIE jako czysty JSON według tego schematu:
                 .eq('id', authUserId);
         }
 
+        const userFriendlyMessage = error.message.includes("przeciążone") || error.message.includes("limit") || error.message.includes("AI")
+            ? error.message 
+            : "Błąd agregacji: " + error.message;
+
         return res.status(500).json({ 
             status: "error", 
-            message: "Błąd agregacji: " + error.message 
+            message: userFriendlyMessage 
         });
     }
 }

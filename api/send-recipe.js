@@ -110,10 +110,13 @@ export default async function handler(req, res) {
                     title: recipe.title,
                     ingredients: ingredientsStr,
                     instructions: instructionsStr,
+                    // WERSJA 5.3.4 - BUGFIX: Zapis tagów Persony i Poziomu podczas akcji "Zapisz i Wyślij"
                     category: recipe.category || 'Inne',
                     // DODANE POLA DOTYCZĄCE PORCJI I KALORII
                     servings: recipe.servings || 2,
-                    calories_per_serving: recipe.calories_per_serving || null
+                    calories_per_serving: recipe.calories_per_serving || null,
+                    used_chef: recipe.usedChef || null,
+                    used_skill: recipe.usedSkill || null
                 }])
                 .select('id')
                 .single();
