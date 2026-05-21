@@ -3,7 +3,7 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ status: "error" });
 
     // Ignorujemy email i familyId z frontendu, pobieramy dane
-    const { listId, listData, newTitle } = req.body;
+    const { listId, listData, newTitle, linkedRecipes } = req.body;
 
     try {
         // WERSJA 6.2.0 - [SAAS SECURITY: Universal Cookie Parser]
@@ -46,6 +46,7 @@ export default async function handler(req, res) {
         let updatePayload = {};
         if (listData !== undefined) updatePayload.data = listData;
         if (newTitle !== undefined) updatePayload.title = newTitle;
+        if (linkedRecipes !== undefined) updatePayload.linked_recipes = linkedRecipes;
 
         if (Object.keys(updatePayload).length === 0) {
             return res.status(400).json({ status: "error", message: "Brak danych." });

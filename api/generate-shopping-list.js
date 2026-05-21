@@ -50,10 +50,10 @@ export default async function handler(req, res) {
             console.error("🔥 Błąd dekodowania JWT w Shopping List:", e);
         }
 
-        // 1. Pobieramy składniki
+        // 1. Pobieramy składniki i ID
         const { data: recipes, error: recipesError } = await supabase
             .from('recipes')
-            .select('title, ingredients')
+            .select('id, title, ingredients')
             .in('id', recipeIds);
 
         if (recipesError) throw recipesError;
@@ -203,6 +203,13 @@ Zwróć wynik WYŁĄCZNIE jako czysty JSON według tego schematu:
             listTitle = `Zbiorcze zakupy (${recipes.length} ${plural})`;
         }
         
+        // Budujemy tablicę połączonych przepisów dla "Planu Posiłków"
+        const linkedRecipes = recipes.map(r => ({
+            id: r.id,
+            title: r.title,
+            is_cooked: false
+        }));
+
         const { error: insertError } = await supabase
             .from('shopping_lists')
             .insert([{
@@ -210,7 +217,8 @@ Zwróć wynik WYŁĄCZNIE jako czysty JSON według tego schematu:
                 author_email: email,
                 family_id: familyId || null, // Zapisujemy ID rodziny
                 title: listTitle,
-                data: listData
+                data: listData,
+                linked_recipes: linkedRecipes // NOWA KOLUMNA JSONB
             }]);
 
         if (insertError) throw insertError;

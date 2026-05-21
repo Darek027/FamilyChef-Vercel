@@ -182,6 +182,7 @@
         let activeShoppingListId = null;
         let activeShoppingTitle = "";
         let activeShoppingListArray = [];
+        let activeLinkedRecipes = []; // NOWE: Zmienna trzymająca w pamięci Plan Posiłków
 
         // WERSJA 5.1.0 - [TRENDY ICONS: Nowoczesne odznaki person i poziomów]
         // WERSJA 7.3.0 - [UI: Zmiana Odznak Person na Style Gotowania z zachowaniem poprawnej kolejności]
@@ -1311,7 +1312,8 @@ body: JSON.stringify({
                             date: listObj.created_at,       
                             author: listObj.author_email,
                             author_name: listObj.author_name,
-                            data: listObj.data              
+                            data: listObj.data,
+                            linked_recipes: listObj.linked_recipes || [] // NOWE: Pobieramy powiązane przepisy z bazy
                         };
                     });
                     
@@ -1383,6 +1385,7 @@ allShoppingLists.forEach(list => {
             activeShoppingListId = list.id;
             activeShoppingListArray = list.data;
             activeShoppingTitle = list.title;
+            activeLinkedRecipes = list.linked_recipes || []; // NOWE: Ładujemy plan posiłków do pamięci UI
             document.getElementById('activeShoppingTitle').innerText = list.title;
 
             document.getElementById('shoppingDashView').style.display = 'none';
@@ -1675,8 +1678,74 @@ allShoppingLists.forEach(list => {
             }
         }
 
+// --- NOWE: RENDEROWANIE I OBSŁUGA PLANU POSIŁKÓW W KOSZYKU ---
+        function renderShoppingMealPlan() {
+            const container = document.getElementById('shoppingMealPlan');
+            const itemsDiv = document.getElementById('shoppingMealPlanItems');
+            itemsDiv.innerHTML = '';
+
+            // Jeśli ta lista nie ma żadnych przypisanych przepisów, ukrywamy sekcję
+            if (!activeLinkedRecipes || activeLinkedRecipes.length === 0) {
+                container.classList.add('hidden');
+                return;
+            }
+
+            container.classList.remove('hidden');
+            
+            activeLinkedRecipes.forEach(recipe => {
+                const safeTitle = escapeHTML(recipe.title);
+                // Stylizacja różna dla odznaczonych vs do ugotowania
+                const isCookedClass = recipe.is_cooked ? 'line-through text-charcoal/40 bg-charcoal/5 border-charcoal/10' : 'text-charcoal bg-white border-sage/30 hover:border-sage shadow-sm';
+                const iconClass = recipe.is_cooked ? 'text-sage' : 'text-charcoal/20 hover:text-sage';
+                const iconName = recipe.is_cooked ? 'check-square' : 'square';
+
+                itemsDiv.innerHTML += `
+                    <div class="flex items-center gap-3 p-3 rounded-xl border transition ${isCookedClass}">
+                        <div onclick="toggleCookedRecipe('${recipe.id}')" class="shrink-0 cursor-pointer p-1" title="Zaznacz jako ugotowane">
+                            <i data-lucide="${iconName}" class="w-5 h-5 transition ${iconClass}"></i>
+                        </div>
+                        <span onclick="openRecipe('${recipe.id}')" class="text-sm font-bold flex-grow cursor-pointer hover:text-terracotta transition" title="Kliknij, aby otworzyć przepis w kreatorze">${safeTitle}</span>
+                    </div>
+                `;
+            });
+            lucide.createIcons();
+        }
+
+        function toggleCookedRecipe(recipeId) {
+            const recipe = activeLinkedRecipes.find(r => r.id === recipeId);
+            if (recipe) {
+                recipe.is_cooked = !recipe.is_cooked; // Zmieniamy stan w pamięci
+                renderShoppingMealPlan(); // Natychmiastowo przerysowujemy kafelki (UX)
+                
+                // Opóźniony zapis w tle, żeby nie spamować bazy przy szybkim klikaniu
+                clearTimeout(syncTimeout);
+                syncTimeout = setTimeout(async () => {
+                    try {
+                        await fetch('/api/update-shopping-list', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                listId: activeShoppingListId, 
+                                linkedRecipes: activeLinkedRecipes // Wysyłamy nowy stan planu
+                            })
+                        });
+                        
+                        // Zapisujemy nowy stan również w liście "matce", by nie resetował się po wyjściu z detali
+                        const listIndex = allShoppingLists.findIndex(l => l.id === activeShoppingListId);
+                        if(listIndex > -1) allShoppingLists[listIndex].linked_recipes = activeLinkedRecipes;
+                        
+                    } catch (error) {
+                        console.error("Błąd zapisu planu posiłków:", error);
+                    }
+                }, 1000);
+            }
+        }
+// ----------------------------------------------------
+
 // WERSJA 5.4.0.1 - [UX MOBILE FIX: Stała widoczność ikon usuwania z bezpiecznym hitboxem]
         function renderShoppingListUI() {
+            renderShoppingMealPlan(); // Wywołujemy przerysowanie planu przy każdym przeładowaniu UI koszyka
+            
             const content = document.getElementById('shoppingContent'); 
             content.innerHTML = "";
             const fragment = document.createDocumentFragment();
