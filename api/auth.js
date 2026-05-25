@@ -6,7 +6,8 @@ export default async function handler(req, res) {
     }
 
     // WERSJA 6.1.0 - [SAAS SECURITY: Obsługa HTTP-Only Cookies]
-    const { email, step, token } = req.body;
+    // Odbieramy dodatkowe flagi RODO z frontendu
+    const { email, step, token, termsAccepted, healthConsent } = req.body;
     
     // Funkcja pomocnicza do bezpiecznego parsowania ciasteczek
     const parseCookies = (cookieHeader) => {
@@ -140,6 +141,7 @@ export default async function handler(req, res) {
 
             if (fetchError) throw fetchError;
 
+            // WERSJA 6.1.6 - [BUGFIX: Poprawa struktury if/else przy Auto-Provisioningu]
             // Profilu nie ma? Administrator tworzy go w ułamku sekundy
             if (!user) {
                 const crypto = await import('crypto');
@@ -163,16 +165,19 @@ export default async function handler(req, res) {
                     }
                 }
 
-                // WERSJA 5.5.0 - ZERO TRUST: Tworzenie konta z parsowaniem domyślnego Nicku (SaaS)
+                const now = new Date().toISOString();
+                
                 const { data: newUser, error: insertError } = await supabaseAdmin
                     .from('users')
                     .insert([{ 
                         id: authUserId, 
                         email: verifiedEmail,
-                        name: verifiedEmail.split('@')[0], // WERSJA 5.5.0 - Domyślny nick z adresu e-mail
+                        name: verifiedEmail.split('@')[0],
                         default_chef: 'DEFAULT_CHEF',
                         default_skill: 'DEFAULT_SKILL',
-                        family_id: generatedId 
+                        family_id: generatedId,
+                        terms_accepted_at: termsAccepted ? now : null,
+                        health_consent_at: healthConsent ? now : null
                     }])
                     .select()
                     .single();
@@ -180,7 +185,7 @@ export default async function handler(req, res) {
                 if (insertError) throw insertError;
                 user = newUser;
 
-                // WERSJA 5.4.1 - ZERO TRUST: Inicjalizacja portfela limitów w nowej tabeli
+                // Inicjalizacja portfela limitów dla NOWEGO konta
                 const { error: billingInsertError } = await supabaseAdmin
                     .from('users_billing')
                     .insert([{
@@ -191,17 +196,27 @@ export default async function handler(req, res) {
                     }]);
                 
                 if (billingInsertError) throw billingInsertError;
+                user.is_premium = false; 
 
-                user.is_premium = false; // Doklejamy dla frontendu
             } else {
-                // WERSJA 5.4.2 - Pobieranie statusu premium dla istniejącego użytkownika (Obejście RLS przez Admina)
+                // Użytkownik JUŻ ISTNIEJE (Kolejne logowanie)
+                if (step === 'verify' && (termsAccepted || healthConsent)) {
+                    const updatePayload = {};
+                    const now = new Date().toISOString();
+                    if (termsAccepted) updatePayload.terms_accepted_at = now;
+                    if (healthConsent) updatePayload.health_consent_at = now;
+                    
+                    await supabaseAdmin.from('users').update(updatePayload).eq('id', user.id);
+                }
+
+                // Pobieranie statusu premium dla istniejącego użytkownika
                 const { data: billing } = await supabaseAdmin
                     .from('users_billing')
                     .select('is_premium')
                     .eq('id', user.id)
                     .maybeSingle();
                 
-                user.is_premium = billing?.is_premium || false; // Doklejamy dla frontendu
+                user.is_premium = billing?.is_premium || false; 
             }
 
             // WERSJA 4.7.3 - SAAS TRANSPARENCY: Odczyt członków rodziny

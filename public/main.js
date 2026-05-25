@@ -281,9 +281,19 @@
         };
 
         // WERSJA 4.6.0 - Logika OTP (Send, Verify & Auto-login)
+        // WERSJA 4.6.2 - [RODO: Twarda walidacja zgód przed strzałem do bazy]
         function processAuth() {
             const emailInput = document.getElementById('loginEmail').value.trim().toLowerCase();
             if (!emailInput || !emailInput.includes('@')) return alert("Błędny email");
+            
+            const termsChecked = document.getElementById('rodoTerms').checked;
+            const healthChecked = document.getElementById('rodoHealth').checked;
+
+            if (!termsChecked || !healthChecked) {
+                document.getElementById('authErrorMsg').innerText = "Musisz zaakceptować Regulamin oraz wyrazić zgodę na przetwarzanie danych o zdrowiu, by korzystać z Asystenta AI.";
+                document.getElementById('authErrorMsg').classList.remove('hidden');
+                return;
+            }
             
             document.getElementById('authBtn').innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Wysyłam kod...`;
             document.getElementById('authBtn').disabled = true;
@@ -329,11 +339,21 @@
             document.getElementById('verifyBtn').disabled = true;
             document.getElementById('verifyErrorMsg').classList.add('hidden');
 
+            // WERSJA 6.1.4 - [RODO: Przekazanie dowodu zgody (Audit Trail) do backendu]
             try {
+                const termsChecked = document.getElementById('rodoTerms').checked;
+                const healthChecked = document.getElementById('rodoHealth').checked;
+
                 const response = await fetch('/api/auth', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: emailInput, step: 'verify', token: codeInput })
+                    body: JSON.stringify({ 
+                        email: emailInput, 
+                        step: 'verify', 
+                        token: codeInput,
+                        termsAccepted: termsChecked,
+                        healthConsent: healthChecked
+                    })
                 });
                 const res = await response.json();
 
@@ -389,8 +409,12 @@
             }
         }
 
+        // WERSJA 6.0.3 - [ePrivacy: Warunkowy zapis do localStorage na podstawie zgody]
         function finalizeLogin(userData) {
-            localStorage.setItem('familyChefEmail', userData.email);
+            // Zapisujemy e-mail w przeglądarce TYLKO, jeśli użytkownik kliknął "Akceptuję" na banerze cookies
+            if (localStorage.getItem('essentialCookiesAccepted') === 'true') {
+                localStorage.setItem('familyChefEmail', userData.email);
+            }
             currentUserEmail = userData.email; 
             currentUserProfile = userData;
             

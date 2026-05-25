@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kontakt | KiedyObiad.pl</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/lucide@latest" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .app-blob { background: radial-gradient(circle, rgba(139,160,142,0.15) 0%, rgba(255,255,255,0) 70%); }
+    </style>
+</head>
+<body class="bg-cream text-charcoal antialiased min-h-screen flex flex-col relative">
+    <div class="absolute inset-0 app-blob z-0 pointer-events-none"></div>
+
+    <nav class="w-full z-50 bg-cream/90 backdrop-blur-lg border-b border-charcoal/5 sticky top-0">
+        <div class="max-w-4xl mx-auto px-4 flex justify-between items-center h-16 md:h-20">
+            <a href="/" class="flex items-center shrink-0 hover:opacity-80 transition-opacity">
+                <img src="https://bnijuskmzcgnojefxhnk.supabase.co/storage/v1/object/public/assets/Header_transparent2.png" alt="KiedyObiad.pl" class="h-10 md:h-16 object-contain mix-blend-multiply">
+            </a>
+            <a href="/" class="text-sm font-bold text-charcoal_light hover:text-sage transition flex items-center gap-2"><i data-lucide="arrow-left" class="w-4 h-4"></i> Powrót</a>
+        </div>
+    </nav>
+
+    <main class="flex-grow relative z-10 py-12 px-4">
+        <div class="max-w-2xl mx-auto bg-white p-8 md:p-12 rounded-3xl shadow-xl border border-charcoal/5">
+            <h1 class="text-3xl font-extrabold text-charcoal mb-8 border-b border-charcoal/5 pb-4">Kontakt i Informacje Prawne</h1>
+            
+            <div class="space-y-6 text-charcoal_light text-sm leading-relaxed">
+                <div>
+                    <h3 class="font-bold text-charcoal text-base mb-2">Administrator Danych (Data Controller)</h3>
+                    <p>Dariusz Władowski<br>Lokalizacja: Polska (UE)</p>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold text-charcoal text-base mb-2">Status Projektu</h3>
+                    <p>Projekt ma charakter demonstracyjny (portfolio). Platforma jest obecnie w fazie operacyjnej konfiguracji (sandbox). Pełne dane rejestrowe oraz dokładny adres do korespondencji są dostępne bezpośrednio po zweryfikowanym żądaniu za pośrednictwem poniższego kanału prywatności.</p>
+                </div>
+
+                <div class="bg-sage/5 border border-sage/20 p-5 rounded-2xl">
+                    <h3 class="font-bold text-sage_dark text-base mb-2 flex items-center gap-2"><i data-lucide="mail" class="w-5 h-5"></i> Kontakt RODO / Wsparcie</h3>
+                    <p class="mb-3">Wszelkie pytania, zgłoszenia błędów, żądania usunięcia konta oraz realizację praw wynikających z RODO prosimy kierować na adres e-mail:</p>
+                    <button data-action="reveal-email" class="bg-sage text-white px-5 py-2.5 rounded-xl font-bold hover:bg-sage_dark transition shadow-sm text-sm flex items-center gap-2">
+                        <i data-lucide="eye" class="w-4 h-4"></i> Pokaż adres e-mail
+                    </button>
+                </div>
+
+                <div class="mt-8 pt-6 border-t border-charcoal/5">
+                    <h3 class="font-bold text-charcoal text-base mb-2 flex items-center gap-2"><i data-lucide="trash-2" class="w-4 h-4 text-terracotta"></i> Samodzielne usuwanie konta</h3>
+                    <p>System KiedyObiad.pl posiada wbudowaną, autonomiczną opcję samodzielnego, nieodwracalnego usunięcia konta i wszystkich powiązanych danych. Znajdziesz ją po zalogowaniu w zakładce <b>Profil i ustawienia -> Usuń konto i moje dane</b>.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Logika Obfuskacji Maila
+        document.addEventListener('click', function(e) {
+            const revealBtn = e.target.closest('[data-action="reveal-email"]');
+            if (revealBtn) {
+                e.preventDefault();
+                const prefix = 'dariusz.wladowski';
+                const domain = 'gmail.com';
+                const secureEmail = `${prefix}@${domain}`;
+                
+                revealBtn.outerHTML = `<a href="mailto:${secureEmail}" class="inline-flex items-center gap-2 text-sage_dark font-bold bg-sage/10 px-5 py-2.5 rounded-xl hover:bg-sage/20 transition border border-sage/20"><i data-lucide="mail" class="w-4 h-4"></i> ${secureEmail}</a>`;
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+        });
+    </script>
+</body>
+</html>

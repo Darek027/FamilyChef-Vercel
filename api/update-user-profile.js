@@ -71,13 +71,21 @@ export default async function handler(req, res) {
         // 1. Zapisanie danych w głównej tabeli użytkownika (Wersja 5.5.0 - Dynamiczny Payload)
         const updatePayload = { 
             family_id: familyId, 
-            preferences: preferences,
             default_servings: defaultServings || 2 
         };
         
+        // WERSJA 5.5.1 - [SECURITY: Sanityzacja przed Prompt Injection]
+        // Usuwamy tagi HTML i ograniczamy długość preferencji do 200 znaków (to aż nadto na wpisanie "Keto, bez laktozy")
+        if (preferences && typeof preferences === 'string') {
+            const sanitizedPref = preferences.replace(/[<>]/g, '').trim().substring(0, 200);
+            updatePayload.preferences = sanitizedPref || "Brak specjalnych wytycznych";
+        } else {
+            updatePayload.preferences = "Brak specjalnych wytycznych";
+        }
+
         // Zabezpieczenie wejściowe dla nazwy (chronimy bazę przed wstrzykiwaniem długich ciągów)
         if (name && typeof name === 'string' && name.trim() !== '') {
-            updatePayload.name = name.trim().substring(0, 15); 
+            updatePayload.name = name.replace(/[<>]/g, '').trim().substring(0, 15); 
         }
 
         // Zabezpieczenie: Aktualizujemy parametry AI tylko jeśli zostały przesłane z frontendu

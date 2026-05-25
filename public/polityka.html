@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polityka Prywatności | KiedyObiad.pl</title>
+    <link rel="stylesheet" href="style.css">
+    <style>body { font-family: 'Plus Jakarta Sans', sans-serif; }</style>
+</head>
+<body class="bg-cream text-charcoal antialiased min-h-screen py-12 px-4">
+    <div class="max-w-3xl mx-auto bg-white p-8 md:p-12 rounded-3xl shadow-xl border border-charcoal/5">
+        <div class="mb-8 border-b border-charcoal/5 pb-4">
+            <h1 class="text-3xl font-extrabold text-charcoal mb-2">Polityka Prywatności i Cookies</h1>
+            <p class="text-sm text-charcoal_light">Data ostatniej aktualizacji: 25 maja 2026 r.</p>
+        </div>
+        
+        <div class="space-y-8 text-sm text-charcoal_light leading-relaxed">
+            
+            <section>
+                <h2 class="text-lg font-bold text-charcoal mb-3">I. Administrator Danych</h2>
+                <p>Administratorem Twoich danych osobowych jest Dariusz Władowski (Polska). W sprawach związanych z ochroną danych kontaktuj się przez informacje zawarte na podstronie <a href="/kontakt.html" target="_blank" class="text-sage font-bold hover:underline">Kontakt</a>.</p>
+            </section>
+
+            <section>
+                <h2 class="text-lg font-bold text-charcoal mb-3">II. Jakie dane przetwarzamy i dlaczego? (Podstawy Prawne)</h2>
+                <ul class="list-disc pl-5 space-y-3">
+                    <li><b>Adres e-mail i dane konta:</b> Przetwarzamy Twój e-mail, identyfikator UUID, historię logowań oraz pseudonim, aby realizować umowę o świadczenie usługi cyfrowej – logowanie OTP, obsługa bazy bilingowej. <i>(Podstawa prawna: Art. 6 ust. 1 lit. b RODO)</i>.</li>
+                    <li><b>Dane o zdrowiu i nawykach żywieniowych (Dane Wrażliwe):</b> Jeśli wpiszesz w ustawieniach Aplikacji swoje preferencje (np. alergie, nietolerancje, diety medyczne), przetwarzamy te dane <b>wyłącznie na podstawie Twojej wyraźnej, dobrowolnej zgody</b> <i>(Art. 9 ust. 2 lit. a RODO)</i>, w celu przekazania ich do algorytmu AI i wygenerowania spersonalizowanego przepisu. Zgodę tę możesz wycofać w każdym czasie, usuwając dane w panelu "Profil" lub usuwając konto (co jednak uniemożliwi korzystanie z personalizacji).</li>
+                    <li><b>Treści użytkownika:</b> Przepisy, listy zakupów i powiązania rodzinne (Family ID) przetwarzamy w celu realizacji założeń architektury aplikacji. <i>(Art. 6 ust. 1 lit. b RODO)</i>.</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2 class="text-lg font-bold text-charcoal mb-3">III. Komu przekazujemy Twoje dane? (Sub-procesorzy)</h2>
+                <p class="mb-3">Jesteśmy nowoczesnym projektem chmurowym (SaaS). Aby usługa działała, udostępniamy (na podstawie umów powierzenia) Twoje dane następującym podmiotom:</p>
+                <ul class="list-disc pl-5 space-y-2">
+                    <li><b>Supabase Inc. (USA/UE)</b> – dostawca bezpiecznej bazy danych PostgreSQL i kryptograficznego systemu uwierzytelniania JWT.</li>
+                    <li><b>Vercel Inc. (USA/UE)</b> – hosting infrastruktury i funkcji serwerowych bezserwerowych (Serverless).</li>
+                    <li><b>Resend Inc. (USA)</b> – wysyłka e-maili transakcyjnych (kody OTP, listy zakupów).</li>
+                    <li><b>Google Ireland Ltd. / Google LLC (USA)</b> – dostawca silnika Gemini AI. Zastrzegamy, że korzystamy z płatnej wersji API, co zgodnie z regulaminem Google gwarantuje, że Twoje prompty i dane dietetyczne <b>nie są</b> wykorzystywane przez Google do trenowania publicznych modeli sztucznej inteligencji.</li>
+                </ul>
+                <p class="mt-3 text-xs italic">Transfery do państw trzecich (USA) zabezpieczone są Standardowymi Klauzulami Umownymi zatwierdzonymi przez UE lub mechanizmem Data Privacy Framework.</p>
+            </section>
+
+            <section>
+                <h2 class="text-lg font-bold text-charcoal mb-3">IV. Twoje Prawa</h2>
+                <p>Masz prawo do: dostępu do danych, sprostowania, usunięcia ("prawo do bycia zapomnianym" – realizowane automatycznie, nieodwracalnie w panelu aplikacji), ograniczenia przetwarzania, przenoszenia danych oraz wniesienia skargi do Prezesa Urzędu Ochrony Danych Osobowych (PUODO).</p>
+            </section>
+
+            <section class="bg-sage/5 p-5 rounded-2xl border border-sage/10">
+                <h2 class="text-lg font-bold text-sage_dark mb-3">V. Polityka Plików Cookies (ePrivacy)</h2>
+                <p class="mb-3 text-charcoal">Wykorzystujemy technologie przechowywania danych w przeglądarce, <b>wyłącznie w celu poprawnego działania aplikacji</b>:</p>
+                <ul class="list-disc pl-5 space-y-2 text-charcoal">
+                    <li><b>Niezbędne (HttpOnly Cookies):</b> Używamy ciasteczek <code>sb-access-token</code> i <code>sb-refresh-token</code> wyłącznie do utrzymania bezpiecznej, zaszyfrowanej sesji uwierzytelnienia. Ich instalacja nie wymaga Twojej zgody <i>(zgodnie z art. 173 ust. 3 Prawa Telekomunikacyjnego)</i>.</li>
+                    <li><b>Funkcjonalne (LocalStorage):</b> Zapisujemy Twój adres e-mail (<code>familyChefEmail</code>) oraz status ukrycia banerów (PWA, Cookies) w pamięci lokalnej przeglądarki, aby przyspieszyć kolejne logowanie. Uruchamiamy ten zapis <b>dopiero po Twojej akceptacji</b> na banerze komunikacyjnym.</li>
+                </ul>
+                <p class="mt-3 font-bold text-terracotta">Aplikacja nie wykorzystuje i nie planuje wykorzystywać żadnych ciasteczek śledzących (marketingowych / analitycznych).</p>
+            </section>
+
+        </div>
+        <div class="mt-10 pt-6 border-t border-charcoal/5 text-center">
+            <a href="javascript:window.close();" class="text-sage font-bold hover:underline">Zamknij to okno</a>
+        </div>
+    </div>
+</body>
+</html>
