@@ -19,8 +19,9 @@ export default async function handler(req, res) {
     };
     const cookies = parseCookies(req.headers.cookie);
     
-    // ZMIANA: Email nie jest wymagany przy odświeżaniu lub wylogowywaniu
-    if (!email && step !== 'refresh' && step !== 'logout') {
+    // WERSJA 6.2.1 - [SAAS SECURITY: Prawdziwe Zero Trust]
+    // Email nie jest wymagany przy odświeżaniu, wylogowywaniu ORAZ przy inicjalizacji sesji (get_profile)
+    if (!email && step !== 'refresh' && step !== 'logout' && step !== 'get_profile') {
         return res.status(400).json({ status: "error", message: "Brak adresu email." });
     }
 
@@ -122,11 +123,10 @@ export default async function handler(req, res) {
                     return res.status(401).json({ status: "error", message: "Nieprawidłowy lub wygasły token sesji." });
                 }
 
-                // WERSJA 4.7.2 - [SAAS SECURITY: Zapis authUserId po weryfikacji JWT]
-                if (authData.user.email !== email) {
-                    return res.status(403).json({ status: "error", message: "Odmowa dostępu. Próba nieautoryzowanego odczytu." });
-                }
-
+                // WERSJA 6.2.2 - [SAAS SECURITY: Zapis authUserId po weryfikacji JWT]
+                // UFAMY TYLKO JWT: Ignorujemy email z body (który mógł zniknąć z localStorage na iOS)
+                // i pobieramy go bezpośrednio ze zweryfikowanego tokena kryptograficznego.
+                
                 verifiedEmail = authData.user.email; 
                 authUserId = authData.user.id;
             }

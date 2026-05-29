@@ -134,7 +134,11 @@
 
             let response = await originalFetch(resource, config);
 
-            if (response.status === 401 && resource.toString().includes('/api/')) {
+            // WERSJA 6.0.4 - [SAAS FIX: Interceptor ignoruje zapytania do /api/auth]
+            // Nie chcemy, aby interceptor reagował na 401 z endpointu autoryzacji, 
+            // ponieważ powoduje to niepotrzebne dublowanie zapytań (próba odświeżania 
+            // w momencie, gdy po prostu sprawdzamy, czy ktoś jest zalogowany).
+            if (response.status === 401 && resource.toString().includes('/api/') && !resource.toString().includes('/api/auth')) {
                 if (isRefreshing) {
                     return new Promise(resolve => {
                         refreshSubscribers.push(() => {
@@ -258,25 +262,15 @@
             }
         }
 
-        // WERSJA 6.3.0 - [SAAS FIX: Inicjalizacja sesji oparta o ciasteczka]
+        // WERSJA 6.3.1 - [SAAS FIX: Inicjalizacja oparta CAŁKOWICIE o ciasteczka (Obejście iOS ITP)]
         window.onload = function() {
             lucide.createIcons();
-            const storedEmail = localStorage.getItem('familyChefEmail');
-            const magicEmail = window.MAGIC_LINK_EMAIL;
-           
-            if (magicEmail && magicEmail !== "") {
-                localStorage.setItem('familyChefEmail', magicEmail);
-                verifyUserInDatabase(magicEmail); 
-            } else if (storedEmail) { 
-                // ZMIANA: Skoro token mamy ukryty w bezpiecznym ciasteczku HttpOnly, 
-                // na frontendzie sprawdzamy tylko, czy użytkownik "pamięta" swój email.
-                // Przeglądarka sama doklei ciasteczko, a backend oceni czy sesja jest ważna.
-                verifyUserInDatabase(storedEmail); 
-            } else {
-                hideInitialPreloader(); 
-                document.getElementById('auth-overlay').classList.remove('hidden');
-                document.getElementById('app-container').classList.add('hidden');
-            }
+            
+            // Całkowicie ignorujemy localStorage, które iOS Safari lubi kasować.
+            // Zawsze "w ciemno" pytamy backend o profil. Jeśli ciasteczko żyje, 
+            // backend nas wpuści. Jeśli go nie ma, backend zwróci błąd,
+            // a funkcja verifyUserInDatabase sama pokaże ekran logowania.
+            verifyUserInDatabase(); 
         };
 
         // WERSJA 4.6.0 - Logika OTP (Send, Verify & Auto-login)
@@ -381,31 +375,76 @@
             document.getElementById('verifyErrorMsg').classList.add('hidden');
         }
 
-        // WERSJA 6.0.1 - [SECURITY FIRST: Auto-login oparty o ciasteczka HttpOnly]
-        async function verifyUserInDatabase(email) {
+// WERSJA 6.3.4 - [SAAS FIX: Auto-refresh przy starcie aplikacji (Naprawa iOS PWA)]
+        // Jeśli access token wygasł, próbujemy odświeżyć sesję refresh tokenem zanim poddamy się i pokażemy login.
+        async function verifyUserInDatabase() {
             try {
-                // Przeglądarka sama dołączy ciasteczko z tokenem sesyjnym!
                 const response = await fetch('/api/auth', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    // Włączenie credentials pozwala na przesył ciasteczek w środowiskach lokalnych i na Vercelu
                     credentials: 'same-origin',
-                    body: JSON.stringify({ email: email, step: 'get_profile' })
+                    body: JSON.stringify({ step: 'get_profile' })
                 });
+
+                // Access token wygasł — spróbujmy go odświeżyć refresh tokenem z ciasteczka
+                if (response.status === 401) {
+                    try {
+                        const refreshRes = await fetch('/api/auth', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'same-origin',
+                            body: JSON.stringify({ step: 'refresh' })
+                        });
+                        const refreshData = await refreshRes.json();
+                        if (refreshData.status === 'success') {
+                            // Backend ustawił nowe ciasteczka — ponów pobieranie profilu
+                            const retryResponse = await fetch('/api/auth', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                credentials: 'same-origin',
+                                body: JSON.stringify({ step: 'get_profile' })
+                            });
+                            if (retryResponse.ok) {
+                                const retryRes = await retryResponse.json();
+                                if (retryRes.status === 'success') {
+                                    finalizeLogin(retryRes.data);
+                                    hideInitialPreloader();
+                                    return;
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.error("Błąd odświeżania sesji przy starcie:", e);
+                    }
+                    // Refresh nie zadziałał — sesja definitywnie wygasła
+                    showLoginScreen();
+                    return;
+                }
+
+                if (!response.ok) {
+                    showLoginScreen();
+                    return;
+                }
+
                 const res = await response.json();
-                
+
                 if (res.status === 'success') {
                     finalizeLogin(res.data);
-                    hideInitialPreloader(); // WERSJA 5.1.3 - Sukces logowania, odkrywamy gotowy interfejs!
-                } else {
                     hideInitialPreloader();
-                    logoutUser();
+                } else {
+                    showLoginScreen();
                 }
             } catch (error) {
                 console.error("Auto-login error", error);
-                hideInitialPreloader(); 
-                logoutUser(); // W przypadku błędu bezpieczniej wyrzucić do ekranu logowania
+                showLoginScreen();
             }
+        }
+
+        // Pomocnicza funkcja UX: Odkrywa ekran logowania, zamiast wymuszać reload
+        function showLoginScreen() {
+            hideInitialPreloader();
+            document.getElementById('auth-overlay').classList.remove('hidden');
+            document.getElementById('app-container').classList.add('hidden');
         }
 
         // WERSJA 6.0.3 - [ePrivacy: Warunkowy zapis do localStorage na podstawie zgody]
