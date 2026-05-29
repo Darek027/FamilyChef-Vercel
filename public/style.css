@@ -1908,10 +1908,6 @@ video {
   font-weight: 500;
 }
 
-.font-normal {
-  font-weight: 400;
-}
-
 .font-semibold {
   font-weight: 600;
 }
@@ -2049,10 +2045,6 @@ video {
 
 .opacity-70 {
   opacity: 0.7;
-}
-
-.opacity-75 {
-  opacity: 0.75;
 }
 
 .opacity-80 {
@@ -2326,6 +2318,10 @@ video {
 
 .hover\:bg-terracotta\/10:hover {
   background-color: rgb(200 126 92 / 0.1);
+}
+
+.hover\:bg-terracotta\/20:hover {
+  background-color: rgb(200 126 92 / 0.2);
 }
 
 .hover\:bg-terracotta\/5:hover {

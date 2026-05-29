@@ -221,16 +221,15 @@
                 badge.onclick = null; 
             } else {
                 // Wygląd dla FREE (zachęcające do kliknięcia)
-                badge.innerHTML = `DARMOWY <span class="font-normal opacity-75 hidden sm:inline">- Ulepsz</span>`;
-                badge.className = "text-[10px] sm:text-xs font-bold px-3 py-1.5 rounded-full transition-all border shadow-sm flex items-center gap-1 shrink-0 cursor-pointer bg-white text-charcoal_light border-charcoal/10 hover:border-terracotta/30 hover:text-terracotta hover:bg-terracotta/5";
+                badge.innerHTML = `<i data-lucide="flask-conical" class="w-3 h-3"></i> DEMO`;
+                badge.className = "text-[10px] sm:text-xs font-bold px-3 py-1.5 rounded-full transition-all border shadow-sm flex items-center gap-1 shrink-0 cursor-pointer bg-terracotta/10 text-terracotta border-terracotta/20 hover:bg-terracotta/20";
                 badge.onclick = triggerUpgradeModal;
             }
             lucide.createIcons(); 
         }
 
         function triggerUpgradeModal() {
-            // Tutaj w Fazie 6 podmienimy alert na wywołanie okna Checkout / Paywall
-            alert("🚀 Moduł płatności Premium jest w przygotowaniu (Faza 6).\n\nWkrótce będziesz mógł przejść na pakiet Premium, aby odblokować zaawansowane persony Szefów Kuchni, łączenie kont i bezlimitową bazę przepisów!");
+            alert("✨ Ta funkcja jest dostępna w wersji Premium.\n\nTo jest wersja demonstracyjna aplikacji. Jeśli chcesz poznać pełne możliwości Premium — zaawansowane Style Gotowania, łączenie kont rodzinnych i nie tylko — odwiedź stronę:\n\n🌐 kiedyobiad.pl/kontakt.html");
         }
 
         // WERSJA 4.3.2 - Funkcja blokująca wybór opcji Premium dla darmowych użytkowników (Soft Paywall UI)
@@ -1147,8 +1146,7 @@ body: JSON.stringify({
             
             // WERSJA 4.0.0 - Soft Paywall
             if (!currentUserProfile.is_premium && (chef !== 'DEFAULT_CHEF' || skill !== 'DEFAULT_SKILL')) {
-                alert("⭐ Zapisanie innej persony lub poziomu niż domyślne wymaga pakietu Premium! (Wkrótce dostępne)");
-                // Przywracamy domyślne wartości
+                alert("✨ Zapisanie niestandardowego Stylu Gotowania lub Poziomu jest funkcją Premium.\n\nTo jest wersja demonstracyjna aplikacji. Aby uzyskać dostęp do tych możliwości, odwiedź stronę:\n\n🌐 kiedyobiad.pl/kontakt.html");
                 document.getElementById('profileChef').value = 'DEFAULT_CHEF';
                 document.getElementById('profileSkill').value = 'DEFAULT_SKILL';
                 return;
